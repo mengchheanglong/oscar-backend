@@ -3594,6 +3594,187 @@
           "AI Assistant"
         ]
       }
+    },
+    "/api/v1/projects/{projectId}/ai/memories": {
+      "get": {
+        "operationId": "CopilotMemoryController_list",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CopilotMemoryResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List the latest 100 private copilot memories in the project",
+        "tags": [
+          "Copilot Memory"
+        ]
+      },
+      "post": {
+        "operationId": "CopilotMemoryController_create",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCopilotMemoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CopilotMemoryResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Save explicitly reviewed private copilot memory; retries use the same key",
+        "tags": [
+          "Copilot Memory"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai/memories/{id}": {
+      "patch": {
+        "operationId": "CopilotMemoryController_update",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCopilotMemoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CopilotMemoryResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Edit reviewed private memory using its current version",
+        "tags": [
+          "Copilot Memory"
+        ]
+      },
+      "delete": {
+        "operationId": "CopilotMemoryController_remove",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Remove private copilot memory from saved copilot context",
+        "tags": [
+          "Copilot Memory"
+        ]
+      }
     }
   },
   "info": {
@@ -4847,6 +5028,7 @@
           "defaultMode": {
             "type": "string",
             "enum": [
+              "WORKSPACE",
               "PM",
               "DEVELOPER",
               "QA",
@@ -4886,6 +5068,7 @@
           "defaultMode": {
             "type": "string",
             "enum": [
+              "WORKSPACE",
               "PM",
               "DEVELOPER",
               "QA",
@@ -4920,6 +5103,7 @@
           "mode": {
             "type": "string",
             "enum": [
+              "WORKSPACE",
               "PM",
               "DEVELOPER",
               "QA",
@@ -5022,6 +5206,7 @@
           "mode": {
             "type": "string",
             "enum": [
+              "WORKSPACE",
               "PM",
               "DEVELOPER",
               "QA",
@@ -5046,6 +5231,124 @@
         },
         "required": [
           "content"
+        ]
+      },
+      "CopilotMemoryResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "CONTEXT",
+              "PREFERENCE",
+              "LESSON"
+            ]
+          },
+          "content": {
+            "type": "string"
+          },
+          "sourceMessageId": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "content",
+          "version",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateCopilotMemoryDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "CONTEXT",
+              "PREFERENCE",
+              "LESSON"
+            ]
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "userConfirmed": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "example": true,
+            "description": "The user reviewed and explicitly chose to save this text."
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Reuse this key when retrying the same save."
+          },
+          "sourceMessageId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "kind",
+          "content",
+          "userConfirmed",
+          "idempotencyKey"
+        ]
+      },
+      "UpdateCopilotMemoryDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "CONTEXT",
+              "PREFERENCE",
+              "LESSON"
+            ]
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "userConfirmed": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "example": true,
+            "description": "The user reviewed and explicitly chose to save this text."
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "kind",
+          "content",
+          "userConfirmed",
+          "version"
         ]
       }
     }

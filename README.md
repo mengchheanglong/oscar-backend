@@ -152,9 +152,39 @@ curl -sSL https://raw.githubusercontent.com/mengchheanglong/AI-Workspace-backend
 - **Readiness 503:** check database availability and local storage permissions. Detailed credentials/paths are intentionally omitted from public responses.
 - **PowerShell script execution restrictions:** use `pnpm.cmd` instead of `pnpm`; do not weaken machine-wide execution policy.
 
+## Operational copilot and private memory
+
+Workspace mode supports research, analysis, planning, and project work across
+disciplines. In the frontend, new chats start in this mode; existing conversation
+defaults and specialized modes are preserved. Learning assistance is available
+when it helps the work or is requested.
+
+Open **AI Copilot → Memory** to review, save, edit, or remove private context,
+preferences, and lessons. **Remember…** on a completed reply opens a draft for
+review; **Confirm and save** persists it. Memory is private to the authenticated
+user in the selected project and separate from cited project evidence.
+
+Apply the `1791072000000-CreateCopilotMemories` migration explicitly before
+running this version against a persistent database (`pnpm migration:run`, or
+`pnpm migration:run:prod` in the release environment). The change does not apply
+migrations at startup. Memory CRUD needs neither AI credentials nor Redis;
+generation still uses the configured provider.
+
+MCP additionally exposes `list_copilot_memories`, `save_copilot_memory`,
+`update_copilot_memory`, and `remove_copilot_memory`. Saves/edits require reviewed
+text and `userConfirmed: true`; creates use a stable UUID `idempotencyKey` for
+retries; edits/removals use the current version. Restart MCP clients after a
+rebuild. Removed memories stop appearing in saved context; existing messages
+are retained.
+
+See [the reuse blueprint](docs/WORKSPACE_REUSE_BLUEPRINT.md) for the inspected
+source revisions, memory responsibilities, and next runtime integration.
+OpenClaw, Hermes, Paperclip, and Langflow are references/integration candidates;
+this slice does not install or connect their runtimes.
+
 ## Reviewed AI actions through MCP
 
-The stdio server now exposes 32 tools, including `generate_task_proposal`, `generate_decision_task_proposal`, `generate_meeting_analysis`, `list_ai_proposals`, `get_ai_proposal`, `update_ai_proposal`, `confirm_ai_proposal`, and `reject_ai_proposal`.
+The stdio server now exposes 36 tools, including `generate_task_proposal`, `generate_decision_task_proposal`, `generate_meeting_analysis`, `list_ai_proposals`, `get_ai_proposal`, `update_ai_proposal`, `confirm_ai_proposal`, and `reject_ai_proposal`.
 
 Generation creates private, project-scoped drafts only. Inspect the proposal and its source revision, edit using its current version, and confirm only reviewed, user-authorized item IDs. Confirmation requires `userConfirmed: true` and a stable `idempotencyKey`; reuse that key for retries. An explicit empty `selectedItemIds` array saves no domain items (a meeting summary can still be selected separately). Unwanted drafts can be rejected. All operations use the existing authenticated API, permissions, validation and transaction checks.
 

@@ -50,6 +50,8 @@ import {
 import { GitHubIssue } from '../../src/modules/integrations/github/entities/github-issue.entity';
 import { OutboxEvent } from '../../src/modules/ingestion/entities';
 import { PasswordService } from '../../src/modules/auth/services/password.service';
+import { CopilotMemory } from '../../src/modules/ai/entities/copilot-memory.entity';
+import { CopilotMemoryService } from '../../src/modules/ai/copilot-memory.service';
 
 describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
   jest.setTimeout(60000);
@@ -632,6 +634,10 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       .useValue(mockConversationRepository)
       .overrideProvider(getRepositoryToken(ChatMessage))
       .useValue(mockChatMessageRepository)
+      .overrideProvider(getRepositoryToken(CopilotMemory))
+      .useValue({})
+      .overrideProvider(CopilotMemoryService)
+      .useValue({ list: jest.fn().mockResolvedValue([]) })
       .overrideProvider(getRepositoryToken(AIProposal))
       .useValue(mockProposalRepository)
       .overrideProvider(getRepositoryToken(ProposalCommit))
@@ -820,6 +826,45 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
   });
 
   // ── Scenario 1: Cross-Project Isolation (404 Leak Prevention) ──
+  it('protects memory endpoints with authentication, project isolation, CSRF and explicit-review validation', async () => {
+    const path = `/api/v1/projects/${projectA.id}/ai/memories`;
+    expect((await request(app.getHttpServer()).get(path)).status).toBe(401);
+    expect(
+      (
+        await request(app.getHttpServer())
+          .get(`/api/v1/projects/${projectB.id}/ai/memories`)
+          .set('Cookie', sessionA.cookie)
+      ).status,
+    ).toBe(404);
+    const payload = {
+      kind: 'CONTEXT',
+      content: 'Reviewed goal.',
+      idempotencyKey: randomUUID(),
+      userConfirmed: true,
+    };
+    expect(
+      (await request(app.getHttpServer()).post(path).set('Cookie', sessionA.cookie).send(payload))
+        .status,
+    ).toBe(403);
+    expect(
+      (
+        await request(app.getHttpServer())
+          .post(path)
+          .set('Cookie', sessionA.cookie)
+          .set('x-csrf-token', sessionA.csrf)
+          .send({ ...payload, userConfirmed: false })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await request(app.getHttpServer())
+          .post(path)
+          .set('Cookie', sessionA.cookie)
+          .set('x-csrf-token', sessionA.csrf)
+          .send({ ...payload, content: '  ' })
+      ).status,
+    ).toBe(400);
+  });
 
   it('[Security Gate 1] Project A user cannot view or guess Project B resources (404 Not Found)', async () => {
     // 1. Get Project B details

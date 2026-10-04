@@ -15,6 +15,7 @@ import { AiMode, Conversation } from './entities/conversation.entity';
 import { LlmProvider } from './llm/llm-provider.interface';
 import { RetrievalService } from './retrieval/retrieval.service';
 import { IngestionService } from '../ingestion/ingestion.service';
+import { CopilotMemoryService } from './copilot-memory.service';
 
 @Injectable()
 export class AiService implements OnModuleInit {
@@ -32,6 +33,7 @@ export class AiService implements OnModuleInit {
     @Inject('LLM_PROVIDER')
     private readonly llmProvider: LlmProvider,
     private readonly ingestionService: IngestionService,
+    private readonly memoryService: CopilotMemoryService,
   ) {}
 
   onModuleInit(): void {
@@ -151,7 +153,13 @@ export class AiService implements OnModuleInit {
     });
 
     // Assemble context
-    const assembled = this.contextAssembler.assemble(projectName, mode, retrievedEvidence);
+    const memories = await this.memoryService.list(projectId, userId, 8);
+    const assembled = this.contextAssembler.assemble(
+      projectName,
+      mode,
+      retrievedEvidence,
+      memories,
+    );
 
     // Fetch bounded history (up to 10 most recent messages)
     const recentMessages = await this.messageRepo.find({

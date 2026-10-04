@@ -32,6 +32,8 @@ import { IngestionController } from '../src/modules/ingestion/ingestion.controll
 import { IngestionService } from '../src/modules/ingestion/ingestion.service';
 import { AiController } from '../src/modules/ai/ai.controller';
 import { AiService } from '../src/modules/ai/ai.service';
+import { CopilotMemoryController } from '../src/modules/ai/copilot-memory.controller';
+import { CopilotMemoryService } from '../src/modules/ai/copilot-memory.service';
 import { Document } from '../src/modules/documents/entities/document.entity';
 import { DocumentRevision } from '../src/modules/documents/entities/document-revision.entity';
 import { STORAGE_DRIVER } from '../src/modules/storage/storage.interface';
@@ -66,6 +68,7 @@ import { createOpenApiDocument } from '../src/openapi';
     SearchController,
     IngestionController,
     AiController,
+    CopilotMemoryController,
   ],
   providers: [
     { provide: HealthService, useValue: {} },
@@ -90,6 +93,7 @@ import { createOpenApiDocument } from '../src/openapi';
     { provide: SearchService, useValue: {} },
     { provide: IngestionService, useValue: {} },
     { provide: AiService, useValue: {} },
+    { provide: CopilotMemoryService, useValue: {} },
     { provide: STORAGE_DRIVER, useValue: {} },
     { provide: getRepositoryToken(ProjectMember), useValue: {} },
     { provide: getRepositoryToken(Requirement), useValue: {} },

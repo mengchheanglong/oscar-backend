@@ -70,6 +70,9 @@ async function main() {
       contextAssembler,
       mockLlmProvider,
       mockIngestionService,
+      {
+        list: async () => [],
+      } as unknown as import('../src/modules/ai/copilot-memory.service').CopilotMemoryService,
     );
 
     // 3. Find or Create Test Project & User

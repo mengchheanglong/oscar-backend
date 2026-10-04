@@ -13,6 +13,8 @@ import {
 import { IngestionService } from '../../src/modules/ingestion/ingestion.service';
 import { KnowledgeSourceType } from '../../src/modules/ingestion/entities';
 import { Project } from '../../src/modules/projects/entities/project.entity';
+import { CopilotMemoryService } from '../../src/modules/ai/copilot-memory.service';
+import { CopilotMemoryKind } from '../../src/modules/ai/entities/copilot-memory.entity';
 
 describe('AiService', () => {
   let service: AiService;
@@ -42,6 +44,7 @@ describe('AiService', () => {
   let mockIngestionService: {
     getEmbeddingProvider: jest.Mock;
   };
+  let mockMemoryService: { list: jest.Mock };
 
   const mockProjectId = 'proj-1111-1111';
   const mockUserId = 'user-2222-2222';
@@ -84,6 +87,7 @@ describe('AiService', () => {
     mockIngestionService = {
       getEmbeddingProvider: jest.fn().mockReturnValue(null),
     };
+    mockMemoryService = { list: jest.fn().mockResolvedValue([]) };
 
     service = new AiService(
       mockConversationRepo as unknown as Repository<Conversation>,
@@ -93,6 +97,7 @@ describe('AiService', () => {
       contextAssembler,
       mockLlmProvider as unknown as LlmProvider,
       mockIngestionService as unknown as IngestionService,
+      mockMemoryService as unknown as CopilotMemoryService,
     );
   });
 
@@ -145,6 +150,43 @@ describe('AiService', () => {
   });
 
   describe('postMessage', () => {
+    it('loads only actor/project memory before the provider call and keeps it separate from citations', async () => {
+      mockConversationRepo.findOne.mockResolvedValue({
+        id: 'conv-1',
+        title: 'Work',
+        defaultMode: AiMode.WORKSPACE,
+      });
+      mockMemoryService.list.mockResolvedValue([
+        {
+          id: 'memory-1',
+          kind: CopilotMemoryKind.LESSON,
+          content: 'Verify cash-flow assumptions against the source filing.',
+          version: 1,
+        },
+      ]);
+      mockLlmProvider.generateAnswer.mockResolvedValue({
+        content: 'Here are the assumptions.',
+        citations: [],
+        modelName: 'test',
+      });
+      await service.postMessage(mockProjectId, mockUserId, 'conv-1', {
+        content: 'Analyze this project.',
+      });
+      expect(mockMemoryService.list).toHaveBeenCalledWith(mockProjectId, mockUserId, 8);
+      const input = mockLlmProvider.generateAnswer.mock.calls[0]![0];
+      expect(input.messages[0].content).toContain('Verify cash-flow assumptions');
+      expect(input.messages[0].content).toContain('UNTRUSTED CONTEXT');
+      expect(input.evidence).toEqual([]);
+    });
+
+    it('does not contact the provider when memory access is revoked', async () => {
+      mockConversationRepo.findOne.mockResolvedValue({ id: 'conv-1', title: 'Work' });
+      mockMemoryService.list.mockRejectedValue(new NotFoundException('Project not found'));
+      await expect(
+        service.postMessage(mockProjectId, mockUserId, 'conv-1', { content: 'Work' }),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockLlmProvider.generateAnswer).not.toHaveBeenCalled();
+    });
     it('orchestrates retrieval, context assembly, LLM generation, and citation validation', async () => {
       const mockConv = {
         id: 'conv-1',

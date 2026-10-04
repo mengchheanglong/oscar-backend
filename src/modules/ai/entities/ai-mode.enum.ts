@@ -1,4 +1,5 @@
 export enum AiMode {
+  WORKSPACE = 'WORKSPACE',
   PM = 'PM',
   DEVELOPER = 'DEVELOPER',
   QA = 'QA',

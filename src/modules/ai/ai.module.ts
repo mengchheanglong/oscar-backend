@@ -10,6 +10,9 @@ import { Decision } from '../decisions/entities/decision.entity';
 import { IngestionModule } from '../ingestion/ingestion.module';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
+import { CopilotMemory } from './entities/copilot-memory.entity';
+import { CopilotMemoryService } from './copilot-memory.service';
+import { CopilotMemoryController } from './copilot-memory.controller';
 import { ContextAssembler } from './context/context-assembler';
 import { ChatMessage } from './entities/chat-message.entity';
 import { Conversation } from './entities/conversation.entity';
@@ -25,6 +28,7 @@ import { RetrievalService } from './retrieval/retrieval.service';
   imports: [
     TypeOrmModule.forFeature([
       Conversation,
+      CopilotMemory,
       ChatMessage,
       AIProposal,
       ProposalCommit,
@@ -37,11 +41,12 @@ import { RetrievalService } from './retrieval/retrieval.service';
     ]),
     IngestionModule,
   ],
-  controllers: [AiController, ProposalsController],
+  controllers: [AiController, ProposalsController, CopilotMemoryController],
   providers: [
     RetrievalService,
     ContextAssembler,
     AiService,
+    CopilotMemoryService,
     ProposalsService,
     {
       provide: 'LLM_PROVIDER',
