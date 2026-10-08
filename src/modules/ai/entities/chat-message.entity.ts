@@ -32,6 +32,8 @@ export interface CitationItem {
   locator?: string | null;
   score?: number;
   snippet?: string;
+  projectName?: string;
+  projectKey?: string;
 }
 
 @Entity('ai_messages')

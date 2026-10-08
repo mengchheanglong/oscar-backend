@@ -1,5 +1,10 @@
 # Repository instructions
 
+## Git workflow
+
+- Work only on `develop`. Reconcile newer `main` changes into `develop`; do not commit or merge into `main`.
+- Commit completed, verified changes locally. Do not push unless the user explicitly requests it.
+
 ## Read first
 
 - Read `PROJECT_IMPLEMENTATION_GUIDE.md` before implementing a feature. It contains the product scope, data model, authorization rules, API contract, milestones, and acceptance gates.

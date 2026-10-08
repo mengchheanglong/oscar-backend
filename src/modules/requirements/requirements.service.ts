@@ -187,13 +187,20 @@ export class RequirementsService {
     }
 
     const projectIds = memberships.map((m) => m.projectId);
+    let targetProjectIds = projectIds;
+    if (query.projectId && query.projectId !== 'ALL') {
+      if (!projectIds.includes(query.projectId)) {
+        return { data: [], total: 0 };
+      }
+      targetProjectIds = [query.projectId];
+    }
 
     const qb: SelectQueryBuilder<Requirement> = this.requirementRepository
       .createQueryBuilder('requirement')
       .leftJoinAndSelect('requirement.project', 'project')
       .leftJoinAndSelect('requirement.updater', 'updater')
       .leftJoinAndSelect('requirement.creator', 'creator')
-      .where('requirement.projectId IN (:...projectIds)', { projectIds })
+      .where('requirement.projectId IN (:...targetProjectIds)', { targetProjectIds })
       .andWhere('requirement.deletedAt IS NULL');
 
     if (query.status) {

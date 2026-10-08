@@ -51,11 +51,17 @@ const schema = z
     GITHUB_CALLBACK_STATE_SECRET: emptyStringToUndefined(z.string().optional()),
     GITHUB_USE_MOCK: booleanString.default(false),
     REDIS_URL: z.string().default('redis://127.0.0.1:56379'),
-    AI_LLM_PROVIDER: z.literal('deepseek').default('deepseek'),
+    AI_LLM_PROVIDER: emptyStringToUndefined(z.literal('deepseek').default('deepseek')),
     DEEPSEEK_API_KEY: emptyStringToUndefined(z.string().optional()),
-    DEEPSEEK_BASE_URL: z.literal('https://api.deepseek.com').default('https://api.deepseek.com'),
-    AI_CHAT_MODEL: z.enum(['deepseek-flash', 'deepseek-v4-pro']).default('deepseek-flash'),
-    AI_EMBEDDING_PROVIDER: z.enum(['disabled', 'mock', 'openai']).default('disabled'),
+    DEEPSEEK_BASE_URL: emptyStringToUndefined(
+      z.literal('https://api.deepseek.com').default('https://api.deepseek.com'),
+    ),
+    AI_CHAT_MODEL: emptyStringToUndefined(
+      z.enum(['deepseek-flash', 'deepseek-v4-pro']).default('deepseek-flash'),
+    ),
+    AI_EMBEDDING_PROVIDER: emptyStringToUndefined(
+      z.enum(['disabled', 'mock', 'openai']).default('disabled'),
+    ),
     OPENAI_API_KEY: emptyStringToUndefined(z.string().optional()),
     OPENAI_EMBEDDING_BASE_URL: z.string().default('https://api.openai.com/v1'),
     AI_EMBEDDING_MODEL: z.string().default('text-embedding-3-small'),

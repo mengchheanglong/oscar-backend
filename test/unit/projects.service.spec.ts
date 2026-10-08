@@ -35,6 +35,7 @@ describe('ProjectsService', () => {
         const manager = {
           create: jest.fn((_type: unknown, dto: object) => ({ id: 'new-id', ...dto })),
           save: jest.fn(async (_type: unknown, entity: unknown) => entity),
+          findOne: jest.fn(async () => null),
         };
         return cb(manager);
       }),
@@ -67,6 +68,51 @@ describe('ProjectsService', () => {
     expect(result.accessRole).toBe(ProjectRole.OWNER);
     expect(auditService.record).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'PROJECT_CREATED' }),
+      expect.anything(),
+    );
+  });
+
+  it('creates project with invited initial members', async () => {
+    projectRepo.findOne.mockResolvedValue(null);
+    let capturedManager!: { create: jest.Mock; save: jest.Mock; findOne: jest.Mock };
+    (dataSource.transaction as jest.Mock).mockImplementation(
+      async (cb: (manager: unknown) => Promise<unknown>) => {
+        capturedManager = {
+          create: jest.fn((_type: unknown, dto: object) => ({ id: 'new-id', ...dto })),
+          save: jest.fn(async (_type: unknown, entity: unknown) => entity),
+          findOne: jest.fn(async (_entity: unknown, opts: { where?: { id?: string } }) => {
+            if (opts?.where?.id === 'invited-user-1') {
+              return { id: 'invited-user-1', email: 'colleague@example.com', isActive: true };
+            }
+            return null;
+          }),
+        };
+        return cb(capturedManager);
+      },
+    );
+
+    const result = await service.createProject('user-1', {
+      key: 'TEAMPRJ',
+      name: 'Team Project',
+      members: [
+        { userId: 'invited-user-1', role: ProjectRole.CONTRIBUTOR },
+        { userId: 'user-1' }, // Should be ignored since user-1 is creator
+      ],
+    });
+
+    expect(result.project.key).toBe('TEAMPRJ');
+    expect(capturedManager.create).toHaveBeenCalledWith(
+      ProjectMember,
+      expect.objectContaining({
+        userId: 'invited-user-1',
+        accessRole: ProjectRole.CONTRIBUTOR,
+      }),
+    );
+    expect(auditService.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'MEMBER_ADDED',
+        entityId: 'invited-user-1',
+      }),
       expect.anything(),
     );
   });

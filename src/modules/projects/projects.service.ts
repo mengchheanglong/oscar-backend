@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, IsNull, Repository } from 'typeorm';
 import { Project, ProjectStatus } from './entities/project.entity';
 import { ProjectMember, ProjectRole } from './entities/project-member.entity';
+import { User } from '../users/entities/user.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { AuditService } from '../audit/audit.service';
@@ -117,6 +118,43 @@ export class ProjectsService {
       });
 
       await manager.save(ProjectMember, member);
+
+      // Add invited workspace members if provided
+      if (dto.members && dto.members.length > 0) {
+        const addedUserIds = new Set<string>([userId]);
+        for (const m of dto.members) {
+          if (!m.userId || addedUserIds.has(m.userId)) continue;
+          addedUserIds.add(m.userId);
+
+          const invitedUser = await manager.findOne(User, {
+            where: { id: m.userId, isActive: true },
+          });
+          if (invitedUser) {
+            const role = m.role && m.role !== ProjectRole.OWNER ? m.role : ProjectRole.CONTRIBUTOR;
+            const newMember = manager.create(ProjectMember, {
+              projectId: savedProject.id,
+              userId: invitedUser.id,
+              accessRole: role,
+              joinedAt: new Date(),
+              removedAt: null,
+            });
+            await manager.save(ProjectMember, newMember);
+
+            await this.auditService.record(
+              {
+                projectId: savedProject.id,
+                actorId: userId,
+                action: 'MEMBER_ADDED',
+                entityType: 'MEMBER',
+                entityId: invitedUser.id,
+                metadata: { role, userEmail: invitedUser.email },
+                requestId,
+              },
+              manager,
+            );
+          }
+        }
+      }
 
       await this.auditService.record(
         {

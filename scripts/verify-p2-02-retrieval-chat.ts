@@ -11,6 +11,7 @@ import { MockLlmProvider } from '../src/modules/ai/llm/mock-llm-provider';
 import { AiService } from '../src/modules/ai/ai.service';
 import { MockEmbeddingProvider } from '../src/modules/ingestion/embedding';
 import { Project } from '../src/modules/projects/entities/project.entity';
+import { ProjectMember } from '../src/modules/projects/entities/project-member.entity';
 import { User, SystemRole } from '../src/modules/users/entities/user.entity';
 import {
   KnowledgeSource,
@@ -66,6 +67,8 @@ async function main() {
       dataSource.getRepository(Conversation),
       dataSource.getRepository(ChatMessage),
       dataSource.getRepository(Project),
+      dataSource.getRepository(ProjectMember),
+      dataSource.getRepository(User),
       retrievalService,
       contextAssembler,
       mockLlmProvider,

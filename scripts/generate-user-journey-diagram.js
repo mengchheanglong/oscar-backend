@@ -1,0 +1,509 @@
+const fs = require('fs');
+const path = require('path');
+const { chromium } = require('playwright');
+
+const ARTIFACT_DIR =
+  'C:\\Users\\User\\.gemini\\antigravity\\brain\\b63ab473-bb26-4b97-a5f1-79e3bf3dd532';
+const DOCS_DIR = path.resolve(__dirname, '../docs');
+
+const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>High-Level User Journey Diagram - AI Workspace</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #060913;
+      color: #f1f5f9;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      padding: 44px 56px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      background: radial-gradient(circle at 10% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 45%),
+                  radial-gradient(circle at 90% 85%, rgba(14, 165, 233, 0.14) 0%, transparent 45%),
+                  radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
+                  #070a15;
+    }
+
+    body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 36px 36px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .slide-header {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 18px;
+    }
+
+    .slide-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      color: #a5b4fc;
+      margin-bottom: 6px;
+    }
+
+    .slide-title {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+    }
+
+    .slide-subtitle {
+      font-size: 15px;
+      color: #94a3b8;
+      font-weight: 500;
+      margin-top: 3px;
+    }
+
+    /* Diagram Stage Columns */
+    .diagram-stage {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 260px 50px 240px 50px 370px 50px 320px 50px 280px;
+      align-items: center;
+      margin: 18px 0;
+      flex: 1;
+    }
+
+    /* Node Cards */
+    .node-card {
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 14px;
+      padding: 16px 18px;
+      box-shadow: 0 16px 32px -10px rgba(0, 0, 0, 0.5);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .node-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .node-desc {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.45;
+    }
+
+    .node-list {
+      margin-top: 8px;
+      font-size: 11.5px;
+      color: #cbd5e1;
+      line-height: 1.6;
+      list-style: none;
+    }
+
+    .node-list li::before {
+      content: "• ";
+      color: #6366f1;
+      font-weight: bold;
+    }
+
+    /* Decision Diamond Box */
+    .decision-box {
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid #f59e0b;
+      border-radius: 10px;
+      padding: 12px 14px;
+      text-align: center;
+      box-shadow: 0 0 20px -5px rgba(245, 158, 11, 0.25);
+    }
+
+    .decision-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    /* Status Pills */
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .pill-blue { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35); }
+    .pill-green { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+    .pill-amber { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+    .pill-purple { background: rgba(139, 92, 246, 0.2); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.35); }
+    .pill-cyan { background: rgba(6, 182, 212, 0.2); color: #38bdf8; border: 1px solid rgba(6, 182, 212, 0.35); }
+
+    /* Flow Connector Arrows */
+    .connector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      gap: 4px;
+    }
+
+    .arrow-icon {
+      color: #6366f1;
+    }
+
+    /* Tracks Column */
+    .tracks-col {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Footer Banner */
+    .slide-footer {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      color: #64748b;
+      font-size: 12.5px;
+    }
+
+    .highlight-bar {
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: 10px;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="slide-header">
+    <div>
+      <div class="slide-tag">01 • CORE PRODUCT ARCHITECTURE</div>
+      <div class="slide-title">1. High-Level User Journey Diagram</div>
+      <div class="slide-subtitle">End-to-end user navigation flow across authentication, workspace isolation, grounded AI Copilot, and transactional persistence</div>
+    </div>
+    <div style="text-align: right; font-family: 'JetBrains Mono', monospace;">
+      <span class="pill pill-green" style="font-size: 11px; padding: 5px 12px;">
+        ZERO-TRUST GUARANTEE • HUMAN-IN-THE-LOOP
+      </span>
+    </div>
+  </div>
+
+  <!-- MAIN DIAGRAM STAGE (5 COLUMNS + CONNECTORS) -->
+  <div class="diagram-stage">
+
+    <!-- COL 1: ENTRY & AUTH -->
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <!-- Step 1.1: Landing -->
+      <div class="node-card" style="border-left: 3px solid #6366f1;">
+        <span class="pill pill-purple">STAGE 1: ENTRY</span>
+        <div class="node-title"><span>👤</span> User Lands on Platform</div>
+        <div class="node-desc">Visits Web App or IDE extension.</div>
+      </div>
+
+      <!-- Decision: Auth Check -->
+      <div class="decision-box">
+        <div class="decision-title"><span>🔒</span> Authenticated?</div>
+        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Valid session cookie?</div>
+      </div>
+
+      <!-- Step 1.2: Login Page -->
+      <div class="node-card" style="border-left: 3px solid #38bdf8;">
+        <span class="pill pill-cyan">NO → LOGIN</span>
+        <div class="node-title"><span>🔑</span> Auth Gateway (/login)</div>
+        <ul class="node-list">
+          <li>Email & Password (Argon2id)</li>
+          <li>Opaque Session Cookie Issued</li>
+          <li>CSRF Token Protection</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- CONNECTOR 1 -->
+    <div class="connector">
+      <svg class="arrow-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      <span>AUTH OK</span>
+    </div>
+
+    <!-- COL 2: SCOPE & DASHBOARD -->
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <!-- Step 2.1: Project Switcher -->
+      <div class="node-card" style="border-left: 3px solid #6366f1;">
+        <span class="pill pill-blue">STAGE 2: SCOPE</span>
+        <div class="node-title"><span>📁</span> Project Switcher (/projects)</div>
+        <div class="node-desc">Select or create tenant workspace.</div>
+        <ul class="node-list">
+          <li>Mandatory <code style="color: #93c5fd;">projectId</code> boundary</li>
+          <li>RBAC: Owner / Maintainer / Contrib / Viewer</li>
+          <li>Conversation memory isolated</li>
+        </ul>
+      </div>
+
+      <!-- Step 2.2: Dashboard Hub -->
+      <div class="node-card" style="border-left: 3px solid #10b981;">
+        <span class="pill pill-green">CENTRAL HUB</span>
+        <div class="node-title"><span>📊</span> Project Overview Dashboard</div>
+        <div class="node-desc">Real-time team state aggregates.</div>
+        <ul class="node-list">
+          <li>Task metrics & Overdue tracking</li>
+          <li>Recent Activity Stream audit</li>
+          <li>Document & Knowledge health</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- CONNECTOR 2 -->
+    <div class="connector">
+      <svg class="arrow-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      <span>USER INTENT</span>
+    </div>
+
+    <!-- COL 3: 3 PARALLEL WORKSPACE TRACKS -->
+    <div class="tracks-col">
+      <!-- Track A: Core Management -->
+      <div class="node-card" style="border-left: 3px solid #34d399;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="pill pill-green">TRACK A: CORE WORKSPACE</span>
+          <span style="font-size: 16px;">📋</span>
+        </div>
+        <div class="node-title" style="margin-top: 4px;">Requirements & Task Execution</div>
+        <div class="node-desc">Direct authoring and lifecycle tracking:</div>
+        <ul class="node-list">
+          <li>Requirements with Acceptance Criteria</li>
+          <li>Architectural Decision Records (ADRs)</li>
+          <li>Tasks, Sprint Priorities & Member Assignment</li>
+          <li>Meeting Transcripts & Document Uploads</li>
+        </ul>
+      </div>
+
+      <!-- Track B: Grounded AI Copilot -->
+      <div class="node-card" style="border-left: 3px solid #c084fc;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="pill pill-purple">TRACK B: AI COPILOT</span>
+          <span style="font-size: 16px;">🤖</span>
+        </div>
+        <div class="node-title" style="margin-top: 4px;">Grounded Copilot (/assistant)</div>
+        <div class="node-desc">Fact-checked project assistance:</div>
+        <ul class="node-list">
+          <li>6 Specialized Modes (PM, Dev, QA, etc.)</li>
+          <li>Hybrid Retrieval: <code style="color: #c084fc;">tsvector</code> + <code style="color: #c084fc;">pgvector</code></li>
+          <li>DeepSeek V4 Pro Generation</li>
+          <li>Verified bracketed citations & source cards</li>
+        </ul>
+      </div>
+
+      <!-- Track C: External MCP Agents -->
+      <div class="node-card" style="border-left: 3px solid #38bdf8;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="pill pill-cyan">TRACK C: MCP AGENT</span>
+          <span style="font-size: 16px;">🔌</span>
+        </div>
+        <div class="node-title" style="margin-top: 4px;">External Coding Agents</div>
+        <div class="node-desc">IDE tools connected via Model Context Protocol:</div>
+        <ul class="node-list">
+          <li>Cursor / Claude / Antigravity via PAT (<code style="color: #38bdf8;">aiw_pat_*</code>)</li>
+          <li>Execute <code style="color: #93c5fd;">list_tasks</code>, <code style="color: #93c5fd;">get_dashboard</code>, <code style="color: #93c5fd;">search</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- CONNECTOR 3 -->
+    <div class="connector">
+      <svg class="arrow-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      <span>PROPOSE</span>
+    </div>
+
+    <!-- COL 4: PROPOSAL & HUMAN-IN-THE-LOOP REVIEW -->
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <!-- Step 4.1: AI Draft -->
+      <div class="node-card" style="border-left: 3px solid #fbbf24;">
+        <span class="pill pill-amber">STAGE 4: UNTRUSTED DRAFT</span>
+        <div class="node-title"><span>📝</span> Structured AI Proposal</div>
+        <div class="node-desc">AI drafts structured task breakdown:</div>
+        <ul class="node-list">
+          <li>Validated by strict Zod schema</li>
+          <li>Status: <span class="pill pill-amber" style="padding:1px 6px;">PROPOSED</span> (24h TTL)</li>
+          <li>Private to creator & project</li>
+          <li><strong style="color: #f87171;">ZERO direct writes to database</strong></li>
+        </ul>
+      </div>
+
+      <!-- Step 4.2: Human Review -->
+      <div class="node-card" style="border-left: 3px solid #6366f1;">
+        <span class="pill pill-blue">HUMAN-IN-THE-LOOP</span>
+        <div class="node-title"><span>🔍</span> Inspection & Editorial Review</div>
+        <div class="node-desc">Interactive review modal in Next.js UI:</div>
+        <ul class="node-list">
+          <li>☑ Checkbox item selection</li>
+          <li>Edit titles, descriptions, assignees</li>
+          <li>Click <strong style="color: #f87171;">Reject</strong> to purge draft</li>
+          <li>Click <strong style="color: #34d399;">Confirm</strong> to commit</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- CONNECTOR 4 -->
+    <div class="connector">
+      <svg class="arrow-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      <span>CONFIRM</span>
+    </div>
+
+    <!-- COL 5: TRANSACTIONAL COMMIT & SYNC -->
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <!-- Step 5.1: Transactional Commit -->
+      <div class="node-card" style="border-left: 3px solid #10b981; border-color: rgba(16, 185, 129, 0.4);">
+        <span class="pill pill-green">STAGE 5: PERSISTENCE</span>
+        <div class="node-title"><span>💾</span> Transactional Commit</div>
+        <div class="node-desc">Atomic PostgreSQL insertion:</div>
+        <ul class="node-list">
+          <li>Idempotency-Key duplicate guard</li>
+          <li>Verify Contributor+ write role</li>
+          <li>Bulk insert validated Tasks / ADRs</li>
+          <li>Proposal status → <span class="pill pill-green" style="padding:1px 6px;">CONFIRMED</span></li>
+          <li>Append to Activity Audit Stream</li>
+        </ul>
+      </div>
+
+      <!-- Step 5.2: Knowledge Sync Loop -->
+      <div class="node-card" style="border-left: 3px solid #06b6d4;">
+        <span class="pill pill-cyan">CONTINUOUS LOOP</span>
+        <div class="node-title"><span>🔄</span> Auto-Sync & Feedback</div>
+        <div class="node-desc">Keeps workspace unified:</div>
+        <ul class="node-list">
+          <li>Triggers background knowledge ingestion</li>
+          <li>Indexes chunks into <code style="color: #38bdf8;">tsvector</code> / <code style="color: #38bdf8;">pgvector</code></li>
+          <li>Refreshes Dashboard metrics & feed</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER HIGHLIGHT BAR -->
+  <div class="highlight-bar">
+    <div style="display: flex; align-items: center; gap: 12px; font-size: 13.5px;">
+      <span style="font-size: 20px;">🛡️</span>
+      <span style="color: #cbd5e1;">
+        <strong style="color: #ffffff;">The Central Guarantee:</strong> 
+        User Session → Project Scope Isolation → Grounded RAG with Citations → Human-in-the-Loop Review → Atomic Transactional Persistence.
+      </span>
+    </div>
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #94a3b8;">
+      NestJS • PostgreSQL / pgvector • DeepSeek V4 Pro • Next.js
+    </div>
+  </div>
+
+  <!-- BOTTOM FOOTER -->
+  <div class="slide-footer">
+    <span>AI Workspace Platform Architecture • Presentation Diagram</span>
+    <span>Figure 1: High-Level User Journey Flowchart</span>
+  </div>
+
+</body>
+</html>
+`;
+
+async function render() {
+  const htmlPath = path.join(DOCS_DIR, 'user_journey_diagram.html');
+  fs.writeFileSync(htmlPath, htmlContent, 'utf8');
+
+  const browser = await chromium.launch({
+    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    headless: true,
+  });
+
+  const page = await browser.newPage({
+    viewport: { width: 1920, height: 1080, deviceScaleFactor: 2 },
+  });
+
+  await page.goto('file:///' + htmlPath.replace(/\\/g, '/'), {
+    waitUntil: 'networkidle',
+  });
+
+  await page.waitForTimeout(500);
+
+  // Generate 16:9 PDF
+  const pdfPath = path.join(DOCS_DIR, 'AI_Workspace_User_Journey_Diagram.pdf');
+  await page.pdf({
+    path: pdfPath,
+    width: '1920px',
+    height: '1080px',
+    printBackground: true,
+    margin: { top: 0, right: 0, bottom: 0, left: 0 },
+  });
+  console.log('Saved PDF to:', pdfPath);
+
+  // Copy to artifacts dir
+  const artifactPdf = path.join(ARTIFACT_DIR, 'AI_Workspace_User_Journey_Diagram.pdf');
+  fs.copyFileSync(pdfPath, artifactPdf);
+
+  // Generate high-res 16:9 PNG image for presentation slides
+  const pngPath = path.join(DOCS_DIR, 'AI_Workspace_User_Journey_Diagram.png');
+  await page.screenshot({ path: pngPath });
+  console.log('Saved PNG to:', pngPath);
+
+  // Copy PNG to artifacts dir
+  const artifactPng = path.join(ARTIFACT_DIR, 'AI_Workspace_User_Journey_Diagram.png');
+  fs.copyFileSync(pngPath, artifactPng);
+
+  await browser.close();
+  console.log('Completed diagram generation!');
+}
+
+render().catch(console.error);

@@ -108,14 +108,28 @@ describe('RetrievalService', () => {
 
   it('uses real keyword retrieval without embeddings and reports semantic search unavailable', async () => {
     const keywordOnly = new RetrievalService(mockDataSource as unknown as DataSource);
-    mockDataSource.query.mockResolvedValue([]);
-    await keywordOnly.retrieve({
+    mockDataSource.query.mockResolvedValueOnce([
+      {
+        id: 'chunk-1',
+        knowledge_source_id: 'src-1',
+        text: 'Requirements document text',
+        metadata: {},
+        token_count: 5,
+        chunk_index: 0,
+        source_type: KnowledgeSourceType.REQUIREMENT,
+        source_id: 'req-1',
+        title: 'Auth Requirements',
+        source_revision: 1,
+        score_signal: 1.5,
+      },
+    ]);
+    const res = await keywordOnly.retrieve({
       actorId: 'user-1',
       projectId: 'proj-1',
       query: 'requirements',
       mode: 'hybrid',
     });
-    expect(mockDataSource.query).toHaveBeenCalledTimes(1);
+    expect(res).toHaveLength(1);
     expect(mockDataSource.query).toHaveBeenCalledWith(
       expect.stringContaining('plainto_tsquery'),
       expect.anything(),
@@ -128,6 +142,38 @@ describe('RetrievalService', () => {
         mode: 'semantic',
       }),
     ).rejects.toThrow('Semantic search requires');
+  });
+
+  it('triggers active workspace fallback when keyword search returns no matches', async () => {
+    const fallbackService = new RetrievalService(mockDataSource as unknown as DataSource);
+    mockDataSource.query
+      .mockResolvedValueOnce([]) // keyword query returns empty
+      .mockResolvedValueOnce([
+        {
+          id: 'chunk-fallback-1',
+          knowledge_source_id: 'src-f',
+          text: 'Recent active task text',
+          metadata: {},
+          token_count: 5,
+          chunk_index: 0,
+          source_type: KnowledgeSourceType.TASK,
+          source_id: 'task-1',
+          title: 'Implement Kanban Board',
+          source_revision: 1,
+          score_signal: '1.0' as unknown as number, // test string numeric coercion from pg driver
+        },
+      ]);
+
+    const result = await fallbackService.retrieve({
+      actorId: 'user-1',
+      projectId: 'proj-1',
+      query: 'what i do',
+      mode: 'keyword',
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]!.title).toBe('Implement Kanban Board');
+    expect(mockDataSource.query).toHaveBeenCalledTimes(2);
   });
 
   it('performs hybrid retrieval with Reciprocal Rank Fusion (RRF)', async () => {

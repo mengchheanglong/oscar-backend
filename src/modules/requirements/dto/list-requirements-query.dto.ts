@@ -16,6 +16,11 @@ export class ListRequirementsQueryDto {
   @IsEnum(RequirementStatus)
   status?: RequirementStatus;
 
+  @ApiPropertyOptional({ description: 'Filter by project ID' })
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
   @ApiPropertyOptional({ enum: Priority })
   @IsOptional()
   @IsEnum(Priority)

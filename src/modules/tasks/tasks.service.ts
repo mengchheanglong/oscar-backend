@@ -209,13 +209,20 @@ export class TasksService {
     }
 
     const projectIds = memberships.map((m) => m.projectId);
+    let targetProjectIds = projectIds;
+    if (query.projectId && query.projectId !== 'ALL') {
+      if (!projectIds.includes(query.projectId)) {
+        return { data: [], total: 0 };
+      }
+      targetProjectIds = [query.projectId];
+    }
 
     const qb: SelectQueryBuilder<Task> = this.taskRepository.createQueryBuilder('task');
     if (typeof qb.leftJoinAndSelect === 'function') {
       qb.leftJoinAndSelect('task.assignee', 'assignee');
       qb.leftJoinAndSelect('task.project', 'project');
     }
-    qb.where('task.projectId IN (:...projectIds)', { projectIds }).andWhere(
+    qb.where('task.projectId IN (:...targetProjectIds)', { targetProjectIds }).andWhere(
       'task.deletedAt IS NULL',
     );
 

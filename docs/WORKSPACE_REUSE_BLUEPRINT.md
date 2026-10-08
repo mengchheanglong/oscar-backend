@@ -1,6 +1,6 @@
 # Operational AI Workspace: reuse blueprint
 
-Updated 2026-10-04. The product is a place to do real work across software,
+Updated 2026-10-09. The product is a place to do real work across software,
 business, finance, economics, and other fields. Learning happens while doing
 that work. Tutoring, quizzes, and recall are optional tools, not the main flow.
 
@@ -13,8 +13,10 @@ citations, conversations, tasks, decisions, and reviewed AI proposals.
 The useful loop is **goal → research → analysis → artifact → review → action →
 outcome → reusable lesson or capability**. A field such as finance describes
 the material and tools used; a mode describes how the copilot helps. Neither
-changes authorization. Connect fields inside one permitted project rather than
-silently searching across unrelated projects.
+changes authorization. Single-project chat uses that project's evidence. The
+explicit All Workspaces view can retrieve shared evidence across authorized
+projects and attributes citations to their source workspaces. Private memory
+stays scoped to the user and the conversation's owning project in either view.
 
 ## Sources inspected
 
@@ -130,6 +132,11 @@ actions, track mastery, or claim to be a knowledge graph.
 - Future context uses at most eight recent entries within a 4,000-character
   serialized budget. Listing returns the latest 100. This is bounded recent
   memory, not semantic memory retrieval or automatic summarization.
+- The newer shared-context and inventory features from `main` are reconciled on
+  `develop`. Memory and Remember also work in All Workspaces on a saved
+  conversation, using its actual project ID and showing that project's name.
+  A new All Workspaces chat has no memory destination until a conversation is
+  created; switching views does not create a global private-memory collection.
 - Deletion removes an entry from saved memory context. It does not rewrite past
   messages or erase generated replies that previously used it. A reviewed copy
   can remain after deleting its source conversation; remove the memory separately

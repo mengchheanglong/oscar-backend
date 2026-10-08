@@ -1,0 +1,1918 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AI Workspace - User Flow & Architecture Presentation</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background-color: #050811;
+        color: #f1f5f9;
+        font-family:
+          'Plus Jakarta Sans',
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      @page {
+        size: 1920px 1080px;
+        margin: 0;
+      }
+
+      .slide {
+        width: 1920px;
+        height: 1080px;
+        page-break-after: always;
+        position: relative;
+        overflow: hidden;
+        padding: 64px 80px;
+        background:
+          radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+          radial-gradient(circle at 90% 90%, rgba(14, 165, 233, 0.1) 0%, transparent 40%), #070b16;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      /* Ambient background grid */
+      .slide::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        background-size: 48px 48px;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .slide-content {
+        position: relative;
+        z-index: 2;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Header styling */
+      .slide-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 36px;
+      }
+
+      .slide-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: 9999px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        background: rgba(99, 102, 241, 0.15);
+        border: 1px solid rgba(99, 102, 241, 0.35);
+        color: #a5b4fc;
+        margin-bottom: 12px;
+      }
+
+      .slide-title {
+        font-size: 42px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #ffffff;
+        line-height: 1.15;
+      }
+
+      .slide-subtitle {
+        font-size: 19px;
+        color: #94a3b8;
+        font-weight: 500;
+        margin-top: 6px;
+      }
+
+      .slide-badge {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 14px;
+        font-weight: 600;
+        color: #64748b;
+        padding: 8px 16px;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 10px;
+      }
+
+      /* Footer styling */
+      .slide-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      /* Glass Cards */
+      .glass-card {
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 28px;
+        box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+      }
+
+      .card-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .card-body {
+        font-size: 15px;
+        color: #94a3b8;
+        line-height: 1.6;
+      }
+
+      /* Badges */
+      .pill {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .pill-blue {
+        background: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+        border: 1px solid rgba(59, 130, 246, 0.3);
+      }
+      .pill-green {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+      }
+      .pill-amber {
+        background: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+      }
+      .pill-purple {
+        background: rgba(139, 92, 246, 0.2);
+        color: #c084fc;
+        border: 1px solid rgba(139, 92, 246, 0.3);
+      }
+      .pill-rose {
+        background: rgba(244, 63, 94, 0.2);
+        color: #fb7185;
+        border: 1px solid rgba(244, 63, 94, 0.3);
+      }
+
+      /* Flow step arrow */
+      .step-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #475569;
+      }
+
+      /* Mermaid custom container */
+      .mermaid-box {
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 24px;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Tables */
+      .table-container {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+
+      .table-container th {
+        background: rgba(30, 41, 59, 0.8);
+        padding: 16px 20px;
+        text-align: left;
+        font-size: 15px;
+        font-weight: 700;
+        color: #e2e8f0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .table-container td {
+        padding: 14px 20px;
+        font-size: 14px;
+        color: #94a3b8;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      }
+
+      .table-container tr:last-child td {
+        border-bottom: none;
+      }
+
+      .table-container tr:hover td {
+        background: rgba(255, 255, 255, 0.02);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- SLIDE 1: COVER -->
+    <div class="slide" id="slide-1">
+      <div class="slide-content" style="justify-content: center">
+        <div style="max-width: 1200px; margin: 0 auto; text-align: center">
+          <div class="slide-tag" style="margin-bottom: 24px">
+            AI WORKSPACE • PLATFORM ARCHITECTURE
+          </div>
+          <h1
+            style="
+              font-size: 68px;
+              font-weight: 900;
+              letter-spacing: -0.03em;
+              color: #ffffff;
+              line-height: 1.1;
+              margin-bottom: 20px;
+            "
+          >
+            User Flow & System Architecture
+          </h1>
+          <p
+            style="
+              font-size: 26px;
+              color: #94a3b8;
+              font-weight: 500;
+              margin-bottom: 60px;
+              line-height: 1.5;
+            "
+          >
+            Grounded AI Copilot, Human-in-the-Loop Governance & Modular Engineering Workspace
+          </p>
+
+          <!-- 4 Core Pillars Grid -->
+          <div
+            style="
+              display: grid;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 24px;
+              text-align: left;
+            "
+          >
+            <div class="glass-card" style="border-top: 3px solid #6366f1">
+              <div class="card-title"><span style="font-size: 24px">⚡</span> Grounded RAG</div>
+              <div class="card-body">
+                Hybrid PostgreSQL full-text search (<code style="color: #a5b4fc">tsvector</code>)
+                and vector embeddings (<code style="color: #a5b4fc">pgvector</code>) with strict
+                citation verification.
+              </div>
+            </div>
+
+            <div class="glass-card" style="border-top: 3px solid #10b981">
+              <div class="card-title"><span style="font-size: 24px">🛡️</span> Zero-Trust AI</div>
+              <div class="card-body">
+                AI outputs are untrusted drafts. All domain mutations require explicit human review
+                and atomic transactional commits.
+              </div>
+            </div>
+
+            <div class="glass-card" style="border-top: 3px solid #f59e0b">
+              <div class="card-title"><span style="font-size: 24px">🔗</span> Traceable Core</div>
+              <div class="card-body">
+                Bi-directional relations connecting Requirements, Acceptance Criteria, ADR
+                Decisions, Tasks, and Meetings.
+              </div>
+            </div>
+
+            <div class="glass-card" style="border-top: 3px solid #06b6d4">
+              <div class="card-title"><span style="font-size: 24px">🔌</span> MCP Agent Ready</div>
+              <div class="card-body">
+                Native Model Context Protocol server allowing external IDE agents (Cursor, Claude)
+                to query and update workspace context.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>AI Workspace Platform Architecture • Executive Presentation</span>
+        <span>NestJS • DeepSeek V4 Pro • PostgreSQL / pgvector • Next.js</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: HIGH-LEVEL USER JOURNEY -->
+    <div class="slide" id="slide-2">
+      <div class="slide-content">
+        <div class="slide-header">
+          <div>
+            <div class="slide-tag">01 / 06 • PRODUCT LIFECYCLE</div>
+            <div class="slide-title">End-to-End User Journey</div>
+            <div class="slide-subtitle">
+              From authenticated session to grounded AI collaboration and transactional execution
+            </div>
+          </div>
+          <div class="slide-badge">5 CORE PHASES</div>
+        </div>
+
+        <!-- 5-Step Horizontal Flow -->
+        <div style="display: flex; gap: 16px; align-items: stretch; margin-top: 20px; flex: 1">
+          <!-- Step 1 -->
+          <div
+            class="glass-card"
+            style="flex: 1; display: flex; flex-direction: column; justify-content: space-between"
+          >
+            <div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 16px;
+                "
+              >
+                <span class="pill pill-blue">PHASE 01</span>
+                <span style="font-size: 24px">🔐</span>
+              </div>
+              <h3 style="font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 8px">
+                Auth & Session
+              </h3>
+              <p style="font-size: 14px; color: #94a3b8; line-height: 1.5; margin-bottom: 16px">
+                Secure user authentication and token bootstrap.
+              </p>
+              <ul style="font-size: 13px; color: #cbd5e1; line-height: 1.8; list-style: none">
+                <li>✓ Argon2id password hash</li>
+                <li>✓ Opaque session cookies</li>
+                <li>✓ CSRF Token & PAT auth</li>
+                <li>✓ RBAC role assignment</li>
+              </ul>
+            </div>
+            <div
+              style="
+                padding-top: 16px;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+                font-size: 12px;
+                color: #64748b;
+              "
+            >
+              Boundary: <code style="color: #93c5fd">/api/v1/auth/*</code>
+            </div>
+          </div>
+
+          <div class="step-arrow">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </div>
+
+          <!-- Step 2 -->
+          <div
+            class="glass-card"
+            style="flex: 1; display: flex; flex-direction: column; justify-content: space-between"
+          >
+            <div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 16px;
+                "
+              >
+                <span class="pill pill-blue">PHASE 02</span>
+                <span style="font-size: 24px">📁</span>
+              </div>
+              <h3 style="font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 8px">
+                Workspace Scope
+              </h3>
+              <p style="font-size: 14px; color: #94a3b8; line-height: 1.5; margin-bottom: 16px">
+                Strict tenant and project boundary isolation.
+              </p>
+              <ul style="font-size: 13px; color: #cbd5e1; line-height: 1.8; list-style: none">
+                <li>✓ Select active project</li>
+                <li>✓ Scoped permissions check</li>
+                <li>✓ Membership verification</li>
+                <li>✓ Separate AI memory contexts</li>
+              </ul>
+            </div>
+            <div
+              style="
+                padding-top: 16px;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+                font-size: 12px;
+                color: #64748b;
+              "
+            >
+              Boundary: <code style="color: #93c5fd">/projects/:id/*</code>
+            </div>
+          </div>
+
+          <div class="step-arrow">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </div>
+
+          <!-- Step 3 -->
+          <div
+            class="glass-card"
+            style="flex: 1; display: flex; flex-direction: column; justify-content: space-between"
+          >
+            <div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 16px;
+                "
+              >
+                <span class="pill pill-green">PHASE 03</span>
+                <span style="font-size: 24px">📋</span>
+              </div>
+              <h3 style="font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 8px">
+                Core Workflows
+              </h3>
+              <p style="font-size: 14px; color: #94a3b8; line-height: 1.5; margin-bottom: 16px">
+                Full engineering lifecycle artifact management.
+              </p>
+              <ul style="font-size: 13px; color: #cbd5e1; line-height: 1.8; list-style: none">
+                <li>✓ Requirements & Criteria</li>
+                <li>✓ ADR Architecture Decisions</li>
+                <li>✓ Sprint Tasks & Assignments</li>
+                <li>✓ Meetings & File Uploads</li>
+              </ul>
+            </div>
+            <div
+              style="
+                padding-top: 16px;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+                font-size: 12px;
+                color: #64748b;
+              "
+            >
+              Storage: PostgreSQL + S3
+            </div>
+          </div>
+
+          <div class="step-arrow">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </div>
+
+          <!-- Step 4 -->
+          <div
+            class="glass-card"
+            style="flex: 1; display: flex; flex-direction: column; justify-content: space-between"
+          >
+            <div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 16px;
+                "
+              >
+                <span class="pill pill-purple">PHASE 04</span>
+                <span style="font-size: 24px">🤖</span>
+              </div>
+              <h3 style="font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 8px">
+                Grounded Copilot
+              </h3>
+              <p style="font-size: 14px; color: #94a3b8; line-height: 1.5; margin-bottom: 16px">
+                Context-aware assistance with cited evidence.
+              </p>
+              <ul style="font-size: 13px; color: #cbd5e1; line-height: 1.8; list-style: none">
+                <li>✓ 6 Specialized Copilot modes</li>
+                <li>✓ Hybrid text + vector RAG</li>
+                <li>✓ DeepSeek V4 Pro generation</li>
+                <li>✓ Fact verification & source cards</li>
+              </ul>
+            </div>
+            <div
+              style="
+                padding-top: 16px;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+                font-size: 12px;
+                color: #64748b;
+              "
+            >
+              Provider: DeepSeek Flash / V4 Pro
+            </div>
+          </div>
+
+          <div class="step-arrow">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </div>
+
+          <!-- Step 5 -->
+          <div
+            class="glass-card"
+            style="
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              border-color: rgba(16, 185, 129, 0.4);
+            "
+          >
+            <div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 16px;
+                "
+              >
+                <span class="pill pill-amber">PHASE 05</span>
+                <span style="font-size: 24px">✅</span>
+              </div>
+              <h3 style="font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 8px">
+                Human Review
+              </h3>
+              <p style="font-size: 14px; color: #94a3b8; line-height: 1.5; margin-bottom: 16px">
+                Explicit human approval & atomic commit.
+              </p>
+              <ul style="font-size: 13px; color: #cbd5e1; line-height: 1.8; list-style: none">
+                <li>✓ Structured Zod proposal draft</li>
+                <li>✓ Interactive diff & editing UI</li>
+                <li>✓ Idempotent confirmation</li>
+                <li>✓ Transactional DB insert</li>
+              </ul>
+            </div>
+            <div
+              style="
+                padding-top: 16px;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+                font-size: 12px;
+                color: #34d399;
+              "
+            >
+              Integrity: Zero Direct AI Writes
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Highlight Banner -->
+        <div
+          style="
+            margin-top: 24px;
+            padding: 18px 24px;
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          "
+        >
+          <div style="display: flex; align-items: center; gap: 16px">
+            <span style="font-size: 24px">💡</span>
+            <div>
+              <span style="font-weight: 700; color: #e0e7ff">Core Architecture Rule:</span>
+              <span style="color: #94a3b8; margin-left: 8px"
+                >AI modes never grant permissions or write directly to production tables. Every
+                proposal must pass human confirmation.</span
+              >
+            </div>
+          </div>
+          <span class="pill pill-green">STRICT COMPLIANCE</span>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>AI Workspace Platform Architecture • High-Level Flow</span>
+        <span>Slide 2 of 7</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 3: ENTITY LIFECYCLE & TRACEABILITY -->
+    <div class="slide" id="slide-3">
+      <div class="slide-content">
+        <div class="slide-header">
+          <div>
+            <div class="slide-tag">02 / 06 • DOMAIN ARCHITECTURE</div>
+            <div class="slide-title">Core Entity Lifecycle & Interconnection</div>
+            <div class="slide-subtitle">
+              Bi-directional traceability linking documents, meetings, requirements, decisions, and
+              tasks
+            </div>
+          </div>
+          <div class="slide-badge">POSTGRESQL RELATIONAL GRAPH</div>
+        </div>
+
+        <div
+          style="
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-top: 16px;
+            flex: 1;
+          "
+        >
+          <!-- Card 1: Requirements -->
+          <div
+            class="glass-card"
+            style="display: flex; flex-direction: column; justify-content: space-between"
+          >
+            <div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 16px;
+                "
+              >
+                <span class="pill pill-green">REQUIREMENTS</span>
+                <span style="font-size: 20px">📄</span>
+              </div>
+              <h3 style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 12px">
+                Requirements Spec
+              </h3>
+              <p style="font-size: 14px; color: #94a3b8; margin-bottom: 16px">
+                Tracks acceptance criteria and revision history.
+              </p>
+
+              <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px">
+                <div
+                  style="
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    display: flex;
+                    justify-content: space-between;
+                  "
+                >
+                  <span>1. Draft</span><span class="pill pill-blue">DRAFT</span>
+                </div>
+                <div
+                  style="
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    display: flex;
+                    justify-content: space-between;
+                  "
+                >
+                  <span>2. Review</span><span class="pill pill-amber">IN_REVIEW</span>
+                </div>
+                <div
+                  style="
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    display: flex;
+                    justify-content: space-between;
+                  "
+                >
+                  <span>3. Signoff</span><span class="pill pill-green">APPROVED</span>
+                </div>
+                <div
+                  style="
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    display: flex;
+                    justify-content: space-between;
+                  "
+                >
+                  <span>4. Archive</span><span class="pill pill-rose">DEPRECATED</span>
+                </div>
+              </div>
+            </div>
+            <div
+              style="
+                font-size: 13px;
+                color: #34d399;
+                padding-top: 12px;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+              "
+            >
+              → Links to: Tasks, ADRs, Meetings
+            </div>
+          </div>
+
+          <!-- Card 2: Decisions -->
+          <div
+            class="glass-card"
+            style="display: flex; flex-direction: column; justify-content: space-between"
+          >
+            <div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 16px;
+                "
+              >
+                <span class="pill pill-amber">ARCHITECTURE</span>
+                <span style="font-size: 20px">⚖️</span>
+              </div>
+              <h3 style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 12px">
+                Decision Records (ADR)
+              </h3>
+              <p style="font-size: 14px; color: #94a3b8; margin-bottom: 16px">
+                Preserves technical rationale, decider & history.
+              </p>
+
+              <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px">
+                <div
+                  style="
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    display: flex;
+                    justify-content: space-between;
+                  "
+                >
+                  <span>1. Discussion</span><span class="pill pill-blue">PROPOSED</span>
+                </div>
+                <div
+                  style="
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    display: flex;
+                    justify-content: space-between;
+                  "
+                >
+                  <span>2. Ratified</span><span class="pill pill-green">ACCEPTED</span>
+                </div>
+                <div
+                  style="
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    display: flex;
+                    justify-content: space-between;
+                  "
+                >
+                  <span>3. Declined</span><span class="pill pill-rose">REJECTED</span>
+                </div>
+                <div
+                  style="
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    display: flex;
+                    justify-content: space-between;
+                  "
+                >
+                  <span>4. Replaced</span><span class="pill pill-purple">SUPERSEDED</span>
+                </div>
+              </div>
+            </div>
+            <div
+              style="
+                font-size: 13px;
+                color: #fbbf24;
+                padding-top: 12px;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+              "
+            >
+              → Links to: Requirements, Tasks
+            </div>
+          </div>
+
+          <!-- Card 3: Tasks -->
+          <div
+            class="glass-card"
+            style="display: flex; flex-direction: column; justify-content: space-between"
+          >
+            <div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 16px;
+                "
+              >
+                <span class="pill pill-blue">EXECUTION</span>
+                <span style="font-size: 20px">📌</span>
+              </div>
+              <h3 style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 12px">
+                Task Management
+              </h3>
+              <p style="font-size: 14px; color: #94a3b8; margin-bottom: 16px">
+                Assignee, due dates, priority and sprint state.
+              </p>
+
+              <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px">
+                <div
+                  style="
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    display: flex;
+                    justify-content: space-between;
+                  "
+                >
+                  <span>Backlog</span><span class="pill pill-blue">TODO</span>
+                </div>
+                <div
+                  style="
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    display: flex;
+                    justify-content: space-between;
+                  "
+                >
+                  <span>Active</span><span class="pill pill-amber">IN_PROGRESS</span>
+                </div>
+                <div
+                  style="
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    display: flex;
+                    justify-content: space-between;
+                  "
+                >
+                  <span>Quality Gate</span><span class="pill pill-purple">REVIEW</span>
+                </div>
+                <div
+                  style="
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    display: flex;
+                    justify-content: space-between;
+                  "
+                >
+                  <span>Completed</span><span class="pill pill-green">DONE</span>
+                </div>
+              </div>
+            </div>
+            <div
+              style="
+                font-size: 13px;
+                color: #60a5fa;
+                padding-top: 12px;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+              "
+            >
+              → Links to: Requirements, Meetings
+            </div>
+          </div>
+
+          <!-- Card 4: Knowledge / Documents -->
+          <div
+            class="glass-card"
+            style="display: flex; flex-direction: column; justify-content: space-between"
+          >
+            <div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 16px;
+                "
+              >
+                <span class="pill pill-purple">INGESTION</span>
+                <span style="font-size: 20px">📚</span>
+              </div>
+              <h3 style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 12px">
+                Knowledge Sources
+              </h3>
+              <p style="font-size: 14px; color: #94a3b8; margin-bottom: 16px">
+                Multi-format documents and meeting transcripts.
+              </p>
+
+              <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px">
+                <div
+                  style="
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    display: flex;
+                    justify-content: space-between;
+                  "
+                >
+                  <span>1. Upload</span><span>PDF, DOCX, TXT</span>
+                </div>
+                <div
+                  style="
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    display: flex;
+                    justify-content: space-between;
+                  "
+                >
+                  <span>2. Extraction</span><span>Text Sanitization</span>
+                </div>
+                <div
+                  style="
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    display: flex;
+                    justify-content: space-between;
+                  "
+                >
+                  <span>3. Chunking</span><span>Heading / 600 Tokens</span>
+                </div>
+                <div
+                  style="
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                    font-size: 13px;
+                    display: flex;
+                    justify-content: space-between;
+                  "
+                >
+                  <span>4. Indexing</span><span class="pill pill-green">READY</span>
+                </div>
+              </div>
+            </div>
+            <div
+              style="
+                font-size: 13px;
+                color: #c084fc;
+                padding-top: 12px;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+              "
+            >
+              → Grounding for AI Copilot
+            </div>
+          </div>
+        </div>
+
+        <!-- Traceability Linkage Footer -->
+        <div
+          style="
+            margin-top: 20px;
+            padding: 16px 24px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            font-size: 14px;
+            color: #cbd5e1;
+          "
+        >
+          <span
+            ><strong>Document / Meeting</strong> → <em>generates</em> →
+            <strong>Requirements & ADRs</strong></span
+          >
+          <span style="color: #64748b">•</span>
+          <span
+            ><strong>ADR Decision</strong> → <em>constrains</em> →
+            <strong>Requirements Spec</strong></span
+          >
+          <span style="color: #64748b">•</span>
+          <span
+            ><strong>Requirements</strong> → <em>broken down into</em> →
+            <strong>Executable Tasks</strong></span
+          >
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>AI Workspace Platform Architecture • Relational Lifecycle</span>
+        <span>Slide 3 of 7</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: GROUNDED AI COPILOT & RAG PIPELINE -->
+    <div class="slide" id="slide-4">
+      <div class="slide-content">
+        <div class="slide-header">
+          <div>
+            <div class="slide-tag">03 / 06 • AI COPILOT ENGINE</div>
+            <div class="slide-title">Grounded AI Copilot & RAG Pipeline</div>
+            <div class="slide-subtitle">
+              Guaranteed factuality: Permission-aware search, anti-injection framing, and citation
+              verification
+            </div>
+          </div>
+          <div class="slide-badge">DEEPSEEK V4 PRO + PGVECTOR</div>
+        </div>
+
+        <!-- RAG Architecture Sequence & Stage Cards -->
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-top: 10px;
+            flex: 1;
+          "
+        >
+          <!-- Left: Visual Sequence Flow -->
+          <div
+            class="glass-card"
+            style="display: flex; flex-direction: column; justify-content: space-between"
+          >
+            <h3
+              style="
+                font-size: 18px;
+                font-weight: 700;
+                color: #fff;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+              "
+            >
+              <span>⚡</span> End-to-End Query & Citation Lifecycle
+            </h3>
+
+            <div
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                flex: 1;
+                justify-content: space-around;
+              "
+            >
+              <!-- Step 1 -->
+              <div
+                style="
+                  display: flex;
+                  gap: 16px;
+                  align-items: center;
+                  background: rgba(255, 255, 255, 0.02);
+                  padding: 12px 18px;
+                  border-radius: 10px;
+                  border-left: 3px solid #60a5fa;
+                "
+              >
+                <span class="pill pill-blue">1. INGEST</span>
+                <div style="flex: 1">
+                  <strong style="color: #fff; font-size: 14px">User Prompt & Mode Selection</strong>
+                  <p style="color: #94a3b8; font-size: 13px">
+                    User selects specialized persona (PM, Developer, QA, DX, Infra, Presentation).
+                  </p>
+                </div>
+              </div>
+
+              <!-- Step 2 -->
+              <div
+                style="
+                  display: flex;
+                  gap: 16px;
+                  align-items: center;
+                  background: rgba(255, 255, 255, 0.02);
+                  padding: 12px 18px;
+                  border-radius: 10px;
+                  border-left: 3px solid #fbbf24;
+                "
+              >
+                <span class="pill pill-amber">2. AUTH</span>
+                <div style="flex: 1">
+                  <strong style="color: #fff; font-size: 14px"
+                    >Policy & Daily Budget Verification</strong
+                  >
+                  <p style="color: #94a3b8; font-size: 13px">
+                    Rechecks active project membership, rate limits, and daily project USD budget.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Step 3 -->
+              <div
+                style="
+                  display: flex;
+                  gap: 16px;
+                  align-items: center;
+                  background: rgba(255, 255, 255, 0.02);
+                  padding: 12px 18px;
+                  border-radius: 10px;
+                  border-left: 3px solid #34d399;
+                "
+              >
+                <span class="pill pill-green">3. SEARCH</span>
+                <div style="flex: 1">
+                  <strong style="color: #fff; font-size: 14px"
+                    >Hybrid Project Retrieval (FTS + Vector)</strong
+                  >
+                  <p style="color: #94a3b8; font-size: 13px">
+                    Queries top-K chunks scoped by
+                    <code style="color: #34d399">projectId</code> using tsvector rank + pgvector
+                    cosine similarity.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Step 4 -->
+              <div
+                style="
+                  display: flex;
+                  gap: 16px;
+                  align-items: center;
+                  background: rgba(255, 255, 255, 0.02);
+                  padding: 12px 18px;
+                  border-radius: 10px;
+                  border-left: 3px solid #c084fc;
+                "
+              >
+                <span class="pill pill-purple">4. ASSEMBLE</span>
+                <div style="flex: 1">
+                  <strong style="color: #fff; font-size: 14px"
+                    >Context Isolation (Anti-Prompt Injection)</strong
+                  >
+                  <p style="color: #94a3b8; font-size: 13px">
+                    Retrieved chunks are marked strictly as untrusted data, preventing instruction
+                    overriding.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Step 5 -->
+              <div
+                style="
+                  display: flex;
+                  gap: 16px;
+                  align-items: center;
+                  background: rgba(255, 255, 255, 0.02);
+                  padding: 12px 18px;
+                  border-radius: 10px;
+                  border-left: 3px solid #f43f5e;
+                "
+              >
+                <span class="pill pill-rose">5. GENERATE</span>
+                <div style="flex: 1">
+                  <strong style="color: #fff; font-size: 14px"
+                    >DeepSeek V4 Pro Generation & Citation Audit</strong
+                  >
+                  <p style="color: #94a3b8; font-size: 13px">
+                    LLM writes cited answer. Citations are strictly cross-verified against actual
+                    evidence IDs.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Specialized AI Modes -->
+          <div
+            class="glass-card"
+            style="display: flex; flex-direction: column; justify-content: space-between"
+          >
+            <h3 style="font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 12px">
+              6 Operational Copilot Modes
+            </h3>
+
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px">
+              <div
+                style="
+                  padding: 10px 14px;
+                  background: rgba(255, 255, 255, 0.03);
+                  border-radius: 8px;
+                "
+              >
+                <strong style="color: #93c5fd">👔 PM Mode</strong>
+                <div style="color: #94a3b8; margin-top: 2px">
+                  Progress summarization, blocker analysis, task proposals.
+                </div>
+              </div>
+              <div
+                style="
+                  padding: 10px 14px;
+                  background: rgba(255, 255, 255, 0.03);
+                  border-radius: 8px;
+                "
+              >
+                <strong style="color: #34d399">💻 Developer Mode</strong>
+                <div style="color: #94a3b8; margin-top: 2px">
+                  Technical breakdown, implementation guidance, code links.
+                </div>
+              </div>
+              <div
+                style="
+                  padding: 10px 14px;
+                  background: rgba(255, 255, 255, 0.03);
+                  border-radius: 8px;
+                "
+              >
+                <strong style="color: #fbbf24">🧪 QA Mode</strong>
+                <div style="color: #94a3b8; margin-top: 2px">
+                  Acceptance test scenarios, boundary conditions, edge cases.
+                </div>
+              </div>
+              <div
+                style="
+                  padding: 10px 14px;
+                  background: rgba(255, 255, 255, 0.03);
+                  border-radius: 8px;
+                "
+              >
+                <strong style="color: #c084fc">📖 DX Mode</strong>
+                <div style="color: #94a3b8; margin-top: 2px">
+                  Developer experience, onboarding guides, documentation.
+                </div>
+              </div>
+              <div
+                style="
+                  padding: 10px 14px;
+                  background: rgba(255, 255, 255, 0.03);
+                  border-radius: 8px;
+                "
+              >
+                <strong style="color: #f87171">⚙️ Infra Mode</strong>
+                <div style="color: #94a3b8; margin-top: 2px">
+                  Deployment configurations, Docker, scaling runbooks.
+                </div>
+              </div>
+              <div
+                style="
+                  padding: 10px 14px;
+                  background: rgba(255, 255, 255, 0.03);
+                  border-radius: 8px;
+                "
+              >
+                <strong style="color: #38bdf8">📊 Presentation Mode</strong>
+                <div style="color: #94a3b8; margin-top: 2px">
+                  Executive briefings, milestone retrospectives, storyboards.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>AI Workspace Platform Architecture • Copilot Pipeline</span>
+        <span>Slide 4 of 7</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: HUMAN-IN-THE-LOOP PROPOSAL LIFECYCLE -->
+    <div class="slide" id="slide-5">
+      <div class="slide-content">
+        <div class="slide-header">
+          <div>
+            <div class="slide-tag">04 / 06 • GOVERNANCE & SAFETY</div>
+            <div class="slide-title">Human-in-the-Loop Proposal Lifecycle</div>
+            <div class="slide-subtitle">
+              AI outputs structured drafts; humans inspect, edit, and transactionally commit domain
+              entities
+            </div>
+          </div>
+          <div class="slide-badge">ATOMIC TRANSACTIONAL PERSISTENCE</div>
+        </div>
+
+        <div
+          style="
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 20px;
+            flex: 1;
+          "
+        >
+          <!-- Column 1: Generation -->
+          <div
+            class="glass-card"
+            style="display: flex; flex-direction: column; justify-content: space-between"
+          >
+            <div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 16px;
+                "
+              >
+                <span class="pill pill-purple">STAGE 1: DRAFT</span>
+                <span style="font-size: 24px">📝</span>
+              </div>
+              <h3 style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 12px">
+                AI Draft Proposal
+              </h3>
+              <p style="font-size: 14px; color: #94a3b8; line-height: 1.6; margin-bottom: 20px">
+                Triggered from a Requirement or Meeting Note. DeepSeek generates structured proposal
+                JSON.
+              </p>
+
+              <div
+                style="
+                  background: rgba(0, 0, 0, 0.3);
+                  border-radius: 10px;
+                  padding: 14px;
+                  font-family: 'JetBrains Mono', monospace;
+                  font-size: 12px;
+                  color: #94a3b8;
+                  margin-bottom: 20px;
+                "
+              >
+                <div style="color: #38bdf8">{</div>
+                <div style="padding-left: 12px">"type": "CREATE_TASKS",</div>
+                <div style="padding-left: 12px">
+                  "status": <span style="color: #fbbf24">"PROPOSED"</span>,
+                </div>
+                <div style="padding-left: 12px">"expiresAt": "24h TTL",</div>
+                <div style="padding-left: 12px">"items": [ ...draftTasks ]</div>
+                <div style="color: #38bdf8">}</div>
+              </div>
+
+              <ul style="font-size: 13px; color: #cbd5e1; line-height: 1.8; list-style: none">
+                <li>✓ Validated by strict Zod schema</li>
+                <li>✓ Private to creator & project scope</li>
+                <li>✓ ZERO domain records created</li>
+              </ul>
+            </div>
+            <div
+              style="
+                font-size: 12px;
+                color: #94a3b8;
+                padding-top: 14px;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+              "
+            >
+              State: <span class="pill pill-amber">PROPOSED</span>
+            </div>
+          </div>
+
+          <!-- Column 2: Review & Edit -->
+          <div
+            class="glass-card"
+            style="display: flex; flex-direction: column; justify-content: space-between"
+          >
+            <div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 16px;
+                "
+              >
+                <span class="pill pill-blue">STAGE 2: REVIEW</span>
+                <span style="font-size: 24px">🔍</span>
+              </div>
+              <h3 style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 12px">
+                Human Inspection
+              </h3>
+              <p style="font-size: 14px; color: #94a3b8; line-height: 1.6; margin-bottom: 20px">
+                User reviews the proposal in an interactive Next.js modal. Every field can be
+                fine-tuned.
+              </p>
+
+              <div
+                style="
+                  background: rgba(0, 0, 0, 0.3);
+                  border-radius: 10px;
+                  padding: 14px;
+                  font-size: 13px;
+                  color: #cbd5e1;
+                  margin-bottom: 20px;
+                "
+              >
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px">
+                  <span style="color: #34d399">☑</span> <span>Setup PostgreSQL pooler</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px">
+                  <span style="color: #34d399">☑</span> <span>Configure Argon2id hash</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; color: #64748b">
+                  <span>☐</span>
+                  <span style="text-decoration: line-through">Deprecated legacy task</span>
+                </div>
+              </div>
+
+              <ul style="font-size: 13px; color: #cbd5e1; line-height: 1.8; list-style: none">
+                <li>✓ Deselect unwanted items</li>
+                <li>✓ Edit titles, descriptions, assignees</li>
+                <li>✓ Full user editorial control</li>
+              </ul>
+            </div>
+            <div
+              style="
+                font-size: 12px;
+                color: #94a3b8;
+                padding-top: 14px;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+              "
+            >
+              Option: Click <strong>Reject</strong> to purge draft
+            </div>
+          </div>
+
+          <!-- Column 3: Commit -->
+          <div
+            class="glass-card"
+            style="
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              border-color: rgba(16, 185, 129, 0.4);
+            "
+          >
+            <div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 16px;
+                "
+              >
+                <span class="pill pill-green">STAGE 3: COMMIT</span>
+                <span style="font-size: 24px">💾</span>
+              </div>
+              <h3 style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 12px">
+                Transactional Commit
+              </h3>
+              <p style="font-size: 14px; color: #94a3b8; line-height: 1.6; margin-bottom: 20px">
+                User submits confirmation with an
+                <code style="color: #34d399">Idempotency-Key</code> header to prevent duplicates.
+              </p>
+
+              <div
+                style="
+                  background: rgba(16, 185, 129, 0.1);
+                  border: 1px solid rgba(16, 185, 129, 0.2);
+                  border-radius: 10px;
+                  padding: 14px;
+                  font-size: 13px;
+                  color: #a7f3d0;
+                  margin-bottom: 20px;
+                "
+              >
+                <strong>PostgreSQL Atomic Transaction:</strong><br />
+                1. Verify Contributor+ permissions<br />
+                2. Bulk insert Tasks into database<br />
+                3. Update proposal status → <span class="pill pill-green">CONFIRMED</span><br />
+                4. Append to Activity Audit Stream
+              </div>
+
+              <ul style="font-size: 13px; color: #cbd5e1; line-height: 1.8; list-style: none">
+                <li>✓ Real records inserted in PostgreSQL</li>
+                <li>✓ Activity stream notified</li>
+                <li>✓ Rollback on any failure</li>
+              </ul>
+            </div>
+            <div
+              style="
+                font-size: 12px;
+                color: #34d399;
+                padding-top: 14px;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+              "
+            >
+              State: <span class="pill pill-green">CONFIRMED</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>AI Workspace Platform Architecture • Proposal Governance</span>
+        <span>Slide 5 of 7</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: MCP AGENT INTEGRATION -->
+    <div class="slide" id="slide-6">
+      <div class="slide-content">
+        <div class="slide-header">
+          <div>
+            <div class="slide-tag">05 / 06 • EXTERNAL AGENT TOOLING</div>
+            <div class="slide-title">Model Context Protocol (MCP) Integration</div>
+            <div class="slide-subtitle">
+              Connecting external AI coding agents (Cursor, Claude Desktop, Antigravity) to
+              production workspace data
+            </div>
+          </div>
+          <div class="slide-badge">OPEN PROTOCOL COMPLIANCE</div>
+        </div>
+
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 28px;
+            margin-top: 20px;
+            flex: 1;
+          "
+        >
+          <!-- Left: Architecture Card -->
+          <div
+            class="glass-card"
+            style="display: flex; flex-direction: column; justify-content: space-between"
+          >
+            <div>
+              <h3
+                style="
+                  font-size: 20px;
+                  font-weight: 700;
+                  color: #fff;
+                  margin-bottom: 16px;
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                "
+              >
+                <span>🔌</span> External AI Integration Stack
+              </h3>
+
+              <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px">
+                <div
+                  style="padding: 14px; background: rgba(255, 255, 255, 0.03); border-radius: 10px"
+                >
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 4px">
+                    <strong style="color: #93c5fd">1. External Agent Layer</strong>
+                    <span class="pill pill-blue">Cursor / Claude / Antigravity</span>
+                  </div>
+                  <p style="font-size: 13px; color: #94a3b8">
+                    Developers code in their favorite IDE while maintaining live workspace sync.
+                  </p>
+                </div>
+
+                <div
+                  style="padding: 14px; background: rgba(255, 255, 255, 0.03); border-radius: 10px"
+                >
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 4px">
+                    <strong style="color: #fbbf24">2. Transport & Authentication</strong>
+                    <span class="pill pill-amber">PAT Bearer Token</span>
+                  </div>
+                  <p style="font-size: 13px; color: #94a3b8">
+                    Streamable HTTP / SSE transport secured by Personal Access Tokens (<code
+                      style="color: #fbbf24"
+                      >aiw_pat_*</code
+                    >).
+                  </p>
+                </div>
+
+                <div
+                  style="padding: 14px; background: rgba(255, 255, 255, 0.03); border-radius: 10px"
+                >
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 4px">
+                    <strong style="color: #34d399">3. Project Authorization Engine</strong>
+                    <span class="pill pill-green">RBAC Guard</span>
+                  </div>
+                  <p style="font-size: 13px; color: #94a3b8">
+                    Validates user role and project scope on every single MCP tool invocation.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style="
+                padding: 14px;
+                background: rgba(16, 185, 129, 0.1);
+                border: 1px solid rgba(16, 185, 129, 0.2);
+                border-radius: 10px;
+                font-size: 13px;
+                color: #a7f3d0;
+              "
+            >
+              ✓ <strong>Production Deployed:</strong> Connected directly to live Render backend &
+              Supabase PostgreSQL.
+            </div>
+          </div>
+
+          <!-- Right: Tool Catalog & Schema -->
+          <div
+            class="glass-card"
+            style="display: flex; flex-direction: column; justify-content: space-between"
+          >
+            <div>
+              <h3
+                style="
+                  font-size: 20px;
+                  font-weight: 700;
+                  color: #fff;
+                  margin-bottom: 16px;
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                "
+              >
+                <span>🛠️</span> Registered Workspace MCP Tools
+              </h3>
+
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: 1fr 1fr;
+                  gap: 12px;
+                  margin-bottom: 24px;
+                "
+              >
+                <div
+                  style="padding: 12px; background: rgba(255, 255, 255, 0.03); border-radius: 8px"
+                >
+                  <code style="color: #60a5fa; font-weight: 700">list_tasks</code>
+                  <p style="font-size: 12px; color: #94a3b8; margin-top: 4px">
+                    Query tasks by status, assignee, priority, or milestone.
+                  </p>
+                </div>
+
+                <div
+                  style="padding: 12px; background: rgba(255, 255, 255, 0.03); border-radius: 8px"
+                >
+                  <code style="color: #60a5fa; font-weight: 700">get_dashboard</code>
+                  <p style="font-size: 12px; color: #94a3b8; margin-top: 4px">
+                    Retrieve real-time project metrics, progress %, and overdue counts.
+                  </p>
+                </div>
+
+                <div
+                  style="padding: 12px; background: rgba(255, 255, 255, 0.03); border-radius: 8px"
+                >
+                  <code style="color: #60a5fa; font-weight: 700">list_requirements</code>
+                  <p style="font-size: 12px; color: #94a3b8; margin-top: 4px">
+                    Fetch active requirements and criteria specifications.
+                  </p>
+                </div>
+
+                <div
+                  style="padding: 12px; background: rgba(255, 255, 255, 0.03); border-radius: 8px"
+                >
+                  <code style="color: #60a5fa; font-weight: 700">list_decisions</code>
+                  <p style="font-size: 12px; color: #94a3b8; margin-top: 4px">
+                    Access ratified ADR architectural decisions and rationales.
+                  </p>
+                </div>
+
+                <div
+                  style="padding: 12px; background: rgba(255, 255, 255, 0.03); border-radius: 8px"
+                >
+                  <code style="color: #60a5fa; font-weight: 700">generate_task_proposal</code>
+                  <p style="font-size: 12px; color: #94a3b8; margin-top: 4px">
+                    Trigger structured AI breakdown proposals for requirements.
+                  </p>
+                </div>
+
+                <div
+                  style="padding: 12px; background: rgba(255, 255, 255, 0.03); border-radius: 8px"
+                >
+                  <code style="color: #60a5fa; font-weight: 700">search_workspace</code>
+                  <p style="font-size: 12px; color: #94a3b8; margin-top: 4px">
+                    Hybrid full-text and semantic knowledge search across all records.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style="
+                padding: 16px;
+                background: rgba(0, 0, 0, 0.3);
+                border-radius: 10px;
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 12px;
+                color: #cbd5e1;
+              "
+            >
+              <span style="color: #64748b">// Live Agent Execution Result</span><br />
+              mcp.call_tool("get_dashboard") →
+              <span style="color: #34d399"
+                >{ progress: 91%, totalTasks: 11, activeMembers: 3 }</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>AI Workspace Platform Architecture • MCP Integration</span>
+        <span>Slide 6 of 7</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 7: ENTERPRISE RBAC MATRIX -->
+    <div class="slide" id="slide-7">
+      <div class="slide-content">
+        <div class="slide-header">
+          <div>
+            <div class="slide-tag">06 / 06 • ACCESS CONTROL & SECURITY</div>
+            <div class="slide-title">Enterprise Role-Based Access Control (RBAC)</div>
+            <div class="slide-subtitle">
+              Granular capability boundaries enforced at every API endpoint and database query
+            </div>
+          </div>
+          <div class="slide-badge">ZERO-LEAK GUARANTEE</div>
+        </div>
+
+        <div
+          style="
+            margin-top: 16px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+          "
+        >
+          <table class="table-container">
+            <thead>
+              <tr>
+                <th style="width: 32%">Workspace Capability</th>
+                <th style="width: 17%">👑 OWNER</th>
+                <th style="width: 17%">🛡️ MAINTAINER</th>
+                <th style="width: 17%">✏️ CONTRIBUTOR</th>
+                <th style="width: 17%">👁️ VIEWER</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>View Dashboard, Activity Feed & Knowledge Records</strong></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+              </tr>
+              <tr>
+                <td><strong>Query Grounded AI Copilot & Hybrid Search</strong></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+              </tr>
+              <tr>
+                <td><strong>Create & Edit Requirements, ADRs, and Meetings</strong></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-rose">DENIED</span></td>
+              </tr>
+              <tr>
+                <td><strong>Create, Move & Complete Tasks</strong></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-rose">DENIED</span></td>
+              </tr>
+              <tr>
+                <td><strong>Review, Edit & Confirm AI Proposals</strong></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-rose">DENIED</span></td>
+              </tr>
+              <tr>
+                <td><strong>Upload Documents & Trigger Background Indexing</strong></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-rose">DENIED</span></td>
+              </tr>
+              <tr>
+                <td><strong>Manage Integrations (GitHub, PATs) & Webhooks</strong></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-rose">DENIED</span></td>
+                <td><span class="pill pill-rose">DENIED</span></td>
+              </tr>
+              <tr>
+                <td><strong>Invite, Modify & Remove Project Members</strong></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-rose">DENIED</span></td>
+                <td><span class="pill pill-rose">DENIED</span></td>
+              </tr>
+              <tr>
+                <td><strong>Transfer Ownership & Archive Project</strong></td>
+                <td><span class="pill pill-green">ALLOWED</span></td>
+                <td><span class="pill pill-rose">DENIED</span></td>
+                <td><span class="pill pill-rose">DENIED</span></td>
+                <td><span class="pill pill-rose">DENIED</span></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Security Invariants Footer -->
+          <div
+            style="
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 16px;
+              margin-top: 16px;
+            "
+          >
+            <div
+              style="
+                padding: 14px;
+                background: rgba(15, 23, 42, 0.6);
+                border: 1px solid rgba(255, 255, 255, 0.06);
+                border-radius: 10px;
+                font-size: 13px;
+              "
+            >
+              <strong style="color: #e2e8f0">🔒 Mandatory Scope Joins:</strong>
+              <p style="color: #94a3b8; margin-top: 4px">
+                Every SQL query filters on both <code style="color: #93c5fd">projectId</code> and
+                <code style="color: #93c5fd">actorId</code>.
+              </p>
+            </div>
+            <div
+              style="
+                padding: 14px;
+                background: rgba(15, 23, 42, 0.6);
+                border: 1px solid rgba(255, 255, 255, 0.06);
+                border-radius: 10px;
+                font-size: 13px;
+              "
+            >
+              <strong style="color: #e2e8f0">🛡️ Revocable Server Sessions:</strong>
+              <p style="color: #94a3b8; margin-top: 4px">
+                Sessions stored in DB; instant revocation without JWT leakage risks.
+              </p>
+            </div>
+            <div
+              style="
+                padding: 14px;
+                background: rgba(15, 23, 42, 0.6);
+                border: 1px solid rgba(255, 255, 255, 0.06);
+                border-radius: 10px;
+                font-size: 13px;
+              "
+            >
+              <strong style="color: #e2e8f0">⚡ AI Non-Elevation Rule:</strong>
+              <p style="color: #94a3b8; margin-top: 4px">
+                AI prompts inherit exact user credentials; AI modes never bypass permissions.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>AI Workspace Platform Architecture • Security & RBAC</span>
+        <span>Slide 7 of 7</span>
+      </div>
+    </div>
+  </body>
+</html>

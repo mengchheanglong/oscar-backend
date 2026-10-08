@@ -43,9 +43,16 @@ export class ProjectMembersService {
     dto: AddMemberDto,
     requestId?: string,
   ): Promise<ProjectMember> {
-    const targetUser = await this.userRepository.findOne({
-      where: { id: dto.userId },
-    });
+    if (!dto.userId && !dto.email) {
+      throw new BadRequestException({
+        code: 'USER_IDENTIFIER_REQUIRED',
+        message: 'Either userId or email must be provided to add a member.',
+      });
+    }
+
+    const targetUser = dto.userId
+      ? await this.userRepository.findOne({ where: { id: dto.userId } })
+      : await this.userRepository.findOne({ where: { email: dto.email?.trim().toLowerCase() } });
 
     if (!targetUser || !targetUser.isActive) {
       throw new BadRequestException({
@@ -57,7 +64,7 @@ export class ProjectMembersService {
     const existing = await this.memberRepository.findOne({
       where: {
         projectId,
-        userId: dto.userId,
+        userId: targetUser.id,
         removedAt: IsNull(),
       },
     });
@@ -85,7 +92,7 @@ export class ProjectMembersService {
 
     const member = this.memberRepository.create({
       projectId,
-      userId: dto.userId,
+      userId: targetUser.id,
       accessRole: dto.accessRole,
       joinedAt: new Date(),
       removedAt: null,
@@ -319,6 +326,6 @@ export class ProjectMembersService {
       query.andWhere('(user.displayName ILIKE :term OR user.email ILIKE :term)', { term });
     }
 
-    return query.take(20).getMany();
+    return query.take(50).getMany();
   }
 }

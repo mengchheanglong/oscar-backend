@@ -1039,6 +1039,15 @@
             }
           },
           {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "priority",
             "required": false,
             "in": "query",
@@ -1755,6 +1764,15 @@
                 "CANCELLED",
                 "BLOCKED"
               ]
+            }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by project ID",
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -4002,6 +4020,28 @@
           }
         }
       },
+      "ProjectInitialMemberDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "example": "85bb1fd2-d5cb-42a1-8d2a-43d96924b17f",
+            "description": "User ID of the member to invite"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "MANAGER",
+              "CONTRIBUTOR",
+              "VIEWER"
+            ],
+            "default": "CONTRIBUTOR"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      },
       "CreateProjectDto": {
         "type": "object",
         "properties": {
@@ -4019,6 +4059,13 @@
           "description": {
             "type": "string",
             "example": "Central backend workspace for multi-modal project management"
+          },
+          "members": {
+            "description": "Initial workspace members to invite into the project",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectInitialMemberDto"
+            }
           }
         },
         "required": [
@@ -4053,6 +4100,10 @@
             "type": "string",
             "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
           },
+          "email": {
+            "type": "string",
+            "example": "colleague@example.com"
+          },
           "accessRole": {
             "type": "string",
             "enum": [
@@ -4064,7 +4115,6 @@
           }
         },
         "required": [
-          "userId",
           "accessRole"
         ]
       },
@@ -5227,6 +5277,11 @@
               "GITHUB_PR",
               "GITHUB_CODE"
             ]
+          },
+          "includeAllWorkspaces": {
+            "type": "boolean",
+            "description": "Whether to retrieve and share context across all workspaces the user has access to",
+            "default": false
           }
         },
         "required": [

@@ -9,6 +9,11 @@ export class ListTasksQueryDto {
   @IsEnum(TaskStatus)
   status?: TaskStatus;
 
+  @ApiPropertyOptional({ description: 'Filter by project ID' })
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
   @ApiPropertyOptional({ description: 'Filter by task number (e.g. 38 for AIW-TSK-38)' })
   @IsOptional()
   @Transform(({ value }) =>

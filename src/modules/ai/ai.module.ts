@@ -20,6 +20,7 @@ import { AIProposal } from './entities/proposal.entity';
 import { ProposalCommit } from './entities/proposal-commit.entity';
 import { DeepSeekLlmProvider, MockLlmProvider } from './llm';
 import { UnavailableLlmProvider } from './llm/unavailable-llm-provider';
+import { User } from '../users/entities/user.entity';
 import { ProposalsController } from './proposals.controller';
 import { ProposalsService } from './proposals.service';
 import { RetrievalService } from './retrieval/retrieval.service';
@@ -38,6 +39,7 @@ import { RetrievalService } from './retrieval/retrieval.service';
       Meeting,
       Task,
       Decision,
+      User,
     ]),
     IngestionModule,
   ],

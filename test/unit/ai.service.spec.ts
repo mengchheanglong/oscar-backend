@@ -12,9 +12,11 @@ import {
 } from '../../src/modules/ai/retrieval/retrieval.service';
 import { IngestionService } from '../../src/modules/ingestion/ingestion.service';
 import { KnowledgeSourceType } from '../../src/modules/ingestion/entities';
+import { ProjectMember } from '../../src/modules/projects/entities/project-member.entity';
 import { Project } from '../../src/modules/projects/entities/project.entity';
 import { CopilotMemoryService } from '../../src/modules/ai/copilot-memory.service';
 import { CopilotMemoryKind } from '../../src/modules/ai/entities/copilot-memory.entity';
+import { SystemRole, User } from '../../src/modules/users/entities/user.entity';
 
 describe('AiService', () => {
   let service: AiService;
@@ -31,6 +33,13 @@ describe('AiService', () => {
     findOne: jest.Mock;
   };
   let mockProjectRepo: {
+    findOne: jest.Mock;
+    find: jest.Mock;
+  };
+  let mockProjectMemberRepo: {
+    find: jest.Mock;
+  };
+  let mockUserRepo: {
     findOne: jest.Mock;
   };
   let mockRetrievalService: {
@@ -71,6 +80,15 @@ describe('AiService', () => {
 
     mockProjectRepo = {
       findOne: jest.fn().mockResolvedValue({ id: mockProjectId, name: 'Test Project' }),
+      find: jest.fn().mockResolvedValue([{ id: mockProjectId }]),
+    };
+
+    mockProjectMemberRepo = {
+      find: jest.fn().mockResolvedValue([{ projectId: mockProjectId }]),
+    };
+
+    mockUserRepo = {
+      findOne: jest.fn().mockResolvedValue({ id: mockUserId, systemRole: SystemRole.USER }),
     };
 
     mockRetrievalService = {
@@ -93,6 +111,8 @@ describe('AiService', () => {
       mockConversationRepo as unknown as Repository<Conversation>,
       mockMessageRepo as unknown as Repository<ChatMessage>,
       mockProjectRepo as unknown as Repository<Project>,
+      mockProjectMemberRepo as unknown as Repository<ProjectMember>,
+      mockUserRepo as unknown as Repository<User>,
       mockRetrievalService as unknown as RetrievalService,
       contextAssembler,
       mockLlmProvider as unknown as LlmProvider,
@@ -284,6 +304,140 @@ describe('AiService', () => {
 
       expect(assistantMessage.status).toBe(MessageStatus.FAILED);
       expect(assistantMessage.content).toContain('An error occurred while generating the response');
+    });
+
+    it('retrieves evidence across multiple workspaces and attaches project metadata to citations when includeAllWorkspaces is true', async () => {
+      mockMemoryService.list.mockResolvedValue([
+        {
+          id: 'own-memory',
+          kind: CopilotMemoryKind.PREFERENCE,
+          content: 'Compare assumptions before deciding.',
+          version: 1,
+        },
+      ]);
+      const mockConv = {
+        id: 'conv-1',
+        projectId: mockProjectId,
+        userId: mockUserId,
+        title: 'New Conversation',
+        defaultMode: AiMode.PM,
+        updatedAt: new Date(),
+      };
+      mockConversationRepo.findOne.mockResolvedValue(mockConv);
+      mockProjectMemberRepo.find.mockResolvedValue([
+        { projectId: mockProjectId },
+        { projectId: 'proj-2222-2222' },
+      ]);
+
+      const multiEvidence: RetrievedEvidence[] = [
+        {
+          chunkId: 'chunk-p1',
+          sourceId: 'src-1',
+          sourceType: KnowledgeSourceType.REQUIREMENT,
+          title: 'Project 1 Spec',
+          revision: 1,
+          locator: 'Chunk #1',
+          snippet: 'Spec for project 1',
+          projectName: 'Project 1',
+          projectKey: 'P1',
+          score: 0.9,
+        },
+        {
+          chunkId: 'chunk-p2',
+          sourceId: 'src-2',
+          sourceType: KnowledgeSourceType.DOCUMENT,
+          title: 'Project 2 Architecture',
+          revision: 1,
+          locator: 'Chunk #2',
+          snippet: 'Architecture for project 2',
+          projectName: 'Project 2',
+          projectKey: 'P2',
+          score: 0.85,
+        },
+      ];
+      mockRetrievalService.retrieve.mockResolvedValue(multiEvidence);
+
+      mockLlmProvider.generateAnswer.mockResolvedValue({
+        content: 'Cross project summary citing both. [Evidence #1] [Evidence #2]',
+        citations: [
+          {
+            chunkId: 'chunk-p1',
+            sourceId: 'src-1',
+            sourceType: KnowledgeSourceType.REQUIREMENT,
+            title: 'Project 1 Spec',
+            revision: 1,
+          },
+          {
+            chunkId: 'chunk-p2',
+            sourceId: 'src-2',
+            sourceType: KnowledgeSourceType.DOCUMENT,
+            title: 'Project 2 Architecture',
+            revision: 1,
+          },
+        ],
+        modelName: 'deepseek-flash',
+        promptTokens: 150,
+        completionTokens: 80,
+      });
+
+      const { assistantMessage } = await service.postMessage(mockProjectId, mockUserId, 'conv-1', {
+        content: 'Compare both projects',
+        includeAllWorkspaces: true,
+      });
+
+      expect(mockRetrievalService.retrieve).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projectIds: [mockProjectId, 'proj-2222-2222'],
+          limit: 12,
+        }),
+      );
+      expect(assistantMessage.citations).toHaveLength(2);
+      expect(assistantMessage.citations[0]!.projectName).toBe('Project 1');
+      expect(assistantMessage.citations[0]!.projectKey).toBe('P1');
+      expect(assistantMessage.citations[1]!.projectName).toBe('Project 2');
+      expect(assistantMessage.citations[1]!.projectKey).toBe('P2');
+      expect(mockMemoryService.list).toHaveBeenCalledTimes(1);
+      expect(mockMemoryService.list).toHaveBeenCalledWith(mockProjectId, mockUserId, 8);
+      const systemPrompt = mockLlmProvider.generateAnswer.mock.calls[0]![0].messages[0].content;
+      expect(systemPrompt).toContain('across all authorized project workspaces');
+      expect(systemPrompt).toContain('Compare assumptions before deciding.');
+      expect(systemPrompt).toContain('Workspace: [P2] Project 2');
+    });
+
+    it('retrieves evidence across all system projects when user is ADMIN and includeAllWorkspaces is true', async () => {
+      const mockConv = {
+        id: 'conv-admin',
+        projectId: mockProjectId,
+        userId: mockUserId,
+        title: 'Admin Conversation',
+        defaultMode: AiMode.PM,
+        updatedAt: new Date(),
+      };
+      mockConversationRepo.findOne.mockResolvedValue(mockConv);
+      mockUserRepo.findOne.mockResolvedValue({ id: mockUserId, systemRole: SystemRole.ADMIN });
+      mockProjectRepo.find.mockResolvedValue([
+        { id: mockProjectId },
+        { id: 'proj-admin-2' },
+        { id: 'proj-admin-3' },
+      ]);
+      mockRetrievalService.retrieve.mockResolvedValue([]);
+      mockLlmProvider.generateAnswer.mockResolvedValue({
+        content: 'Overview for all 3 projects',
+        citations: [],
+        modelName: 'deepseek-flash',
+      });
+
+      await service.postMessage(mockProjectId, mockUserId, 'conv-admin', {
+        content: 'System wide overview',
+        includeAllWorkspaces: true,
+      });
+
+      expect(mockRetrievalService.retrieve).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projectIds: [mockProjectId, 'proj-admin-2', 'proj-admin-3'],
+          limit: 12,
+        }),
+      );
     });
   });
 });

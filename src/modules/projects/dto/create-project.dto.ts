@@ -1,6 +1,36 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsArray,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { ProjectRole } from '../entities/project-member.entity';
+
+export class ProjectInitialMemberDto {
+  @ApiProperty({
+    example: '85bb1fd2-d5cb-42a1-8d2a-43d96924b17f',
+    description: 'User ID of the member to invite',
+  })
+  @IsUUID()
+  userId!: string;
+
+  @ApiPropertyOptional({
+    enum: [ProjectRole.MANAGER, ProjectRole.CONTRIBUTOR, ProjectRole.VIEWER],
+    default: ProjectRole.CONTRIBUTOR,
+  })
+  @IsOptional()
+  @IsEnum([ProjectRole.MANAGER, ProjectRole.CONTRIBUTOR, ProjectRole.VIEWER], {
+    message: 'Role must be MANAGER, CONTRIBUTOR, or VIEWER',
+  })
+  role?: ProjectRole;
+}
 
 export class CreateProjectDto {
   @ApiProperty({
@@ -25,4 +55,14 @@ export class CreateProjectDto {
   @IsString()
   @MaxLength(2000)
   description?: string;
+
+  @ApiPropertyOptional({
+    type: () => [ProjectInitialMemberDto],
+    description: 'Initial workspace members to invite into the project',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProjectInitialMemberDto)
+  members?: ProjectInitialMemberDto[];
 }

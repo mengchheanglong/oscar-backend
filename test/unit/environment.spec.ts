@@ -113,4 +113,16 @@ describe('Environment validation', () => {
       validateEnvironment({ ...valid, NODE_ENV: 'development', GITHUB_USE_MOCK: 'true' }),
     ).toThrow();
   });
+
+  it('treats empty strings as defaults for AI configuration fields', () => {
+    const config = validateEnvironment({
+      ...valid,
+      AI_LLM_PROVIDER: '',
+      AI_CHAT_MODEL: '',
+      AI_EMBEDDING_PROVIDER: '',
+    });
+    expect(config.AI_LLM_PROVIDER).toBe('deepseek');
+    expect(config.AI_CHAT_MODEL).toBe('deepseek-flash');
+    expect(config.AI_EMBEDDING_PROVIDER).toBe('disabled');
+  });
 });

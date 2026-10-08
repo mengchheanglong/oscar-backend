@@ -19,4 +19,12 @@ export class PostMessageDto {
   @IsOptional()
   @IsEnum(KnowledgeSourceType)
   sourceType?: KnowledgeSourceType;
+
+  @ApiPropertyOptional({
+    description:
+      'Whether to retrieve and share context across all workspaces the user has access to',
+    default: false,
+  })
+  @IsOptional()
+  includeAllWorkspaces?: boolean;
 }
