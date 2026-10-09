@@ -158,5 +158,21 @@ identical request returned the same run. A separate immediate cancellation
 remained CANCELLED with no report or proposal after the live run finished. This
 tests cancellation state persistence, not guaranteed prevention of charges for
 an inference request already dispatched. Live acceptance used the authenticated
-API; the earlier browser checks used synthetic fixtures. AIW MCP remained
-unavailable, so no project task status was changed.
+API; the earlier browser checks used synthetic fixtures. AIW MCP was unavailable
+during acceptance, so no project task status was changed.
+
+## Local MCP connection
+
+The MCP stdio process calls the backend; it does not start the HTTP server.
+The current frontend project MCP configuration targets
+`http://localhost:3001/api/v1`. Start the configured backend from this repository
+with `pnpm start:prod` (after `pnpm build` when source changes), or `pnpm dev`
+for development. Keep that process running while using the workspace or MCP.
+The current untracked backend environment specifies loopback port 3001.
+
+After the backend was started, native MCP checks on 2026-10-09 succeeded for
+project listing, AIW requirement access and accepted-decision listing. The latter
+returned no accepted decisions. The earlier fetch-failed blocker is resolved for
+this local session. If the backend stops, start it again; refreshing MCP alone
+does not start the API. Keep PAT forwarding through `AI_WORKSPACE_API_KEY`, never
+inline a token in configuration or source files.
