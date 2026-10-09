@@ -1,5 +1,10 @@
 # Hermes runtime integration
 
+Current local testing uses the isolated `ai_workspace_develop` database. See
+[Isolated local development](LOCAL_DEVELOPMENT.md) for startup, account and MCP
+configuration. The real-provider acceptance record below is historical: it ran
+before this database switch, and its report/proposal were not copied locally.
+
 The operational copilot can execute bounded project work through Hermes. The
 existing chat/provider path remains available. Select **Agent work** in the
 copilot to start a separate, private project run and inspect its report.

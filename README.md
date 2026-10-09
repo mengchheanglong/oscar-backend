@@ -26,6 +26,10 @@ DeepSeek V4 Pro workflow; production runtime packaging/deployment remains pendin
 
 ## Prerequisites
 
+For current manual testing on develop, use the separate local database and server
+targets in [Isolated local development](docs/LOCAL_DEVELOPMENT.md). Local testing
+must not use the deployment database.
+
 - Node.js **24.14.0**, as pinned in `.node-version`.
 - pnpm **10.32.1**, as pinned in `package.json` (`npm install --global pnpm@10.32.1` if needed).
 - Docker with Compose and a running Docker engine.
