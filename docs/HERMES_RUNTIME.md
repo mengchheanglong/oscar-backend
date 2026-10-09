@@ -73,8 +73,9 @@ artifact. It is not a live provider test.
 
 1. Apply the backend migrations explicitly in the intended release environment:
    `1791072000000-CreateCopilotMemories` and
-   `1791504000000-CreateAgentRuns`. The runner migration has been applied only to
-   the isolated local test database, not the configured nonlocal database.
+   `1791504000000-CreateAgentRuns`. Both were applied to the configured persistent
+   database during the authorized local enablement on 2026-10-09. New release
+   environments must still run their own explicit migration step.
 2. Keep existing AI provider settings and budget configuration. Configure absolute
    `HERMES_PYTHON` and `HERMES_ROOT` paths and set `HERMES_ENABLED=true` only after
    preparing the runtime. `AI_ENABLED=true` and a DeepSeek credential are required.
@@ -85,8 +86,9 @@ artifact. It is not a live provider test.
    Hermes disabled there until the deployment image explicitly supplies those
    dependencies. Frontend Vercel needs no Python.
 4. In a restricted project, select Agent work and run an actual provider-backed
-   task. This live provider/release check remains outstanding; no paid call or
-   public deployment was performed during implementation.
+   task. Local API acceptance passed on 2026-10-09 using real AIW evidence and
+   DeepSeek V4 Pro. Repeat acceptance for each deployment environment. No public
+   deployment has been performed.
 
 Default is disabled. Runtime status reports configuration/file availability,
 not a live provider health check. Missing dependencies, wrong/modified source,
@@ -129,7 +131,32 @@ operator cleanup. Workspace PostgreSQL remains canonical memory/run storage.
 
 This first integration proves a bounded execution path without giving Hermes
 arbitrary code execution, autonomous writes, global private memory, or external
-browser/network tools. Next: release preparation and one live restricted-project
-acceptance check, followed by additional approved tools driven by real work.
+browser/network tools. Local runtime enablement and live API acceptance passed.
+Next: review the saved report/draft in Copilot, then add approved tools driven by
+real work. Production Python packaging and deployment remain separate release work.
 Distributed workers, semantic memory retrieval and a skill registry require
 separate implementation and verification.
+
+## Local live acceptance - 2026-10-09
+
+The local backend runs at `http://127.0.0.1:3001`. Its untracked `.env` enables
+Hermes using the prepared paths above and the project-specified
+`AI_CHAT_MODEL=deepseek-v4-pro`; the previous local setting was `deepseek-flash`.
+Credentials remain untracked. The two additive migrations ran in one transaction;
+existing project, user and task counts were unchanged.
+
+One authenticated AIW run succeeded through real Hermes and DeepSeek. It used all
+three tools, recorded nine retrieved evidence entries and cited two retrieved
+chunk IDs. Its illustrative pricing report includes revenue 2,000, operating
+profit 600 and break-even 50 units. This checks the supplied scenario and valid
+source IDs, not independent semantic verification of every report claim.
+
+Run `98a01c04-0892-427c-82f6-473c02ac1817` saved its report and proposal
+`6e85addb-cb58-42bc-82f7-20e77d601c5e`. The proposal remains PENDING for the
+initiating account's human review; task counts did not change. A concurrent
+identical request returned the same run. A separate immediate cancellation
+remained CANCELLED with no report or proposal after the live run finished. This
+tests cancellation state persistence, not guaranteed prevention of charges for
+an inference request already dispatched. Live acceptance used the authenticated
+API; the earlier browser checks used synthetic fixtures. AIW MCP remained
+unavailable, so no project task status was changed.

@@ -163,15 +163,13 @@ dedicated test database, not automatically applied to development/production.
 
 ## Next milestone
 
-Prepare an explicit release of the selected Hermes integration and run one live
-provider-backed acceptance check in a restricted project. The bounded adapter,
-private persisted run history, pricing calculation, Markdown report, reviewed
-requirement-linked task proposal, cancellation and explicit retries are verified
-in source. The real pinned Hermes loop passed with simulated HTTP responses;
-database lifecycle tests use the dedicated test database. This does not claim
-paid provider verification or a public deployment. The configured nonlocal
-database still needs both memory/run migrations, and the server must explicitly
-enable the prepared runtime. See [HERMES_RUNTIME.md](HERMES_RUNTIME.md).
+Local Hermes enablement and live provider acceptance passed on 2026-10-09. Both
+pending migrations were applied explicitly to the configured persistent database,
+and real DeepSeek V4 Pro execution produced a saved AIW report and pending task
+draft. Cancellation persistence and stable creation retries passed. The next
+step is human review of that artifact/draft and additional approved tools driven
+by real work. Production Python packaging, public deployment and environment-
+specific acceptance remain separate work. See [HERMES_RUNTIME.md](HERMES_RUNTIME.md).
 
 Add a skill registry or explicit concept graph only when those work flows need
 it. Finance, economics and business are working domains, not mandatory tutoring
@@ -179,8 +177,7 @@ tracks or separate permission realms.
 
 ## Validation record
 
-The frontend's project decision workflow was consulted through the existing
-MCP server: `list_decisions` for `AIW` with `ACCEPTED` returned no records, so
-there was no accepted decision detail to fetch. No project task was assigned or
+The latest `list_decisions` request for `AIW` with `ACCEPTED` returned fetch failed,
+so accepted decisions could not be consulted. No project task was assigned or
 marked done. Validation results and limitations are recorded in the guide's
-progress ledger after the checks finish.
+progress ledger.

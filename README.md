@@ -21,8 +21,8 @@ AI uses the existing configured DeepSeek provider/model. Embeddings have separat
 settings. Optional Hermes execution remains disabled by default and needs a
 prepared Python/source environment plus explicit database migrations. See
 [Hermes runtime setup](docs/HERMES_RUNTIME.md); the Node-only Docker image does
-not bundle Hermes. No paid provider call or public deployment was performed to
-validate the new execution path.
+not bundle Hermes. The current local environment is enabled and passed a real
+DeepSeek V4 Pro workflow; production runtime packaging/deployment remains pending.
 
 ## Prerequisites
 
