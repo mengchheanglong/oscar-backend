@@ -9,6 +9,8 @@ import { AuthService } from '../src/modules/auth/auth.service';
 import { SessionService } from '../src/modules/auth/services/session.service';
 import { UsersController } from '../src/modules/users/users.controller';
 import { UsersService } from '../src/modules/users/users.service';
+import { WorkspaceController } from '../src/modules/users/workspace.controller';
+import { WorkspaceInvitationsService } from '../src/modules/users/workspace-invitations.service';
 import { ProjectsController } from '../src/modules/projects/projects.controller';
 import { ProjectsService } from '../src/modules/projects/projects.service';
 import { ProjectMembersController } from '../src/modules/projects/project-members.controller';
@@ -59,6 +61,7 @@ import { AgentRunsService } from '../src/modules/ai/agent-runs.service';
     HealthController,
     AuthController,
     UsersController,
+    WorkspaceController,
     ProjectsController,
     ProjectMembersController,
     RequirementsController,
@@ -84,6 +87,7 @@ import { AgentRunsService } from '../src/modules/ai/agent-runs.service';
       },
     },
     { provide: UsersService, useValue: {} },
+    { provide: WorkspaceInvitationsService, useValue: {} },
     { provide: ProjectsService, useValue: {} },
     { provide: ProjectMembersService, useValue: {} },
     { provide: AuditService, useValue: {} },

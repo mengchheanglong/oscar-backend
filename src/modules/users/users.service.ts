@@ -96,6 +96,27 @@ export class UsersService implements OnApplicationBootstrap {
     return { users, total };
   }
 
+  async listVisibleMembers(actorId: string): Promise<{ users: User[]; total: number }> {
+    // Team is a collaboration directory, not the installation-wide admin directory.
+    const [users, total] = await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.is_active = true')
+      .andWhere(
+        `(user.id = :actorId OR EXISTS (
+          SELECT 1 FROM project_members actor_member
+          JOIN project_members peer_member ON peer_member.project_id = actor_member.project_id
+          WHERE actor_member.user_id = :actorId AND actor_member.removed_at IS NULL
+            AND peer_member.user_id = user.id AND peer_member.removed_at IS NULL
+        ))`,
+        { actorId },
+      )
+      .orderBy('user.created_at', 'DESC')
+      .addOrderBy('user.id', 'ASC')
+      .take(100)
+      .getManyAndCount();
+    return { users, total };
+  }
+
   async findById(id: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { id } });
   }

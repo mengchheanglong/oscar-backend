@@ -32,14 +32,10 @@ export class WorkspaceController {
   ) {}
 
   @Get('members')
-  @ApiOperation({ summary: 'List all active members in the workspace' })
+  @ApiOperation({ summary: 'List yourself and active collaborators sharing a project' })
   @ApiOkResponse({ description: 'List of workspace members' })
-  async getMembers() {
-    const { users, total } = await this.usersService.findAll({
-      page: 1,
-      pageSize: 100,
-      isActive: true,
-    });
+  async getMembers(@CurrentUser() actor: User) {
+    const { users, total } = await this.usersService.listVisibleMembers(actor.id);
 
     return {
       data: users.map(UserResponseDto.fromEntity),
@@ -48,10 +44,10 @@ export class WorkspaceController {
   }
 
   @Get('invites')
-  @ApiOperation({ summary: 'List pending workspace invitations' })
+  @ApiOperation({ summary: 'List your pending workspace invitations' })
   @ApiOkResponse({ description: 'List of pending workspace invitations' })
-  async getPendingInvites() {
-    const invites = await this.invitationsService.listPendingInvitations();
+  async getPendingInvites(@CurrentUser() actor: User) {
+    const invites = await this.invitationsService.listPendingInvitations(actor.id);
     return {
       data: invites.map(WorkspaceInvitationResponseDto.fromEntity),
     };
@@ -73,8 +69,8 @@ export class WorkspaceController {
   @ApiOperation({ summary: 'Cancel a pending workspace invitation' })
   @ApiHeader({ name: 'x-csrf-token', description: 'CSRF token', required: true })
   @ApiOkResponse({ description: 'Invitation cancelled' })
-  async cancelInvite(@Param('id', ParseUUIDPipe) id: string) {
-    const result = await this.invitationsService.cancelInvitation(id);
+  async cancelInvite(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: User) {
+    const result = await this.invitationsService.cancelInvitation(id, actor.id);
     return {
       data: result,
     };

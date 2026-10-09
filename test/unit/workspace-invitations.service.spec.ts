@@ -102,14 +102,16 @@ describe('WorkspaceInvitationsService', () => {
       } as WorkspaceInvitation;
       mockInvitationRepo.findOne.mockResolvedValue(invite);
 
-      const res = await service.cancelInvitation('inv-to-cancel');
+      const res = await service.cancelInvitation('inv-to-cancel', mockActor.id);
       expect(res.cancelled).toBe(true);
       expect(invite.status).toBe(InvitationStatus.CANCELLED);
     });
 
     it('throws NotFoundException if invitation does not exist', async () => {
       mockInvitationRepo.findOne.mockResolvedValue(null);
-      await expect(service.cancelInvitation('nonexistent')).rejects.toThrow(NotFoundException);
+      await expect(service.cancelInvitation('nonexistent', mockActor.id)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

@@ -486,6 +486,122 @@
         ]
       }
     },
+    "/api/v1/workspace/members": {
+      "get": {
+        "operationId": "WorkspaceController_getMembers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of workspace members"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List yourself and active collaborators sharing a project",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/workspace/invites": {
+      "get": {
+        "operationId": "WorkspaceController_getPendingInvites",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of pending workspace invitations"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List your pending workspace invitations",
+        "tags": [
+          "Workspace"
+        ]
+      },
+      "post": {
+        "operationId": "WorkspaceController_createInvite",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvitationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Invitation created"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Create and send a workspace invitation",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/workspace/invites/{id}": {
+      "delete": {
+        "operationId": "WorkspaceController_cancelInvite",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitation cancelled"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Cancel a pending workspace invitation",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
     "/api/v1/projects": {
       "get": {
         "operationId": "ProjectsController_listProjects",
@@ -4212,6 +4328,39 @@
             "maxLength": 128
           }
         }
+      },
+      "CreateInvitationDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "colleague@example.com",
+            "description": "Email address of person to invite"
+          },
+          "systemRole": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "USER"
+            ],
+            "default": "USER"
+          },
+          "professionalRole": {
+            "type": "string",
+            "enum": [
+              "PM",
+              "DEVELOPER",
+              "QA",
+              "DX",
+              "INFRASTRUCTURE",
+              "PRESENTATION"
+            ],
+            "default": "DEVELOPER"
+          }
+        },
+        "required": [
+          "email"
+        ]
       },
       "ProjectInitialMemberDto": {
         "type": "object",

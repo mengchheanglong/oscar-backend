@@ -41,10 +41,19 @@ bootstrap settings were cleared after provisioning. Use the normal application
 to create actual test work and upload the sources you want to use.
 
 After switching databases, log out and sign in again. Sessions from the shared
-database are invalid locally. The Team endpoint currently lists active users in
-one installation; separate project membership does not provide organization-wide
-tenant isolation. This environment switch isolates development, but does not
-implement a multi-organization tenancy model.
+database are invalid locally. Team shows the authenticated account and active
+users sharing at least one project with that account. Removed memberships and
+inactive collaborators do not grant visibility. A collaborator's other
+collaborators are not automatically visible. This rule also applies to
+administrators on Team; the separate system user-management API retains its
+administrator permissions. This is a project-collaboration directory, not a
+multi-organization tenancy model.
+
+Pending invitations and their links are private to their sender. Only that sender
+can cancel an invitation. Members can invite ordinary users; only system
+administrators can invite another administrator. Accepting an account invitation
+does not automatically add the account to a project. Use the project membership
+controls to add a collaborator.
 
 Earlier shared-environment test records were left untouched. This switch performs
 no cleanup, rollback or further migration against the deployed database.

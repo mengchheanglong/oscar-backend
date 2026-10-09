@@ -30,6 +30,10 @@ For current manual testing on develop, use the separate local database and serve
 targets in [Isolated local development](docs/LOCAL_DEVELOPMENT.md). Local testing
 must not use the deployment database.
 
+Team is scoped to yourself and active collaborators sharing a project. Pending
+invitations belong to their sender; foreign invitation cancellation is rejected.
+Inviting a system administrator requires an administrator account.
+
 - Node.js **24.14.0**, as pinned in `.node-version`.
 - pnpm **10.32.1**, as pinned in `package.json` (`npm install --global pnpm@10.32.1` if needed).
 - Docker with Compose and a running Docker engine.

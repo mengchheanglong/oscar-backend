@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   GoneException,
   Injectable,
   Logger,
@@ -8,7 +9,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomBytes } from 'node:crypto';
-import { User } from './entities/user.entity';
+import { ProfessionalRole, SystemRole, User } from './entities/user.entity';
 import { InvitationStatus, WorkspaceInvitation } from './entities/workspace-invitation.entity';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 
@@ -26,6 +27,12 @@ export class WorkspaceInvitationsService {
   ) {}
 
   async createInvitation(actor: User, dto: CreateInvitationDto): Promise<WorkspaceInvitation> {
+    if (dto.systemRole === SystemRole.ADMIN && actor.systemRole !== SystemRole.ADMIN) {
+      throw new ForbiddenException({
+        code: 'ADMIN_INVITATION_FORBIDDEN',
+        message: 'Only a system administrator can invite another administrator.',
+      });
+    }
     const normalizedEmail = dto.email.trim().toLowerCase();
 
     // Check if user already exists
@@ -42,7 +49,7 @@ export class WorkspaceInvitationsService {
 
     // Check for existing pending invitation
     const existingInvite = await this.invitationRepository.findOne({
-      where: { email: normalizedEmail, status: InvitationStatus.PENDING },
+      where: { email: normalizedEmail, status: InvitationStatus.PENDING, invitedById: actor.id },
       relations: ['invitedBy'],
     });
 
@@ -61,8 +68,8 @@ export class WorkspaceInvitationsService {
 
     const invite = this.invitationRepository.create({
       email: normalizedEmail,
-      systemRole: dto.systemRole,
-      professionalRole: dto.professionalRole,
+      systemRole: dto.systemRole ?? SystemRole.USER,
+      professionalRole: dto.professionalRole ?? ProfessionalRole.DEVELOPER,
       token,
       status: InvitationStatus.PENDING,
       invitedById: actor.id,
@@ -72,23 +79,23 @@ export class WorkspaceInvitationsService {
     const saved = await this.invitationRepository.save(invite);
     saved.invitedBy = actor;
 
-    this.logger.log(`Created workspace invitation for ${normalizedEmail} by ${actor.email}`);
+    this.logger.log(`Created workspace invitation ${saved.id} by ${actor.id}`);
     return saved;
   }
 
-  async listPendingInvitations(): Promise<WorkspaceInvitation[]> {
-    await this.expireStaleInvites();
+  async listPendingInvitations(actorId: string): Promise<WorkspaceInvitation[]> {
+    await this.expireStaleInvites(actorId);
 
     return this.invitationRepository.find({
-      where: { status: InvitationStatus.PENDING },
+      where: { status: InvitationStatus.PENDING, invitedById: actorId },
       relations: ['invitedBy'],
       order: { createdAt: 'DESC' },
     });
   }
 
-  async cancelInvitation(id: string): Promise<{ id: string; cancelled: boolean }> {
+  async cancelInvitation(id: string, actorId: string): Promise<{ id: string; cancelled: boolean }> {
     const invite = await this.invitationRepository.findOne({
-      where: { id },
+      where: { id, invitedById: actorId },
     });
 
     if (!invite) {
@@ -177,14 +184,15 @@ export class WorkspaceInvitationsService {
     );
   }
 
-  private async expireStaleInvites(): Promise<void> {
+  private async expireStaleInvites(actorId: string): Promise<void> {
     await this.invitationRepository
       .createQueryBuilder()
       .update(WorkspaceInvitation)
       .set({ status: InvitationStatus.EXPIRED })
-      .where('status = :status AND expires_at <= :now', {
+      .where('status = :status AND expires_at <= :now AND invited_by_id = :actorId', {
         status: InvitationStatus.PENDING,
         now: new Date(),
+        actorId,
       })
       .execute();
   }
