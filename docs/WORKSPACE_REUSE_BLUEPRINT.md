@@ -81,7 +81,7 @@ flowchart TD
   K --> C
   M --> C
   C --> L[Existing configured DeepSeek provider]
-  R[Optional OpenClaw or Hermes runtime] -. future adapter .-> T[Workspace MCP and authorized tools]
+  R[Selected Hermes runtime] --> T[Restricted workspace tool adapter]
   T --> API
   F[Optional Langflow flows or simulation tools] -. reviewed capability .-> T
   P[Optional Paperclip coordination] -. future execution scheduling .-> R
@@ -93,13 +93,14 @@ and its run lifecycle. A runtime adapter never bypasses the workspace's domain
 services or adds permissions. Keep the existing generation provider contract;
 using runtime architecture does not authorize changing the configured model.
 
-Choose one runtime for a bounded integration trial instead of combining several
-agent loops. The existing Paperclip OpenClaw gateway adapter and mc-operator
-dispatch provide a concrete OpenClaw integration reference. Hermes remains a
-candidate when reusable skills and curated memory are the priority. Current
+The user selected Hermes for the bounded integration trial. The direct Python
+adapter and run lifecycle are implemented; see [HERMES_RUNTIME.md](HERMES_RUNTIME.md)
+for the verified revision, tool contract and release limitations. The existing
+Paperclip OpenClaw gateway adapter and mc-operator dispatch remain architecture
+references. Current
 Paperclip gateway documentation redirects new Hermes installs to
 `@paperclipai/hermes-paperclip-adapter`; do not build a new integration against
-the deprecated shim. Neither runtime is installed or connected by this slice.
+the deprecated shim. Paperclip is not required by the selected direct adapter.
 
 ## Memory model
 
@@ -108,7 +109,7 @@ the deprecated shim. Neither runtime is installed or connected by this slice.
 | Project evidence        | Facts and authoritative decisions with revisions and citations    | Existing ingestion/retrieval reused                         |
 | Conversation history    | Recent private dialogue                                           | Existing private conversations reused                       |
 | Reviewed copilot memory | Durable personal project context, working preferences and lessons | Implemented by this slice; explicit save/edit/removal       |
-| Procedural capabilities | Versioned skills, models, calculations and workflows              | Next integration; do not execute arbitrary uploaded code    |
+| Procedural capabilities | Versioned skills, models, calculations and workflows              | One approved pricing tool; general skill registry deferred  |
 | Work outcomes           | Artifacts, decisions and observed results                         | Existing project records reused; richer outcome links later |
 | Concept relationships   | Explain useful links across fields                                | Later, after repeatable work needs explicit relationships   |
 
@@ -162,13 +163,15 @@ dedicated test database, not automatically applied to development/production.
 
 ## Next milestone
 
-Connect one existing runtime to a restricted project through an adapter. Prove
-that it can retrieve permitted evidence, use one approved deterministic tool,
-produce a work artifact, and request a reviewed action. Persist run state and
-make cancellation, failures and retries visible. Confirm actual model support
-and runtime requirements before enabling paid calls; the inspected OpenClaw
-main branch's documented Node minimum exceeds this repository's pinned 24.14.0.
-Keep its runtime dependency isolated instead of upgrading this backend blindly.
+Prepare an explicit release of the selected Hermes integration and run one live
+provider-backed acceptance check in a restricted project. The bounded adapter,
+private persisted run history, pricing calculation, Markdown report, reviewed
+requirement-linked task proposal, cancellation and explicit retries are verified
+in source. The real pinned Hermes loop passed with simulated HTTP responses;
+database lifecycle tests use the dedicated test database. This does not claim
+paid provider verification or a public deployment. The configured nonlocal
+database still needs both memory/run migrations, and the server must explicitly
+enable the prepared runtime. See [HERMES_RUNTIME.md](HERMES_RUNTIME.md).
 
 Add a skill registry or explicit concept graph only when those work flows need
 it. Finance, economics and business are working domains, not mandatory tutoring

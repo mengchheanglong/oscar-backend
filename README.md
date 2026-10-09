@@ -10,9 +10,19 @@ NestJS backend foundation for the two-phase AI Project Workspace. Start with [AG
 - Explicit migration workflow, isolated database tests, Docker Compose, and a GitHub Actions CI workflow.
 - Pinned Node/pnpm versions and a pnpm lockfile.
 
-Authentication, project CRUD, document upload, frontend, AI generation, embeddings, and GitHub integration are **not implemented yet**. The next milestone is **P1-01: Accounts and sessions**. Only health endpoints are intentionally public. Do not publish this foundation as a finished product.
+Core workspace modules, authentication, documents, ingestion/retrieval, cited
+copilot chat, reviewed proposals and GitHub integration are implemented. The
+operational extension adds Workspace mode, reviewed private memory, and a bounded
+Hermes agent execution path. Read the guide's latest progress ledger for actual
+verification and release limitations; foundation-era instructions below are not
+a current feature-status inventory.
 
-DeepSeek V4 Pro is the selected LLM for Phase 2. The `.env.example` reserves its settings; no provider SDK or paid API calls are enabled. Embeddings have separate recommended provider settings. Enabling AI/GitHub early fails configuration validation instead of pretending those integrations work.
+AI uses the existing configured DeepSeek provider/model. Embeddings have separate
+settings. Optional Hermes execution remains disabled by default and needs a
+prepared Python/source environment plus explicit database migrations. See
+[Hermes runtime setup](docs/HERMES_RUNTIME.md); the Node-only Docker image does
+not bundle Hermes. No paid provider call or public deployment was performed to
+validate the new execution path.
 
 ## Prerequisites
 

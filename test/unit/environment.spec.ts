@@ -26,6 +26,7 @@ describe('Environment validation', () => {
     { AI_ENABLED: 'true' },
     { GITHUB_ENABLED: 'true' },
     { AI_CHAT_MODEL: 'another-model' },
+    { HERMES_ENABLED: 'true' },
     { APP_ORIGIN: 'http://localhost:3001/path' },
     { NODE_ENV: 'production', SWAGGER_ENABLED: 'true' },
   ])('rejects invalid or unsupported configuration %j', (override) => {

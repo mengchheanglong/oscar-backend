@@ -49,6 +49,8 @@ import { MeetingAttendee } from '../src/modules/meetings/entities/meeting-attend
 import { User } from '../src/modules/users/entities/user.entity';
 import { Project } from '../src/modules/projects/entities/project.entity';
 import { createOpenApiDocument } from '../src/openapi';
+import { AgentRunsController } from '../src/modules/ai/agent-runs.controller';
+import { AgentRunsService } from '../src/modules/ai/agent-runs.service';
 
 // Offline metadata-only app: no database connection, .env, provider call, or listening socket.
 // Register new public controllers here as the API grows, and test path coverage.
@@ -69,6 +71,7 @@ import { createOpenApiDocument } from '../src/openapi';
     IngestionController,
     AiController,
     CopilotMemoryController,
+    AgentRunsController,
   ],
   providers: [
     { provide: HealthService, useValue: {} },
@@ -94,6 +97,7 @@ import { createOpenApiDocument } from '../src/openapi';
     { provide: IngestionService, useValue: {} },
     { provide: AiService, useValue: {} },
     { provide: CopilotMemoryService, useValue: {} },
+    { provide: AgentRunsService, useValue: {} },
     { provide: STORAGE_DRIVER, useValue: {} },
     { provide: getRepositoryToken(ProjectMember), useValue: {} },
     { provide: getRepositoryToken(Requirement), useValue: {} },

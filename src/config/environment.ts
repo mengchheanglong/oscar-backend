@@ -43,6 +43,9 @@ const schema = z
       .default('info'),
     SWAGGER_ENABLED: booleanString.default(false),
     AI_ENABLED: booleanString.default(false),
+    HERMES_ENABLED: booleanString.default(false),
+    HERMES_PYTHON: emptyStringToUndefined(z.string().optional()),
+    HERMES_ROOT: emptyStringToUndefined(z.string().optional()),
     GITHUB_ENABLED: booleanString.default(false),
     GITHUB_APP_ID: emptyStringToUndefined(z.string().optional()),
     GITHUB_APP_PRIVATE_KEY_FILE: emptyStringToUndefined(z.string().optional()),
@@ -73,6 +76,13 @@ const schema = z
     SUPABASE_JWKS_URL: emptyStringToUndefined(z.string().url().optional()),
   })
   .superRefine((value, context) => {
+    if (value.HERMES_ENABLED && (!value.AI_ENABLED || !value.HERMES_PYTHON || !value.HERMES_ROOT)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['HERMES_ENABLED'],
+        message: 'Hermes requires AI_ENABLED, HERMES_PYTHON and HERMES_ROOT.',
+      });
+    }
     if (
       value.NODE_ENV !== 'test' &&
       (value.AI_EMBEDDING_PROVIDER === 'mock' || value.GITHUB_USE_MOCK)

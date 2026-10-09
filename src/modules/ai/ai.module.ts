@@ -9,6 +9,10 @@ import { Task } from '../tasks/entities/task.entity';
 import { Decision } from '../decisions/entities/decision.entity';
 import { IngestionModule } from '../ingestion/ingestion.module';
 import { AiController } from './ai.controller';
+import { AgentRunsController } from './agent-runs.controller';
+import { AgentRunsService } from './agent-runs.service';
+import { AgentRun } from './entities/agent-run.entity';
+import { HermesRuntime } from './runtime/hermes-runtime';
 import { AiService } from './ai.service';
 import { CopilotMemory } from './entities/copilot-memory.entity';
 import { CopilotMemoryService } from './copilot-memory.service';
@@ -29,6 +33,7 @@ import { RetrievalService } from './retrieval/retrieval.service';
   imports: [
     TypeOrmModule.forFeature([
       Conversation,
+      AgentRun,
       CopilotMemory,
       ChatMessage,
       AIProposal,
@@ -43,11 +48,13 @@ import { RetrievalService } from './retrieval/retrieval.service';
     ]),
     IngestionModule,
   ],
-  controllers: [AiController, ProposalsController, CopilotMemoryController],
+  controllers: [AiController, ProposalsController, CopilotMemoryController, AgentRunsController],
   providers: [
     RetrievalService,
     ContextAssembler,
     AiService,
+    AgentRunsService,
+    { provide: 'AGENT_RUNTIME', useClass: HermesRuntime },
     CopilotMemoryService,
     ProposalsService,
     {

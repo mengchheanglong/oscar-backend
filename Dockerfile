@@ -18,6 +18,7 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 COPY --from=production-dependencies /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+COPY scripts/hermes/bridge.py ./scripts/hermes/bridge.py
 COPY package.json ./
 RUN mkdir -p /app/var/uploads && chown -R node:node /app/var
 USER node

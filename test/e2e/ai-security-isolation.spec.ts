@@ -52,6 +52,7 @@ import { OutboxEvent } from '../../src/modules/ingestion/entities';
 import { PasswordService } from '../../src/modules/auth/services/password.service';
 import { CopilotMemory } from '../../src/modules/ai/entities/copilot-memory.entity';
 import { CopilotMemoryService } from '../../src/modules/ai/copilot-memory.service';
+import { AgentRun } from '../../src/modules/ai/entities/agent-run.entity';
 
 describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
   jest.setTimeout(60000);
@@ -636,6 +637,8 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       .useValue(mockChatMessageRepository)
       .overrideProvider(getRepositoryToken(CopilotMemory))
       .useValue({})
+      .overrideProvider(getRepositoryToken(AgentRun))
+      .useValue({})
       .overrideProvider(CopilotMemoryService)
       .useValue({ list: jest.fn().mockResolvedValue([]) })
       .overrideProvider(getRepositoryToken(AIProposal))
@@ -826,6 +829,49 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
   });
 
   // ── Scenario 1: Cross-Project Isolation (404 Leak Prevention) ──
+  it('protects agent-run endpoints with authentication, project scope, CSRF and validated prompts', async () => {
+    const path = `/api/v1/projects/${projectA.id}/ai/runs`;
+    expect((await request(app.getHttpServer()).get(`${path}/runtime`)).status).toBe(401);
+    expect(
+      (
+        await request(app.getHttpServer())
+          .get(`/api/v1/projects/${projectB.id}/ai/runs/runtime`)
+          .set('Cookie', sessionA.cookie)
+      ).status,
+    ).toBe(404);
+    const status = await request(app.getHttpServer())
+      .get(`${path}/runtime`)
+      .set('Cookie', sessionA.cookie);
+    expect(status.status).toBe(200);
+    expect(status.body.available ?? status.body.data?.available).toBe(false);
+    expect(
+      (
+        await request(app.getHttpServer())
+          .post(path)
+          .set('Cookie', sessionA.cookie)
+          .send({ prompt: 'Synthetic run', idempotencyKey: randomUUID() })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request(app.getHttpServer())
+          .post(path)
+          .set('Cookie', sessionA.cookie)
+          .set('x-csrf-token', sessionA.csrf)
+          .send({ prompt: '   ', idempotencyKey: randomUUID() })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await request(app.getHttpServer())
+          .post(path)
+          .set('Cookie', sessionA.cookie)
+          .set('x-csrf-token', sessionA.csrf)
+          .send({ prompt: 'Synthetic run', idempotencyKey: 'invalid' })
+      ).status,
+    ).toBe(400);
+  });
+
   it('protects memory endpoints with authentication, project isolation, CSRF and explicit-review validation', async () => {
     const path = `/api/v1/projects/${projectA.id}/ai/memories`;
     expect((await request(app.getHttpServer()).get(path)).status).toBe(401);
