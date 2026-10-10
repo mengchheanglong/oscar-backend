@@ -65,9 +65,11 @@ export class LocalFoldersService {
 
   async list(projectId: string, userId: string): Promise<LocalFolderResponse[]> {
     await this.access(projectId, userId);
-    const folders = await this.database
-      .getRepository(LocalFolder)
-      .find({ where: { projectId, userId }, order: { syncedAt: 'DESC' }, take: 20 });
+    const folders = await this.database.getRepository(LocalFolder).find({
+      where: { projectId, userId, storageMode: 'SNAPSHOT' },
+      order: { syncedAt: 'DESC' },
+      take: 20,
+    });
     return Promise.all(
       folders.map(async (folder) => {
         const sources = await this.database.getRepository(KnowledgeSource).find({
@@ -137,6 +139,8 @@ export class LocalFoldersService {
       }
       if (folder.version !== dto.expectedVersion)
         throw new ConflictException('Folder changed. Reload sources before scanning again.');
+      if (folder.storageMode && folder.storageMode !== 'SNAPSHOT')
+        throw new NotFoundException('Folder not found.');
       const existing = await tx.find(KnowledgeSource, {
         where: { projectId, ownerId: userId, localFolderId: id },
       });
@@ -204,7 +208,12 @@ export class LocalFoldersService {
     await this.access(projectId, userId, true);
     await this.database.transaction(async (tx) => {
       await tx.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId]);
-      const result = await tx.delete(LocalFolder, { id, projectId, userId });
+      const result = await tx.delete(LocalFolder, {
+        id,
+        projectId,
+        userId,
+        storageMode: 'SNAPSHOT',
+      });
       if (!result.affected) throw new NotFoundException('Folder not found.');
     });
   }

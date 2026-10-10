@@ -829,6 +829,26 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
   });
 
   // ── Scenario 1: Cross-Project Isolation (404 Leak Prevention) ──
+  it('requires authentication, project membership and CSRF for uploaded folders', async () => {
+    const path = `/api/v1/projects/${projectA.id}/uploaded-folders`;
+    await request(app.getHttpServer()).get(path).expect(401);
+    await request(app.getHttpServer())
+      .post(path)
+      .set('Cookie', sessionA.cookie)
+      .send({ name: 'Private', expectedFiles: 1 })
+      .expect(403);
+    await request(app.getHttpServer())
+      .get(`/api/v1/projects/${projectB.id}/uploaded-folders`)
+      .set('Cookie', sessionA.cookie)
+      .expect(404);
+    await request(app.getHttpServer())
+      .post(path)
+      .set('Cookie', sessionA.cookie)
+      .set('x-csrf-token', sessionA.csrf)
+      .send({ name: 'Private', expectedFiles: 5001 })
+      .expect(400);
+  });
+
   it('protects agent-run endpoints with authentication, project scope, CSRF and validated prompts', async () => {
     const path = `/api/v1/projects/${projectA.id}/ai/runs`;
     expect((await request(app.getHttpServer()).get(`${path}/runtime`)).status).toBe(401);

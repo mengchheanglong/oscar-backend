@@ -1,3 +1,5 @@
+import { UploadedFoldersController } from '../src/modules/local-folders/uploaded-folders.controller';
+import { UploadedFoldersService } from '../src/modules/local-folders/uploaded-folders.service';
 import 'reflect-metadata';
 import { LocalFoldersController } from '../src/modules/local-folders/local-folders.controller';
 import { LiveFoldersService } from '../src/modules/local-folders/live-folders.service';
@@ -62,6 +64,7 @@ import { AgentRunsService } from '../src/modules/ai/agent-runs.service';
 // Register new public controllers here as the API grows, and test path coverage.
 @Module({
   controllers: [
+    UploadedFoldersController,
     LocalFoldersController,
     HealthController,
     AuthController,
@@ -82,6 +85,7 @@ import { AgentRunsService } from '../src/modules/ai/agent-runs.service';
     AgentRunsController,
   ],
   providers: [
+    { provide: UploadedFoldersService, useValue: {} },
     { provide: LocalFoldersService, useValue: {} },
     { provide: LiveFoldersService, useValue: {} },
     { provide: NativeFolderPickerService, useValue: {} },

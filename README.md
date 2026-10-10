@@ -241,3 +241,29 @@ must bind to loopback in a non-production environment. Ripgrep (`rg`) is require
 The local administrator selects a folder in the native Windows chooser (manual
 path fallback); connections belong to that account and project. Normal Copilot chat continues to use indexed sources.
 See [Live folder setup and boundaries](docs/LIVE_FOLDERS.md).
+
+### Persistent private folder uploads
+
+`/projects/:projectId/uploaded-folders` provides private folder upload sessions,
+per-file multipart storage, atomic completion, paginated listing/text reads,
+original attachment downloads and deletion. Originals use `STORAGE_LOCAL_ROOT`;
+PostgreSQL keeps folder paths, SHA-256 hashes and extracted search chunks.
+Any original format is accepted. UTF-8 text, PDF and DOCX can be extracted up to
+10 MiB original / 4 MiB text per file; unsupported files retain originals and an
+explicit metadata-only reason. Limits: 5,000 files, 2 GiB per folder, 256 MiB
+per file and 20 folders across uploaded/snapshot modes per project/account.
+
+Only complete folders enter private Copilot retrieval or Hermes folder tools.
+Same-path/same-hash retries are idempotent; conflicting files are rejected.
+The browser keeps its selected files for retry while the page is open. An
+interrupted copy can be deleted and uploaded again after reopening. Uploads are
+saved copies, without background synchronization. Account/project ownership
+and active membership apply to reads and downloads as well as mutations.
+
+Run migrations explicitly against the isolated development DB before testing.
+No new schemaless DB or desktop shell is required. The current storage driver
+uses the backend filesystem: cross-device use needs a reachable backend and
+persistent disk. Public deployment/object-storage provisioning remains future
+work. Back up that disk together with PostgreSQL. Hard process termination can
+leave temporary/orphan blobs requiring operational cleanup; automatic crash
+reconciliation is not implemented in this first version.

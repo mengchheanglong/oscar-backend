@@ -1116,3 +1116,40 @@ showed no path modal; fallback opened and Escape closed it. Native window
 selection itself requires manual acceptance. Frontend lint/typecheck and
 production build passed. AIW accepted-decision lookup
 returned none; no assigned task was supplied or marked DONE.
+
+### Persistent browser folder uploads — 2026-10-10
+
+The browser folder chooser now uploads original files and relative paths to
+private server storage. PostgreSQL metadata reuses the local folder source
+boundary with separate UPLOAD/SNAPSHOT modes and a new original-file table.
+A migration was applied only to the verified ai_workspace_develop database on
+127.0.0.1:55432. Main and deployment configuration are unchanged.
+
+Uploads accept all formats, up to 5,000 files / 2 GiB per folder / 256 MiB per
+file. UTF-8, PDF and DOCX extraction is bounded to 10 MiB originals / 4 MiB text;
+unsupported files retain original downloads and metadata-only previews. Pending
+copies remain excluded from retrieval until all expected files are committed.
+Retries are hash-idempotent; filename conflicts are rejected. File listings and
+text reads use bounded pages. Normal browser selection requires no PowerShell.
+
+Copilot private source retrieval and Hermes's existing folder discovery, search
+and read tools support completed uploads. The minimal Documents card offers
+progress, retry, previews, original downloads and confirmed copy deletion.
+Local live connections and legacy snapshots remain optional collapsed sections.
+Copies are not synchronized with later local edits. Cross-device use still
+requires a reachable authenticated backend and persistent storage; hosting and
+cloud object storage were not provisioned. Hard process crashes may leave
+orphan/temp blobs; automatic crash reconciliation remains unimplemented.
+
+Verification: backend lint/typecheck/build/format and OpenAPI generation passed;
+38 unit suites (310 tests), nine HTTP suites (153 tests), six isolated PostgreSQL
+suites (35 tests). New checks cover staging visibility, owner/project isolation,
+original binary fidelity, hash retries, conflicts, blob cleanup on DB failure,
+101-file pagination, multipart parsing and streamed downloads. Hermes tools
+were verified using the real services/database and a simulated runtime, without
+a new provider request. Frontend lint/typecheck, six scanner tests and production
+build passed. Browser testing used a real selected directory with nested custom
+text and binary originals, caught/fixed a multipart parts-limit defect, retried
+the incomplete session and verified preview and persistence after reload.
+AIW accepted-decision lookup returned none; no assigned task was supplied or
+marked DONE. Work remains on develop and local commits only.

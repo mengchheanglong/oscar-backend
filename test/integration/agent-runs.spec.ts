@@ -1,3 +1,5 @@
+import { UploadedFoldersService } from '../../src/modules/local-folders/uploaded-folders.service';
+import { LocalStorageService } from '../../src/modules/storage/local-storage.service';
 import 'reflect-metadata';
 import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
@@ -115,6 +117,12 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
       runtime,
       new AuditService(db.getRepository(AuditLog)),
       live,
+      new UploadedFoldersService(
+        db,
+        new LocalStorageService(
+          new ConfigService({ STORAGE_LOCAL_ROOT: path.join(folder, 'storage') }),
+        ),
+      ),
     );
   });
 
@@ -190,6 +198,51 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
     });
     expect(done.evidence[0]?.chunkId).toMatch(/^local:/);
     await live.disconnect(project.id, user.id, mount.id);
+  });
+
+  it('reads persisted uploads through Hermes tools without native folder access', async () => {
+    const stored = new UploadedFoldersService(
+      db,
+      new LocalStorageService(
+        new ConfigService({ STORAGE_LOCAL_ROOT: path.join(folder, 'storage') }),
+      ),
+    );
+    const upload = await stored.create(project.id, user.id, 'Uploaded research', 1);
+    const buffer = Buffer.from('Uploaded Mercury assumptions');
+    await stored.put(project.id, user.id, upload.id, 'notes.custom', {
+      buffer,
+      size: buffer.length,
+    } as Express.Multer.File);
+    await stored.complete(project.id, user.id, upload.id);
+    execute.mockImplementation(async (input, callbacks) => {
+      expect(input.context).toContain(upload.id);
+      expect(await callbacks.tool('list_local_folders', {})).toContainEqual({
+        id: upload.id,
+        name: 'Uploaded research',
+      });
+      expect(
+        (await callbacks.tool('list_local_files', { folderId: upload.id })).files[0].path,
+      ).toBe('notes.custom');
+      expect(
+        (await callbacks.tool('search_local_files', { folderId: upload.id, query: 'Mercury' }))
+          .matches,
+      ).toHaveLength(1);
+      const read = await callbacks.tool('read_local_file', {
+        folderId: upload.id,
+        path: 'notes.custom',
+      });
+      expect(read.text).toBe(buffer.toString());
+      expect(read.citation).toMatch(/^stored:/);
+      return `# Stored file report\n${read.text}\n${read.citation}`;
+    });
+    const created = await service.create(project.id, user.id, {
+      prompt: 'Read uploaded files',
+      idempotencyKey: randomUUID(),
+    });
+    const done = await settled(created.id);
+    expect(done.status).toBe(AgentRunStatus.SUCCEEDED);
+    expect(done.evidence[0]?.chunkId).toMatch(/^stored:/);
+    await stored.remove(project.id, user.id, upload.id);
   });
 
   it('executes scoped retrieval, deterministic calculation and a pending reviewed task', async () => {

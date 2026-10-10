@@ -1,3 +1,6 @@
+import { StorageModule } from '../storage/storage.module';
+import { UploadedFoldersService } from './uploaded-folders.service';
+import { UploadedFoldersController } from './uploaded-folders.controller';
 import { LiveFoldersService } from './live-folders.service';
 import { NativeFolderPickerService } from './native-folder-picker.service';
 import { Module } from '@nestjs/common';
@@ -7,9 +10,14 @@ import { LocalFoldersController } from './local-folders.controller';
 import { LocalFoldersService } from './local-folders.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ProjectMember])],
-  controllers: [LocalFoldersController],
-  exports: [LiveFoldersService],
-  providers: [LocalFoldersService, LiveFoldersService, NativeFolderPickerService],
+  imports: [StorageModule, TypeOrmModule.forFeature([ProjectMember])],
+  controllers: [LocalFoldersController, UploadedFoldersController],
+  exports: [LiveFoldersService, UploadedFoldersService],
+  providers: [
+    UploadedFoldersService,
+    LocalFoldersService,
+    LiveFoldersService,
+    NativeFolderPickerService,
+  ],
 })
 export class LocalFoldersModule {}
