@@ -14,6 +14,7 @@ import { KnowledgeChunk } from './knowledge-chunk.entity';
 
 export enum KnowledgeSourceType {
   DOCUMENT = 'DOCUMENT',
+  LOCAL_FILE = 'LOCAL_FILE',
   REQUIREMENT = 'REQUIREMENT',
   DECISION = 'DECISION',
   TASK = 'TASK',
@@ -45,6 +46,12 @@ export class KnowledgeSource {
   @ManyToOne(() => Project, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'project_id' })
   project?: Project;
+
+  @Column({ name: 'owner_id', type: 'uuid', nullable: true })
+  ownerId!: string | null;
+
+  @Column({ name: 'local_folder_id', type: 'uuid', nullable: true })
+  localFolderId!: string | null;
 
   @Column({ name: 'source_type', type: 'varchar', length: 50 })
   sourceType!: KnowledgeSourceType;

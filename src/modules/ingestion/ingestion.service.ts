@@ -1,4 +1,11 @@
-import { Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHash } from 'node:crypto';
@@ -746,11 +753,15 @@ export class IngestionService implements OnModuleInit {
   async listSources(
     projectId: string,
     query: ListKnowledgeSourcesDto,
+    actorId?: string,
   ): Promise<(KnowledgeSource & { chunkCount: number })[]> {
     const qb = this.sourceRepo
       .createQueryBuilder('source')
       .where('source.project_id = :projectId', { projectId })
-      .andWhere('source.deleted_at IS NULL');
+      .andWhere('source.deleted_at IS NULL')
+      .andWhere('(source.owner_id IS NULL OR source.owner_id = :actorId)', {
+        actorId: actorId ?? null,
+      });
 
     if (query.sourceType) {
       qb.andWhere('source.source_type = :sourceType', { sourceType: query.sourceType });
@@ -807,12 +818,13 @@ export class IngestionService implements OnModuleInit {
   async getSource(
     projectId: string,
     sourceId: string,
+    actorId?: string,
   ): Promise<KnowledgeSource & { chunks: KnowledgeChunk[] }> {
     const source = await this.sourceRepo.findOne({
       where: { id: sourceId, projectId, deletedAt: IsNull() },
     });
 
-    if (!source) {
+    if (!source || (source.ownerId && source.ownerId !== actorId)) {
       throw new NotFoundException(`Knowledge source ${sourceId} not found in project ${projectId}`);
     }
 
@@ -836,9 +848,12 @@ export class IngestionService implements OnModuleInit {
       where: { id: sourceId, projectId, deletedAt: IsNull() },
     });
 
-    if (!source) {
+    if (!source || (source.ownerId && source.ownerId !== actorId)) {
       throw new NotFoundException(`Knowledge source ${sourceId} not found in project ${projectId}`);
     }
+
+    if (source.sourceType === KnowledgeSourceType.LOCAL_FILE)
+      throw new BadRequestException('Rescan this source from its connected local folder.');
 
     // Reset status to QUEUED and force reindex
     source.status = KnowledgeSourceStatus.QUEUED;

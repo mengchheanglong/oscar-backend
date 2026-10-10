@@ -1,3 +1,4 @@
+import { LocalFoldersModule } from './modules/local-folders/local-folders.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
@@ -62,6 +63,7 @@ import { GitHubIntegrationModule } from './modules/integrations/github/github-in
     OutboxModule,
     IngestionModule,
     AiModule,
+    LocalFoldersModule,
     GitHubIntegrationModule,
   ],
 })

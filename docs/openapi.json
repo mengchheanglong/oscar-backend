@@ -1,6 +1,150 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/projects/{projectId}/local-folders": {
+      "get": {
+        "operationId": "LocalFoldersController_list",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LocalFolderResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List your private local folder sources",
+        "tags": [
+          "Local folders"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/local-folders/{id}": {
+      "put": {
+        "operationId": "LocalFoldersController_sync",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncLocalFolderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncLocalFolderResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Atomically index a reviewed local folder manifest",
+        "tags": [
+          "Local folders"
+        ]
+      },
+      "delete": {
+        "operationId": "LocalFoldersController_disconnect",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Disconnect a private folder and remove its indexed text",
+        "tags": [
+          "Local folders"
+        ]
+      }
+    },
     "/api/v1/health/live": {
       "get": {
         "operationId": "HealthController_live",
@@ -3284,6 +3428,7 @@
               "type": "string",
               "enum": [
                 "DOCUMENT",
+                "LOCAL_FILE",
                 "REQUIREMENT",
                 "DECISION",
                 "TASK",
@@ -4114,6 +4259,109 @@
   "servers": [],
   "components": {
     "schemas": {
+      "LocalFolderFileResponse": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "number"
+          },
+          "hash": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "path",
+          "revision",
+          "hash"
+        ]
+      },
+      "LocalFolderResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          },
+          "syncedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocalFolderFileResponse"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "version",
+          "syncedAt",
+          "files"
+        ]
+      },
+      "LocalFileDto": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "text"
+        ]
+      },
+      "SyncLocalFolderDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "number"
+          },
+          "files": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocalFileDto"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "expectedVersion",
+          "files"
+        ]
+      },
+      "SyncLocalFolderResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "version"
+        ]
+      },
       "HealthStatusDto": {
         "type": "object",
         "properties": {
@@ -5611,6 +5859,7 @@
             "type": "string",
             "enum": [
               "DOCUMENT",
+              "LOCAL_FILE",
               "REQUIREMENT",
               "DECISION",
               "TASK",

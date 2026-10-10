@@ -1,4 +1,6 @@
 import 'reflect-metadata';
+import { LocalFoldersController } from '../src/modules/local-folders/local-folders.controller';
+import { LocalFoldersService } from '../src/modules/local-folders/local-folders.service';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { NestFactory } from '@nestjs/core';
 import { Module } from '@nestjs/common';
@@ -58,6 +60,7 @@ import { AgentRunsService } from '../src/modules/ai/agent-runs.service';
 // Register new public controllers here as the API grows, and test path coverage.
 @Module({
   controllers: [
+    LocalFoldersController,
     HealthController,
     AuthController,
     UsersController,
@@ -77,6 +80,7 @@ import { AgentRunsService } from '../src/modules/ai/agent-runs.service';
     AgentRunsController,
   ],
   providers: [
+    { provide: LocalFoldersService, useValue: {} },
     { provide: HealthService, useValue: {} },
     { provide: AuthService, useValue: {} },
     {

@@ -58,7 +58,7 @@ export class RetrievalService {
   }
 
   async retrieve(params: RetrieveParams): Promise<RetrievedEvidence[]> {
-    const { projectId, projectIds, query, filters, limit = 8, mode = 'hybrid' } = params;
+    const { actorId, projectId, projectIds, query, filters, limit = 8, mode = 'hybrid' } = params;
 
     if (!query || !query.trim()) {
       return [];
@@ -74,15 +74,27 @@ export class RetrievalService {
     const trimmedQuery = query.trim();
 
     if (mode === 'keyword') {
-      return this.retrieveKeyword(targetProjectIds, trimmedQuery, filters?.sourceType, limit);
+      return this.retrieveKeyword(
+        targetProjectIds,
+        trimmedQuery,
+        filters?.sourceType,
+        limit,
+        actorId,
+      );
     }
 
     if (mode === 'semantic') {
-      return this.retrieveSemantic(targetProjectIds, trimmedQuery, filters?.sourceType, limit);
+      return this.retrieveSemantic(
+        targetProjectIds,
+        trimmedQuery,
+        filters?.sourceType,
+        limit,
+        actorId,
+      );
     }
 
     // Hybrid mode (Dense Vector + Sparse Keyword via Reciprocal Rank Fusion)
-    return this.retrieveHybrid(targetProjectIds, trimmedQuery, filters?.sourceType, limit);
+    return this.retrieveHybrid(targetProjectIds, trimmedQuery, filters?.sourceType, limit, actorId);
   }
 
   private async retrieveSemantic(
@@ -90,6 +102,7 @@ export class RetrievalService {
     query: string,
     sourceType?: KnowledgeSourceType,
     limit = 8,
+    actorId?: string,
   ): Promise<RetrievedEvidence[]> {
     if (!this.embeddingProvider) {
       throw new ServiceUnavailableException(
@@ -126,12 +139,20 @@ export class RetrievalService {
         AND s.deleted_at IS NULL
         AND c.index_version = s.active_index_version
         AND c.embedding IS NOT NULL
+        AND (s.owner_id IS NULL OR (s.owner_id = $6::uuid AND EXISTS (SELECT 1 FROM project_members pm JOIN users u ON u.id = pm.user_id WHERE pm.project_id = s.project_id AND pm.user_id = s.owner_id AND pm.removed_at IS NULL AND u.is_active = true)))
         AND c.embedding_model = $5
         AND ($3::varchar IS NULL OR s.source_type = $3)
       ORDER BY c.embedding <=> $1::vector ASC
       LIMIT $4;
       `,
-      [vectorParam, projectIds, sourceType ?? null, limit, this.embeddingProvider.modelName],
+      [
+        vectorParam,
+        projectIds,
+        sourceType ?? null,
+        limit,
+        this.embeddingProvider.modelName,
+        actorId || null,
+      ],
     );
 
     return raw.map((row) => this.mapToEvidence(row, row.score_signal ?? 0));
@@ -223,6 +244,7 @@ export class RetrievalService {
     query: string,
     sourceType?: KnowledgeSourceType,
     limit = 8,
+    actorId?: string,
   ): Promise<RetrievedEvidence[]> {
     const analysis = this.analyzeQuery(query);
     const effectiveType = sourceType ?? analysis.typePreference;
@@ -274,6 +296,7 @@ export class RetrievalService {
       LEFT JOIN projects p ON p.id = s.project_id
       CROSS JOIN query_terms q
       WHERE s.project_id = ANY($2::uuid[])
+        AND (s.owner_id IS NULL OR (s.owner_id = $8::uuid AND EXISTS (SELECT 1 FROM project_members pm JOIN users u ON u.id = pm.user_id WHERE pm.project_id = s.project_id AND pm.user_id = s.owner_id AND pm.removed_at IS NULL AND u.is_active = true)))
         AND s.status = 'INDEXED'
         AND s.deleted_at IS NULL
         AND c.index_version = s.active_index_version
@@ -296,6 +319,7 @@ export class RetrievalService {
         limit,
         analysis.expandedTsQuery,
         analysis.topicPatterns.length > 0 ? analysis.topicPatterns : null,
+        actorId || null,
       ],
     );
 
@@ -335,19 +359,20 @@ export class RetrievalService {
           FROM knowledge_chunks c
           INNER JOIN knowledge_sources s ON s.id = c.knowledge_source_id
           WHERE s.project_id = ANY($1::uuid[])
+            AND (s.owner_id IS NULL OR (s.owner_id = $4::uuid AND EXISTS (SELECT 1 FROM project_members pm JOIN users u ON u.id = pm.user_id WHERE pm.project_id = s.project_id AND pm.user_id = s.owner_id AND pm.removed_at IS NULL AND u.is_active = true)))
             AND s.status = 'INDEXED'
             AND s.deleted_at IS NULL
             AND c.index_version = s.active_index_version
             AND c.chunk_index = 0
             AND ($3::varchar IS NULL OR s.source_type = $3)
-            AND s.source_type IN ('TASK', 'REQUIREMENT', 'DECISION', 'MEETING', 'DOCUMENT')
+            AND s.source_type IN ('TASK', 'REQUIREMENT', 'DECISION', 'MEETING', 'DOCUMENT', 'LOCAL_FILE')
         ) ranked
         LEFT JOIN projects p ON p.id = ranked.project_id
         WHERE ranked.rn <= 4
         ORDER BY ranked.rn ASC, ranked.updated_at DESC
         LIMIT $2;
         `,
-        [projectIds, limit, sourceType ?? null],
+        [projectIds, limit, sourceType ?? null, actorId || null],
       );
 
       return fallbackRaw.map((row) => this.mapToEvidence(row, row.score_signal ?? 1.0));
@@ -361,13 +386,15 @@ export class RetrievalService {
     query: string,
     sourceType?: KnowledgeSourceType,
     limit = 8,
+    actorId?: string,
   ): Promise<RetrievedEvidence[]> {
-    if (!this.embeddingProvider) return this.retrieveKeyword(projectIds, query, sourceType, limit);
+    if (!this.embeddingProvider)
+      return this.retrieveKeyword(projectIds, query, sourceType, limit, actorId);
     const candidateLimit = Math.max(limit * 2, 20);
 
     const [semanticCandidates, keywordCandidates] = await Promise.all([
-      this.retrieveSemantic(projectIds, query, sourceType, candidateLimit),
-      this.retrieveKeyword(projectIds, query, sourceType, candidateLimit),
+      this.retrieveSemantic(projectIds, query, sourceType, candidateLimit, actorId),
+      this.retrieveKeyword(projectIds, query, sourceType, candidateLimit, actorId),
     ]);
 
     // Reciprocal Rank Fusion (RRF) with k = 60
@@ -413,7 +440,9 @@ export class RetrievalService {
     let locator = `Chunk #${row.chunk_index + 1}`;
     if (row.metadata) {
       const meta = row.metadata;
-      if (Array.isArray(meta.headingBreadcrumbs) && meta.headingBreadcrumbs.length > 0) {
+      if (typeof meta.relativePath === 'string') {
+        locator = `${meta.folderName ?? 'Local folder'}/${meta.relativePath}`;
+      } else if (Array.isArray(meta.headingBreadcrumbs) && meta.headingBreadcrumbs.length > 0) {
         locator = meta.headingBreadcrumbs.join(' > ');
       } else if (typeof (meta.page ?? meta.pageNumber) === 'number') {
         locator = `Page ${meta.page ?? meta.pageNumber}`;

@@ -13,7 +13,7 @@ deployed installation and from the automated test database.
 | Uploads                 | `./var/develop/uploads`                  |
 
 Start only this project's PostgreSQL service with `pnpm db:up`. On the current
-machine the separate development database has already been created and all 17
+machine the separate development database has already been created and all 18
 migrations applied. Do not reset it or rerun creation as a cleanup operation.
 Future schema changes require explicit migration execution against the local
 target. The committed environment template remains a template; the current

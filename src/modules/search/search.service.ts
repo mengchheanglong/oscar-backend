@@ -369,6 +369,7 @@ export class SearchService {
 
     const typeMap: Record<KnowledgeSourceType, SearchEntityType> = {
       [KnowledgeSourceType.DOCUMENT]: SearchEntityType.DOCUMENT,
+      [KnowledgeSourceType.LOCAL_FILE]: SearchEntityType.DOCUMENT,
       [KnowledgeSourceType.REQUIREMENT]: SearchEntityType.REQUIREMENT,
       [KnowledgeSourceType.DECISION]: SearchEntityType.DECISION,
       [KnowledgeSourceType.TASK]: SearchEntityType.TASK,

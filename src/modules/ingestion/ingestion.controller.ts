@@ -42,8 +42,9 @@ export class IngestionController {
   async listSources(
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Query() query: ListKnowledgeSourcesDto,
+    @CurrentUser() user: User,
   ) {
-    return this.ingestionService.listSources(projectId, query);
+    return this.ingestionService.listSources(projectId, query, user.id);
   }
 
   @Get('sources/:sourceId')
@@ -53,8 +54,9 @@ export class IngestionController {
   async getSource(
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('sourceId', ParseUUIDPipe) sourceId: string,
+    @CurrentUser() user: User,
   ) {
-    return this.ingestionService.getSource(projectId, sourceId);
+    return this.ingestionService.getSource(projectId, sourceId, user.id);
   }
 
   @Post('sources/:sourceId/reindex')

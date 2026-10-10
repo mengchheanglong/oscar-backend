@@ -34,6 +34,11 @@ Team is scoped to yourself and active collaborators sharing a project. Pending
 invitations belong to their sender; foreign invitation cancellation is rejected.
 Inviting a system administrator requires an administrator account.
 
+Read-only local folder sources are available through Documents. Selected text is
+indexed privately for the owning account and project; original files remain on
+the user's computer. See [folder sources](docs/LOCAL_FOLDER_SOURCES.md) for the
+browser connector, data transfer, rescan/disconnect workflow, and limits.
+
 - Node.js **24.14.0**, as pinned in `.node-version`.
 - pnpm **10.32.1**, as pinned in `package.json` (`npm install --global pnpm@10.32.1` if needed).
 - Docker with Compose and a running Docker engine.
