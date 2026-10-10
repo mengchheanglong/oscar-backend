@@ -89,6 +89,50 @@
         ]
       }
     },
+    "/api/v1/projects/{projectId}/local-folders/live/pick": {
+      "post": {
+        "operationId": "LocalFoldersController_pickLive",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PickLiveFolderResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Open the local Windows folder chooser and connect the selected directory",
+        "tags": [
+          "Local folders"
+        ]
+      }
+    },
     "/api/v1/projects/{projectId}/local-folders/live/{id}": {
       "delete": {
         "operationId": "LocalFoldersController_disconnectLive",
@@ -4484,6 +4528,9 @@
           "available": {
             "type": "boolean"
           },
+          "nativePickerAvailable": {
+            "type": "boolean"
+          },
           "folders": {
             "type": "array",
             "items": {
@@ -4493,7 +4540,25 @@
         },
         "required": [
           "available",
+          "nativePickerAvailable",
           "folders"
+        ]
+      },
+      "PickLiveFolderResponse": {
+        "type": "object",
+        "properties": {
+          "folder": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LiveFolderResponse"
+              }
+            ]
+          }
+        },
+        "required": [
+          "folder"
         ]
       },
       "ConnectLiveFolderDto": {

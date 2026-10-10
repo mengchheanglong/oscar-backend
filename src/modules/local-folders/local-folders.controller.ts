@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Put,
   Post,
+  Res,
   UploadedFile,
   UseInterceptors,
   UseGuards,
@@ -24,6 +25,8 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { Response } from 'express';
+import { NativeFolderPickerService } from './native-folder-picker.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CsrfGuard } from '../../common/guards/csrf.guard';
 import { SessionAuthGuard } from '../../common/guards/session-auth.guard';
@@ -35,7 +38,12 @@ import {
   SyncLocalFolderResponse,
 } from './local-folder.dto';
 import { LiveFoldersService } from './live-folders.service';
-import { ConnectLiveFolderDto, LiveFolderResponse, LiveFoldersResponse } from './local-folder.dto';
+import {
+  ConnectLiveFolderDto,
+  LiveFolderResponse,
+  LiveFoldersResponse,
+  PickLiveFolderResponse,
+} from './local-folder.dto';
 import { LocalFoldersService } from './local-folders.service';
 
 @ApiTags('Local folders')
@@ -46,6 +54,7 @@ export class LocalFoldersController {
   constructor(
     private readonly folders: LocalFoldersService,
     private readonly live: LiveFoldersService,
+    private readonly picker: NativeFolderPickerService,
   ) {}
   @Get('live')
   @ApiOperation({ summary: 'List your live local connections; no file contents are indexed' })
@@ -53,8 +62,30 @@ export class LocalFoldersController {
   async listLive(@Param('projectId', ParseUUIDPipe) projectId: string, @CurrentUser() user: User) {
     return {
       available: this.live.enabled(),
+      nativePickerAvailable: this.live.enabled() && this.picker.available(),
       folders: this.live.enabled() ? await this.live.list(projectId, user.id) : [],
     };
+  }
+  @Post('live/pick')
+  @HttpCode(200)
+  @ApiHeader({ name: 'x-csrf-token', required: true })
+  @ApiOperation({
+    summary: 'Open the local Windows folder chooser and connect the selected directory',
+  })
+  @ApiOkResponse({ type: PickLiveFolderResponse })
+  async pickLive(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @CurrentUser() user: User,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const controller = new AbortController();
+    const cancel = () => controller.abort();
+    response.once('close', cancel);
+    try {
+      return await this.live.pick(projectId, user.id, this.picker, controller.signal);
+    } finally {
+      response.removeListener('close', cancel);
+    }
   }
   @Post('live')
   @HttpCode(200)

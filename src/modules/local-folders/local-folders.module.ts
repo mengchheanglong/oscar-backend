@@ -1,4 +1,5 @@
 import { LiveFoldersService } from './live-folders.service';
+import { NativeFolderPickerService } from './native-folder-picker.service';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectMember } from '../projects/entities/project-member.entity';
@@ -9,6 +10,6 @@ import { LocalFoldersService } from './local-folders.service';
   imports: [TypeOrmModule.forFeature([ProjectMember])],
   controllers: [LocalFoldersController],
   exports: [LiveFoldersService],
-  providers: [LocalFoldersService, LiveFoldersService],
+  providers: [LocalFoldersService, LiveFoldersService, NativeFolderPickerService],
 })
 export class LocalFoldersModule {}

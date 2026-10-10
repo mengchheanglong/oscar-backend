@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { LiveFoldersService } from '../../src/modules/local-folders/live-folders.service';
 import { SystemRole } from '../../src/modules/users/entities/user.entity';
+import { NativeFolderPickerService } from '../../src/modules/local-folders/native-folder-picker.service';
 
 describe('Local filesystem capability boundaries', () => {
   let temp: string,
@@ -81,6 +82,27 @@ describe('Local filesystem capability boundaries', () => {
       'a/../private.txt',
     ])
       await expect(service.read('p', 'a', mount.id, entry)).rejects.toThrow();
+  });
+  it('connects a native selection, ignores cancellation and checks access before and after choosing', async () => {
+    const select = jest.fn().mockResolvedValue(null);
+    const picker = { select } as unknown as NativeFolderPickerService;
+    expect(await service.pick('p', 'a', picker)).toEqual({ folder: null });
+    expect(await service.list('p', 'a')).toEqual([]);
+    select.mockResolvedValue(root);
+    expect((await service.pick('p', 'a', picker)).folder).toMatchObject({ path: root });
+    membership.mockResolvedValue(null);
+    select.mockClear();
+    await expect(service.pick('p', 'a', picker)).rejects.toThrow();
+    expect(select).not.toHaveBeenCalled();
+    membership.mockResolvedValue({
+      project: { status: 'ACTIVE' },
+      user: { isActive: true, systemRole: SystemRole.ADMIN },
+    });
+    select.mockImplementation(async () => {
+      membership.mockResolvedValue(null);
+      return root;
+    });
+    await expect(service.pick('p', 'a', picker)).rejects.toThrow();
   });
   it('lists more than 100 files with pagination and searches live content', async () => {
     await Promise.all(

@@ -1089,3 +1089,30 @@ provided or marked DONE. Local testing remains isolated on 3001/3002. A duplicat
 Logistics Sandbox service reclaimed 3001 and was stopped under the prior user
 authorization; its existing service on 3007 remains running. Main is unchanged
 and nothing is pushed.
+
+### Native Windows source-folder selection - 2026-10-10
+
+The user requested direct folder selection instead of typing a path. Add folder
+now calls the local native chooser endpoint and connects the selected directory.
+Windows uses its existing Common Item Dialog through an owned STA Windows
+PowerShell process with a minimal OS-only environment. Manual path entry remains
+a fallback for unsupported platforms or chooser failure. The native button
+label and source card disclose read-only Hermes access and provider use.
+
+Authentication, CSRF, local enablement, active project access and administrator
+checks apply before showing the chooser. Access is rechecked before saving the
+selected grant. Cancelling saves nothing; only one chooser may be open per
+backend. A two-minute timeout and aborted browser-request cleanup bound its
+lifetime. No migration, provider request or deployment change was made.
+
+Verification passed: backend lint/typecheck/build/format, 38 unit suites (310
+tests), eight HTTP suites (150 tests), OpenAPI generation and picker route
+inspection. Native Windows COM initialization, options and labels passed with
+the same minimal subprocess environment used by the backend. This probe does
+not display or choose in the native window. Browser checks used simulated
+native cancel, selected-path and failure responses; real folder connection and
+disconnect persisted normally and left originals unchanged. The default click
+showed no path modal; fallback opened and Escape closed it. Native window
+selection itself requires manual acceptance. Frontend lint/typecheck and
+production build passed. AIW accepted-decision lookup
+returned none; no assigned task was supplied or marked DONE.

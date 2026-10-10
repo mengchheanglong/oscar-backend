@@ -17,6 +17,7 @@ import { ProjectMember } from '../projects/entities/project-member.entity';
 import { ProjectStatus } from '../projects/entities/project.entity';
 import { PdfExtractor } from '../ingestion/extractors/pdf-extractor';
 import { DocxExtractor } from '../ingestion/extractors/docx-extractor';
+import { NativeFolderPickerService } from './native-folder-picker.service';
 
 interface Mount {
   id: string;
@@ -118,6 +119,19 @@ export class LiveFoldersService {
       mounts.push(mount);
       return { id: mount.id, name: mount.name, path: mount.root };
     });
+  }
+  async pick(
+    projectId: string,
+    userId: string,
+    picker: NativeFolderPickerService,
+    signal?: AbortSignal,
+  ) {
+    const member = await this.access(projectId, userId, true);
+    if (member.user!.systemRole !== SystemRole.ADMIN)
+      throw new ForbiddenException('Only the local administrator can connect filesystem folders.');
+    const selected = await picker.select(signal);
+    if (!selected || signal?.aborted) return { folder: null };
+    return { folder: await this.connect(projectId, userId, selected) };
   }
   async disconnect(projectId: string, userId: string, id: string): Promise<void> {
     await this.access(projectId, userId, true);

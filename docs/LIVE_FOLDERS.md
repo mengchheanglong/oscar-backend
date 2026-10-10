@@ -1,7 +1,9 @@
 # Live local source folders
 
-In Documents, choose **Add folder**, paste an absolute directory path on this
-computer and connect. In AI Copilot, open **Agent work** to have Hermes discover,
+In Documents on the local Windows desktop, choose **Add folder** to open the
+native Windows folder chooser. Select a directory and choose **Connect folder**.
+Cancelling creates no grant. On unsupported systems or chooser failure, manual
+path entry remains available. In AI Copilot, open **Agent work** to have Hermes discover,
 search and read relevant files. Connecting saves only the folder grant, not file
 contents. File changes are visible on the next tool read without rescan/indexing.
 
@@ -59,3 +61,19 @@ Ordinary Copilot chat uses the existing indexed retrieval path. Its Local files
 filter and citation inspector apply to optional saved snapshots, not live mounts.
 Choose saved snapshots when you need chat retrieval or backend availability after
 the source computer is offline.
+
+## Native chooser
+
+POST `/projects/:projectId/local-folders/live/pick` opens a Windows Common Item
+Dialog through the checked-in `scripts/select-local-folder.ps1`, using the built-in
+Windows PowerShell in STA mode. No new desktop framework or package is required.
+The picker process inherits only the small OS environment it needs, not PATs,
+provider credentials or personal PowerShell profiles. Only one chooser may be
+open per backend; it times out after two minutes and is terminated if the browser
+request closes. Local administrator and project access are checked before
+opening and again before saving the selected grant.
+
+This needs an interactive Windows desktop on the backend computer. A Windows
+service or remote machine cannot reliably present a dialog on the browser's
+computer. GET live includes `nativePickerAvailable` for platform/configuration
+availability; it does not assert an interactive desktop health check.

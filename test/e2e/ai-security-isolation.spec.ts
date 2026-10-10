@@ -1012,6 +1012,11 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
   it('[Security Gate 3] Mutations without x-csrf-token header are rejected with 403 Forbidden', async () => {
     const livePath = `/api/v1/projects/${projectA.id}/local-folders/live`;
     await request(app.getHttpServer()).get(livePath).expect(401);
+    await request(app.getHttpServer()).post(`${livePath}/pick`).expect(401);
+    await request(app.getHttpServer())
+      .post(`${livePath}/pick`)
+      .set('Cookie', sessionA.cookie)
+      .expect(403);
     await request(app.getHttpServer())
       .post(livePath)
       .set('Cookie', sessionA.cookie)

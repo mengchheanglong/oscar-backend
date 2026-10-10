@@ -55,5 +55,9 @@ export class LiveFolderResponse {
 }
 export class LiveFoldersResponse {
   @ApiProperty() available!: boolean;
+  @ApiProperty() nativePickerAvailable!: boolean;
   @ApiProperty({ type: [LiveFolderResponse] }) folders!: LiveFolderResponse[];
+}
+export class PickLiveFolderResponse {
+  @ApiProperty({ type: LiveFolderResponse, nullable: true }) folder!: LiveFolderResponse | null;
 }

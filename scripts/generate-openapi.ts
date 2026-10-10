@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { LocalFoldersController } from '../src/modules/local-folders/local-folders.controller';
 import { LiveFoldersService } from '../src/modules/local-folders/live-folders.service';
+import { NativeFolderPickerService } from '../src/modules/local-folders/native-folder-picker.service';
 import { LocalFoldersService } from '../src/modules/local-folders/local-folders.service';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { NestFactory } from '@nestjs/core';
@@ -83,6 +84,7 @@ import { AgentRunsService } from '../src/modules/ai/agent-runs.service';
   providers: [
     { provide: LocalFoldersService, useValue: {} },
     { provide: LiveFoldersService, useValue: {} },
+    { provide: NativeFolderPickerService, useValue: {} },
     { provide: HealthService, useValue: {} },
     { provide: AuthService, useValue: {} },
     {

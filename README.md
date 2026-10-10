@@ -238,6 +238,6 @@ Successful GitHub SHA checkpoints and an indexed knowledge source allow unchange
 Documents can connect local folders for read-only Hermes access without indexing.
 Enable `LOCAL_FILES_ENABLED=true` only in the ignored local `.env`; the backend
 must bind to loopback in a non-production environment. Ripgrep (`rg`) is required.
-The local administrator connects an absolute path; connections belong to that
-account and project. Normal Copilot chat continues to use indexed sources.
+The local administrator selects a folder in the native Windows chooser (manual
+path fallback); connections belong to that account and project. Normal Copilot chat continues to use indexed sources.
 See [Live folder setup and boundaries](docs/LIVE_FOLDERS.md).
