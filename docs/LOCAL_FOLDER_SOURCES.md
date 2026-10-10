@@ -1,6 +1,6 @@
 # Local folder sources
 
-Documents includes **Connect local folder** for the selected project. The first
+Documents includes **Add folder** for the selected project. The first
 version uses the browser's read-only directory picker as the local connector.
 Original files remain on the user's computer; this is not an upload into the
 Documents file store. The browser sends explicitly reviewed text and relative
@@ -12,8 +12,8 @@ Copilot and Hermes can send retrieved excerpts to the configured AI provider.
 1. Open Documents with a project selected in a supporting browser, such as Chrome
    or Edge on localhost or HTTPS.
 2. Connect a folder, review the eligible paths and text previews, and select files.
-3. Click **Index selected files** to authorize text transfer and indexing.
-4. Use **Rescan folder** to review changed files. New paths start unselected.
+3. Click **Connect** to authorize text transfer and indexing.
+4. Use **Rescan** to review changed files. New paths start unselected.
 5. Disconnect to remove the source and its indexed chunks. Original files are
    untouched. Existing chat answers and saved reports are not erased.
 
@@ -29,11 +29,14 @@ Unsupported browsers keep the existing document upload flow.
 
 ## Scope and limits
 
-- Read-only UTF-8 text/code files. PDF, DOCX, images, and other binaries continue
-  using the existing upload flow; they are not decoded by the folder connector.
-- Hidden paths, common credential filenames, dependency/build directories, lock
-  files, NUL-containing content, and files over 128 KiB are excluded. Filename
-  rules cannot detect every secret: users review selected content before sending.
+- All file extensions are selectable, including extensionless and individual hidden
+  files. New folders begin with an empty selection. UTF-8 content up to 128 KiB
+  is indexed directly. PDF and DOCX originals up to 10 MiB are transferred only
+  after Connect for server-side text extraction, without storing original files.
+- Other binary files and larger text files provide searchable filenames and
+  metadata only. Images have no OCR; spreadsheet/slide content, archives and
+  media are not extracted. Hidden directories and dependency/build directories
+  are skipped. Users explicitly review selected files, including sensitive ones.
 - A scan is bounded to 10,000 visited entries, 12 directory levels, 2,000 eligible
   files, and 16 MiB of eligible text. Larger folders require a smaller subfolder.
 - Each indexed source accepts at most 100 files and 512 KiB of UTF-8 text.
@@ -53,6 +56,11 @@ Unsupported browsers keep the existing document upload flow.
 The API is `GET /projects/:projectId/local-folders`,
 `PUT /projects/:projectId/local-folders/:id`, and
 `DELETE /projects/:projectId/local-folders/:id` beneath `/api/v1`.
+`POST /projects/:projectId/local-folders/extract` accepts one PDF/DOCX multipart
+file, returns bounded extracted text and persists no original or index.
+Authentication, CSRF, active membership and archived-project checks apply before
+extraction. Malformed, empty or oversized extracted content returns an error;
+the browser does not submit a replacement manifest after an extraction failure.
 Session authentication, CSRF, project policy and service-owned account/membership
 checks apply. Private folder sources never become shared team documents.
 

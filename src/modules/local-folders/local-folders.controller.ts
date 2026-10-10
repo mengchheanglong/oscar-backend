@@ -7,6 +7,9 @@ import {
   Param,
   ParseUUIDPipe,
   Put,
+  Post,
+  UploadedFile,
+  UseInterceptors,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -16,7 +19,11 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CsrfGuard } from '../../common/guards/csrf.guard';
 import { SessionAuthGuard } from '../../common/guards/session-auth.guard';
@@ -40,6 +47,31 @@ export class LocalFoldersController {
   @ApiOkResponse({ type: [LocalFolderResponse] })
   list(@Param('projectId', ParseUUIDPipe) projectId: string, @CurrentUser() user: User) {
     return this.folders.list(projectId, user.id);
+  }
+  @Post('extract')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+    }),
+  )
+  @ApiHeader({ name: 'x-csrf-token', required: true })
+  @ApiOperation({ summary: 'Extract selected PDF or DOCX text without storing the original file' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiOkResponse({ schema: { type: 'object', properties: { text: { type: 'string' } } } })
+  extract(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @CurrentUser() user: User,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.folders.extract(projectId, user.id, file);
   }
   @Put(':id')
   @ApiHeader({ name: 'x-csrf-token', required: true })

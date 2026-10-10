@@ -1,4 +1,6 @@
 import 'reflect-metadata';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { DataSource, In } from 'typeorm';
@@ -100,6 +102,73 @@ describe('Private local folder snapshots with PostgreSQL', () => {
     await expect(service.disconnect(p.id, b.id, id)).rejects.toThrow(NotFoundException);
     await expect(service.list(other.id, a.id)).rejects.toThrow(NotFoundException);
   });
+  it('accepts extensionless, hidden and binary metadata manifests without weakening path isolation', async () => {
+    await service.sync(p.id, a.id, randomUUID(), {
+      name: 'Any files',
+      expectedVersion: 0,
+      files: [
+        { path: 'Dockerfile', text: 'FROM node' },
+        { path: '.settings', text: 'Explicitly selected' },
+        {
+          path: 'diagram.png',
+          text: 'File: diagram.png\nContent not indexed; file metadata only.',
+        },
+      ],
+    });
+    expect((await service.list(p.id, a.id))[0]!.files).toHaveLength(3);
+    expect(await service.list(p.id, b.id)).toEqual([]);
+  });
+  it('extracts real PDF text without creating a source and rejects invalid or unauthorized extraction', async () => {
+    const stream = 'BT /F1 12 Tf 72 720 Td (Mercury document evidence) Tj ET';
+    const objects = [
+      '<< /Type /Catalog /Pages 2 0 R >>',
+      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+      `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    ];
+    let pdf = '%PDF-1.4\n';
+    const offsets = [0];
+    objects.forEach((obj, i) => {
+      offsets.push(Buffer.byteLength(pdf));
+      pdf += `${i + 1} 0 obj\n${obj}\nendobj\n`;
+    });
+    const xref = Buffer.byteLength(pdf);
+    pdf += `xref\n0 6\n0000000000 65535 f \n${offsets
+      .slice(1)
+      .map((o) => String(o).padStart(10, '0') + ' 00000 n ')
+      .join('\n')}\ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+    const buffer = Buffer.from(pdf);
+    const upload = {
+      originalname: 'report.pdf',
+      mimetype: 'application/pdf',
+      size: buffer.length,
+      buffer,
+    } as Express.Multer.File;
+    expect((await service.extract(p.id, a.id, upload)).text).toContain('Mercury document evidence');
+    const docx = readFileSync(join(__dirname, '../fixtures/local-folder.docx'));
+    expect(
+      (
+        await service.extract(p.id, a.id, {
+          ...upload,
+          originalname: 'report.docx',
+          buffer: docx,
+          size: docx.length,
+        })
+      ).text,
+    ).toContain('Venus DOCX evidence');
+    expect(await service.list(p.id, a.id)).toEqual([]);
+    await expect(service.extract(other.id, a.id, upload)).rejects.toThrow(NotFoundException);
+    await expect(
+      service.extract(p.id, a.id, { ...upload, buffer: Buffer.from('invalid') }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.extract(p.id, a.id, { ...upload, originalname: 'photo.png' }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(service.extract(p.id, a.id, { ...upload, size: 10485761 })).rejects.toThrow(
+      BadRequestException,
+    );
+  });
   it('preserves unchanged revisions, replaces changed text, and removes deleted files', async () => {
     const id = randomUUID();
     await service.sync(p.id, a.id, id, manifest());
@@ -144,14 +213,7 @@ describe('Private local folder snapshots with PostgreSQL', () => {
   it('rejects unsafe paths, duplicates and oversized content without replacing the snapshot', async () => {
     const id = randomUUID();
     await service.sync(p.id, a.id, id, manifest());
-    for (const path of [
-      '../escape.md',
-      '.env',
-      'node_modules/readme.md',
-      'private-key.json',
-      'C:/notes.md',
-      'a\\b.md',
-    ]) {
+    for (const path of ['../escape.md', 'node_modules/readme.md', 'C:/notes.md', 'a\\b.md']) {
       await expect(
         service.sync(p.id, a.id, id, { ...manifest(1), files: [{ path, text: 'unsafe' }] }),
       ).rejects.toThrow(BadRequestException);

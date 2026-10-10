@@ -32,7 +32,12 @@ const result = spawnSync(
   ],
   {
     stdio: 'inherit',
-    env: { ...process.env, NODE_ENV: 'test', DATABASE_URL: value },
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      DATABASE_URL: value,
+      NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --experimental-vm-modules`,
+    },
   },
 );
 process.exit(result.status ?? 1);

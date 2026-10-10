@@ -15,6 +15,8 @@ import {
   KnowledgeSourceType,
 } from '../ingestion/entities';
 import { SemanticChunker } from '../ingestion/chunker/semantic-chunker';
+import { PdfExtractor } from '../ingestion/extractors/pdf-extractor';
+import { DocxExtractor } from '../ingestion/extractors/docx-extractor';
 import { LocalFolder } from './entities/local-folder.entity';
 import { LocalFolderResponse, SyncLocalFolderDto } from './local-folder.dto';
 import { allowedLocalPath, MAX_LOCAL_FILE_BYTES, MAX_LOCAL_TOTAL_BYTES } from './local-file-policy';
@@ -32,6 +34,33 @@ export class LocalFoldersService {
       throw new NotFoundException('Project not found.');
     if (mutation && member.project.status === ProjectStatus.ARCHIVED)
       throw new BadRequestException('This project is read-only.');
+  }
+
+  async extract(
+    projectId: string,
+    userId: string,
+    file?: Express.Multer.File,
+  ): Promise<{ text: string }> {
+    await this.access(projectId, userId, true);
+    if (!file || file.size > 10 * 1024 * 1024)
+      throw new BadRequestException('Choose a file up to 10 MiB.');
+    const extractor = file.originalname.toLowerCase().endsWith('.pdf')
+      ? new PdfExtractor()
+      : file.originalname.toLowerCase().endsWith('.docx')
+        ? new DocxExtractor()
+        : null;
+    if (!extractor) throw new BadRequestException('Text extraction supports PDF and DOCX.');
+    try {
+      const result = await extractor.extract(file.buffer, file.mimetype, file.originalname);
+      if (!result.text) throw new Error('Empty document');
+      if (Buffer.byteLength(result.text, 'utf8') > MAX_LOCAL_FILE_BYTES)
+        throw new Error('Extracted text is too large');
+      return { text: result.text };
+    } catch {
+      throw new BadRequestException(
+        'Could not extract text within the 128 KiB limit. The previous index is unchanged.',
+      );
+    }
   }
 
   async list(projectId: string, userId: string): Promise<LocalFolderResponse[]> {

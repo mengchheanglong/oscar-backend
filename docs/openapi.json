@@ -40,6 +40,74 @@
         ]
       }
     },
+    "/api/v1/projects/{projectId}/local-folders/extract": {
+      "post": {
+        "operationId": "LocalFoldersController_extract",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Extract selected PDF or DOCX text without storing the original file",
+        "tags": [
+          "Local folders"
+        ]
+      }
+    },
     "/api/v1/projects/{projectId}/local-folders/{id}": {
       "put": {
         "operationId": "LocalFoldersController_sync",
