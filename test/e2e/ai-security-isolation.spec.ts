@@ -845,7 +845,7 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       .post(path)
       .set('Cookie', sessionA.cookie)
       .set('x-csrf-token', sessionA.csrf)
-      .send({ name: 'Private', expectedFiles: 5001 })
+      .send({ name: 'Private', expectedFiles: 1000001 })
       .expect(400);
   });
 

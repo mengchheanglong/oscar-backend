@@ -214,6 +214,9 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
       size: buffer.length,
     } as Express.Multer.File);
     await stored.complete(project.id, user.id, upload.id);
+    while (await stored.processNext()) {
+      /* Drain the durable queue deterministically. */
+    }
     execute.mockImplementation(async (input, callbacks) => {
       expect(input.context).toContain(upload.id);
       expect(await callbacks.tool('list_local_folders', {})).toContainEqual({

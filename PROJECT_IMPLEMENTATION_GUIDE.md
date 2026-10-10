@@ -1153,3 +1153,50 @@ text and binary originals, caught/fixed a multipart parts-limit defect, retried
 the incomplete session and verified preview and persistence after reload.
 AIW accepted-decision lookup returned none; no assigned task was supplied or
 marked DONE. Work remains on develop and local commits only.
+
+### Configurable quota, resumable folders and background content — 2026-10-10
+
+Removed the separate 2 GiB folder cap. Originals now share a configurable
+account-wide quota across projects, serialized under a user lock. Validated
+settings default to 20 GiB originals, 1 GiB per file, 100,000 files per folder
+and 100 sources per project/account. The private settings route reports current
+policy and usage; Compose forwards the same environment settings. Search and
+extracted derivatives are not counted toward the original byte quota.
+
+Per-file progress survives reloads. Resume reselects the unchanged directory,
+verifies committed originals using compatible 8 MiB block fingerprints, skips
+them and sends missing files. Pause leaves a recoverable copy. Resume is at file
+boundaries; interrupted individual files restart. Saved content conflicts are
+rejected rather than silently replacing an upload. Browser permission/handles
+are not retained across reloads. Legacy data and endpoints remain intact; the
+Documents local-connection and snapshot panels are removed.
+
+A PostgreSQL extraction lease queue decouples storage from content preparation.
+Only completed folders with active account/membership/write access are processed.
+Expired leases recover after restart; retryable failures use backoff and become
+explicit metadata-only failures after three attempts. A token protects against
+stale workers publishing results. Original downloads work before extraction;
+Copilot gains evidence as content preparation completes. Unsupported formats
+remain originals. Large UTF-8 files can be read in bounded pages without whole
+indexing; extraction caps remain 10 MiB original / 4 MiB derived text. Byte-page
+reads scan at most 64 MiB and cannot execute files.
+
+Verification: validated migration applied only to ai_workspace_develop on
+127.0.0.1:55432, dedicated test DB on 55433, Compose configuration valid. Backend
+lint/typecheck/build/format and OpenAPI generation passed; 39 unit suites (312
+tests), nine HTTP suites (153 tests), six PostgreSQL suites (39 tests). Checks
+include simultaneous account quotas across projects, staging visibility, recovery
+through a fresh service after a failed lease, legacy prepared-session completion,
+large UTF-8 paging, and independent
+streaming fingerprint vectors. Frontend lint/typecheck/build and eight tests
+passed. Browser QA reloaded an incomplete two-file session, selected Resume,
+verified one saved binary and uploaded only the missing text (one PUT), then
+observed prepared text from the live worker. Duplicate panels were absent.
+
+A separate supply-chain Next app owns localhost:3001 on IPv6. Local AIW testing
+now uses matching 127.0.0.1 UI/API hosts (3002/3001) with ignored configuration;
+the other app was not modified. Test account credentials remain ignored/in the
+auth vault. AIW accepted decision lookup returned none; no assigned task was
+supplied or marked DONE. Main is unchanged; local develop commits only. Hosting,
+TLS, cloud object storage and automatic orphan/temp blob reconciliation remain
+future work.

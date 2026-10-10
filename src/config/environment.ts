@@ -32,6 +32,20 @@ const schema = z
       }),
     DATABASE_URL: postgresUrl,
     STORAGE_DRIVER: z.literal('local').default('local'),
+    FOLDER_STORAGE_QUOTA_BYTES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(Number.MAX_SAFE_INTEGER)
+      .default(20 * 1024 ** 3),
+    FOLDER_MAX_FILE_BYTES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(8 * 1024 ** 3)
+      .default(1024 ** 3),
+    FOLDER_MAX_FILES: z.coerce.number().int().min(1).max(1000000).default(100000),
+    FOLDER_MAX_SOURCES: z.coerce.number().int().min(1).max(10000).default(100),
     STORAGE_LOCAL_ROOT: z.string().min(1).default('./var/uploads'),
     MAX_UPLOAD_BYTES: z.coerce.number().int().positive().max(20971520).default(20971520),
     SESSION_IDLE_HOURS: z.coerce.number().int().min(1).default(8),

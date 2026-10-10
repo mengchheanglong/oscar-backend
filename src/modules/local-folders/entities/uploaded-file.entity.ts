@@ -12,5 +12,14 @@ export class UploadedFile {
   @Column({ type: 'bigint', transformer: { to: (v: number) => v, from: (v: string) => Number(v) } })
   size!: number;
   @Column({ type: 'varchar', length: 64 }) hash!: string;
+  @Column({ name: 'resume_hash', type: 'varchar', length: 100, nullable: true }) resumeHash!:
+    string | null;
+  @Column({ name: 'extraction_status', type: 'varchar', length: 20, default: 'PENDING' })
+  extractionStatus!: string;
+  @Column({ name: 'extraction_token', type: 'uuid', nullable: true }) extractionToken!:
+    string | null;
+  @Column({ name: 'extraction_lease_until', type: 'timestamptz', nullable: true })
+  extractionLeaseUntil!: Date | null;
+  @Column({ name: 'extraction_attempts', type: 'integer', default: 0 }) extractionAttempts!: number;
   @Column({ type: 'varchar', length: 200, nullable: true }) reason!: string | null;
 }

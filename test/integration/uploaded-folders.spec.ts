@@ -1,3 +1,4 @@
+import { LocalFolder } from '../../src/modules/local-folders/entities/local-folder.entity';
 import 'reflect-metadata';
 import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
@@ -23,7 +24,7 @@ import {
   ProjectRole,
 } from '../../src/modules/projects/entities/project-member.entity';
 import { RetrievalService } from '../../src/modules/ai/retrieval/retrieval.service';
-import { KnowledgeSource } from '../../src/modules/ingestion/entities';
+import { KnowledgeSource, KnowledgeSourceStatus } from '../../src/modules/ingestion/entities';
 describe('Persistent private folder uploads', () => {
   let db: DataSource,
     service: UploadedFoldersService,
@@ -98,6 +99,17 @@ describe('Persistent private folder uploads', () => {
     const binary = Buffer.from([0, 1, 255, 128, 6]);
     const second = await service.put(p.id, a.id, folder.id, 'assets/raw.bin', file(binary));
     await service.complete(p.id, a.id, folder.id);
+    expect(
+      await retrieval.retrieve({
+        projectId: p.id,
+        actorId: a.id,
+        query: 'Mercury',
+        mode: 'keyword',
+      }),
+    ).toEqual([]);
+    while (await service.processNext()) {
+      /* Drain the durable queue deterministically. */
+    }
     await service.complete(p.id, a.id, folder.id);
     expect(
       (
@@ -151,6 +163,127 @@ describe('Persistent private folder uploads', () => {
     expect(await db.getRepository(UploadedFile).countBy({ folderId: folder.id })).toBe(0);
     for (const [key] of save.mock.calls) expect(await storage.exists(key)).toBe(false);
     save.mockRestore();
+    await service.remove(p.id, a.id, folder.id);
+  });
+
+  it('serializes account quota across folders and projects while exposing the configured policy', async () => {
+    const limited = new UploadedFoldersService(
+      db,
+      storage,
+      new ConfigService({
+        FOLDER_STORAGE_QUOTA_BYTES: 12,
+        FOLDER_MAX_FILE_BYTES: 100,
+        FOLDER_MAX_FILES: 200000,
+      }),
+    );
+    const otherProject = await db.getRepository(Project).save({
+      key: `U${randomUUID().slice(0, 7).toUpperCase()}`,
+      name: 'Other quota project',
+      createdBy: a.id,
+    });
+    await db
+      .getRepository(ProjectMember)
+      .save({ projectId: otherProject.id, userId: a.id, accessRole: ProjectRole.OWNER });
+    const one = await limited.create(p.id, a.id, 'Quota one', 1),
+      two = await limited.create(otherProject.id, a.id, 'Quota two', 1);
+    try {
+      const results = await Promise.allSettled([
+        limited.put(p.id, a.id, one.id, 'one', file(Buffer.from('123456789'))),
+        limited.put(otherProject.id, a.id, two.id, 'two', file(Buffer.from('123456789'))),
+      ]);
+      expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+      expect(results.filter((r) => r.status === 'rejected')).toHaveLength(1);
+      expect(await limited.settings(p.id, a.id)).toMatchObject({
+        quotaBytes: 12,
+        usedBytes: 9,
+        maxFiles: 200000,
+      });
+      expect((await limited.settings(p.id, b.id)).usedBytes).toBe(0);
+    } finally {
+      await limited.remove(p.id, a.id, one.id);
+      await limited.remove(otherProject.id, a.id, two.id);
+      await db.getRepository(Project).delete(otherProject.id);
+    }
+  });
+  it('recovers a leased extraction after failure using a fresh service and keeps original bytes', async () => {
+    const folder = await service.create(p.id, a.id, 'Worker restart', 1);
+    const added = await service.put(
+      p.id,
+      a.id,
+      folder.id,
+      'notes',
+      file(Buffer.from('Durable Mercury content')),
+    );
+    await service.complete(p.id, a.id, folder.id);
+    const read = jest
+      .spyOn(storage, 'getStream')
+      .mockRejectedValueOnce(new Error('Synthetic storage failure'));
+    expect(await service.processNext()).toBe(true);
+    read.mockRestore();
+    expect(
+      (await db.getRepository(UploadedFile).findOneByOrFail({ id: added.id })).extractionStatus,
+    ).toBe('PROCESSING');
+    await db
+      .getRepository(UploadedFile)
+      .update(added.id, { extractionLeaseUntil: new Date(Date.now() - 1000) });
+    const restarted = new UploadedFoldersService(db, storage);
+    expect(await restarted.processNext()).toBe(true);
+    expect((await restarted.read(p.id, a.id, folder.id, 'notes')).text).toBe(
+      'Durable Mercury content',
+    );
+    expect(
+      (await db.getRepository(UploadedFile).findOneByOrFail({ id: added.id })).extractionStatus,
+    ).toBe('DONE');
+    expect(await restarted.processNext()).toBe(false);
+    await service.remove(p.id, a.id, folder.id);
+  });
+
+  it('reads large UTF-8 files on demand without whole-file indexing', async () => {
+    const folder = await service.create(p.id, a.id, 'Large text', 1);
+    const buffer = Buffer.alloc(11 * 1024 * 1024, 65);
+    buffer.write('Mercury');
+    await service.put(p.id, a.id, folder.id, 'large.txt', file(buffer));
+    await service.complete(p.id, a.id, folder.id);
+    const first = await service.read(p.id, a.id, folder.id, 'large.txt');
+    expect(first.text?.length).toBe(8000);
+    expect(first.text?.startsWith('Mercury')).toBe(true);
+    expect('nextOffset' in first ? first.nextOffset : null).toBe(8000);
+    expect((await service.read(p.id, a.id, folder.id, 'large.txt', 8000)).text).toBe(
+      'A'.repeat(8000),
+    );
+    while (await service.processNext()) {
+      /* Drain queue. */
+    }
+    expect(
+      (await db.getRepository(UploadedFile).findOneByOrFail({ folderId: folder.id }))
+        .extractionStatus,
+    ).toBe('SKIPPED');
+    expect((await service.search(p.id, a.id, folder.id, 'Mercury')).matches).toEqual([]);
+    await service.remove(p.id, a.id, folder.id);
+  });
+
+  it('publishes previously prepared files when resuming an older incomplete upload', async () => {
+    const folder = await service.create(p.id, a.id, 'Legacy resume', 1);
+    await service.put(p.id, a.id, folder.id, 'notes', file(Buffer.from('Legacy Mercury evidence')));
+    await service.complete(p.id, a.id, folder.id);
+    while (await service.processNext()) {
+      /* Prepare the fixture with real extraction. */
+    }
+    await db.getRepository(LocalFolder).update(folder.id, { status: 'UPLOADING' });
+    await db
+      .getRepository(KnowledgeSource)
+      .update({ localFolderId: folder.id }, { status: KnowledgeSourceStatus.QUEUED });
+    await new UploadedFoldersService(db, storage).complete(p.id, a.id, folder.id);
+    expect(
+      (
+        await new RetrievalService(db).retrieve({
+          projectId: p.id,
+          actorId: a.id,
+          query: 'Mercury',
+          mode: 'keyword',
+        })
+      )[0]?.title,
+    ).toBe('notes');
     await service.remove(p.id, a.id, folder.id);
   });
 

@@ -233,37 +233,51 @@ Index Codebase checks every eligible source/document file, with no file-count ca
 
 Successful GitHub SHA checkpoints and an indexed knowledge source allow unchanged files to be skipped. Interrupted or failed files are retried on the next run; partial coverage returns an error instead of success. Truncated recursive GitHub trees are expanded using nonrecursive tree requests. Generated/dependency files, lockfiles, unsupported formats and files over 100 KB remain excluded. An optional GitHub token can be entered for a synchronization/indexing run; it is cleared afterward and is not stored by the integration.
 
-## Live local folders
+## Private folder uploads
 
-Documents can connect local folders for read-only Hermes access without indexing.
-Enable `LOCAL_FILES_ENABLED=true` only in the ignored local `.env`; the backend
-must bind to loopback in a non-production environment. Ripgrep (`rg`) is required.
-The local administrator selects a folder in the native Windows chooser (manual
-path fallback); connections belong to that account and project. Normal Copilot chat continues to use indexed sources.
-See [Live folder setup and boundaries](docs/LIVE_FOLDERS.md).
+Documents offers one browser folder upload flow. Legacy live/snapshot APIs and
+stored data remain compatible; their duplicate panels are removed from the page.
+Original files and relative paths stay in private backend storage. Files can be
+downloaded immediately; only completed folder copies enter Hermes discovery.
+Copilot retrieval becomes available as background extraction finishes.
 
-### Persistent private folder uploads
+Uploads persist per-file progress across page reloads and backend restarts. Use
+**Resume**, reselect the unchanged source folder, and the browser verifies saved
+files in 8 MiB blocks before skipping them. Changed saved files are rejected;
+discard the copy and upload a new one to replace contents. Resume works at file
+boundaries: an interrupted file restarts, while committed files are retained.
+**Pause** stops requests and leaves a resumable copy. Copies are not live sync.
 
-`/projects/:projectId/uploaded-folders` provides private folder upload sessions,
-per-file multipart storage, atomic completion, paginated listing/text reads,
-original attachment downloads and deletion. Originals use `STORAGE_LOCAL_ROOT`;
-PostgreSQL keeps folder paths, SHA-256 hashes and extracted search chunks.
-Any original format is accepted. UTF-8 text, PDF and DOCX can be extracted up to
-10 MiB original / 4 MiB text per file; unsupported files retain originals and an
-explicit metadata-only reason. Limits: 5,000 files, 2 GiB per folder, 256 MiB
-per file and 20 folders across uploaded/snapshot modes per project/account.
+The original storage quota is per account across projects, enforced under an
+account lock so concurrent uploads cannot exceed it. Configure in `.env`:
 
-Only complete folders enter private Copilot retrieval or Hermes folder tools.
-Same-path/same-hash retries are idempotent; conflicting files are rejected.
-The browser keeps its selected files for retry while the page is open. An
-interrupted copy can be deleted and uploaded again after reopening. Uploads are
-saved copies, without background synchronization. Account/project ownership
-and active membership apply to reads and downloads as well as mutations.
+| Setting                      | Default                 |
+| ---------------------------- | ----------------------- |
+| `FOLDER_STORAGE_QUOTA_BYTES` | 20 GiB of originals     |
+| `FOLDER_MAX_FILE_BYTES`      | 1 GiB per file          |
+| `FOLDER_MAX_FILES`           | 100,000 per folder      |
+| `FOLDER_MAX_SOURCES`         | 100 per project/account |
 
-Run migrations explicitly against the isolated development DB before testing.
-No new schemaless DB or desktop shell is required. The current storage driver
-uses the backend filesystem: cross-device use needs a reachable backend and
-persistent disk. Public deployment/object-storage provisioning remains future
-work. Back up that disk together with PostgreSQL. Hard process termination can
-leave temporary/orphan blobs requiring operational cleanup; automatic crash
-reconciliation is not implemented in this first version.
+There is no separate 2 GiB folder cap. HTTP transport is bounded to 8 GiB per
+request; validated configuration cannot exceed it. Quota counts original bytes,
+not PostgreSQL search data or extracted derivatives. Back up PostgreSQL and
+`STORAGE_LOCAL_ROOT` together and provide extra disk space for temporary uploads
+and extracted content. Settings/usage are exposed privately under the project
+upload settings route; no credentials or machine configuration are tracked.
+
+The worker uses PostgreSQL leases rather than Redis, processes only active
+owners/members on completed folders, and retries interrupted jobs after lease
+expiry. Content preparation does not delay upload completion. UTF-8, PDF and
+DOCX extraction stays bounded to 10 MiB originals / 4 MiB text. Unsupported files
+remain downloadable. Larger UTF-8 originals can be read by Hermes in bounded
+8,000-character pages without whole-file indexing. Each read scans at most
+64 MiB; query offsets are capped. Large PDF/DOCX files remain metadata-only.
+
+Run migrations explicitly against the isolated develop DB before testing.
+The normal browser flow needs no PowerShell. Development UI/API use matching
+`127.0.0.1` hosts (3002/3001) to avoid another app's IPv6 localhost listener.
+Hosting, TLS and cloud object storage are not provisioned. Cross-device access
+still needs a reachable authenticated backend and persistent storage. Hard
+crashes may leave orphan/temp blobs; automatic blob reconciliation is future
+work. Extraction is eventually consistent, not a guarantee that every format
+can be understood by AI.

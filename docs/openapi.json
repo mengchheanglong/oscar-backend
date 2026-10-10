@@ -1,6 +1,50 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/projects/{projectId}/uploaded-folders/settings": {
+      "get": {
+        "operationId": "UploadedFoldersController_settings",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadedFolderSettingsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get upload policy and your account-wide original storage usage",
+        "tags": [
+          "Uploaded folders"
+        ]
+      }
+    },
     "/api/v1/projects/{projectId}/uploaded-folders": {
       "get": {
         "operationId": "UploadedFoldersController_list",
@@ -4938,6 +4982,33 @@
   "servers": [],
   "components": {
     "schemas": {
+      "UploadedFolderSettingsResponse": {
+        "type": "object",
+        "properties": {
+          "quotaBytes": {
+            "type": "number"
+          },
+          "usedBytes": {
+            "type": "number"
+          },
+          "maxFileBytes": {
+            "type": "number"
+          },
+          "maxFiles": {
+            "type": "number"
+          },
+          "maxSources": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "quotaBytes",
+          "usedBytes",
+          "maxFileBytes",
+          "maxFiles",
+          "maxSources"
+        ]
+      },
       "UploadedFolderResponse": {
         "type": "object",
         "properties": {
@@ -4954,6 +5025,12 @@
               "UPLOADING",
               "READY"
             ]
+          },
+          "pendingFiles": {
+            "type": "number"
+          },
+          "failedFiles": {
+            "type": "number"
           },
           "expectedFiles": {
             "type": "number"
@@ -4974,6 +5051,8 @@
           "id",
           "name",
           "status",
+          "pendingFiles",
+          "failedFiles",
           "expectedFiles",
           "fileCount",
           "bytes",
@@ -4989,7 +5068,7 @@
           "expectedFiles": {
             "type": "number",
             "minimum": 1,
-            "maximum": 5000
+            "maximum": 1000000
           }
         },
         "required": [
@@ -5056,6 +5135,20 @@
             "type": "string",
             "format": "uuid"
           },
+          "resumeHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "extractionStatus": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "DONE",
+              "SKIPPED",
+              "FAILED"
+            ]
+          },
           "path": {
             "type": "string"
           },
@@ -5069,6 +5162,8 @@
         },
         "required": [
           "id",
+          "resumeHash",
+          "extractionStatus",
           "path",
           "size",
           "reason"

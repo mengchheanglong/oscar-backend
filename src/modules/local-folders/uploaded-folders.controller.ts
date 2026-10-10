@@ -5,6 +5,7 @@ import {
   UploadedFilesResponse,
   UploadedCompleteResponse,
   UploadedReadResponse,
+  UploadedFolderSettingsResponse,
 } from './uploaded-folder.responses';
 import {
   Body,
@@ -56,9 +57,14 @@ import { MAX_FOLDER_FILE_BYTES, UploadedFoldersService } from './uploaded-folder
 
 export class CreateUploadedFolderDto {
   @ApiProperty() @IsString() @MinLength(1) @MaxLength(200) name!: string;
-  @ApiProperty({ minimum: 1, maximum: 5000 }) @IsInt() @Min(1) @Max(5000) expectedFiles!: number;
+  @ApiProperty({ minimum: 1, maximum: 1000000 })
+  @IsInt()
+  @Min(1)
+  @Max(1000000)
+  expectedFiles!: number;
 }
 export class UploadedFilesQuery {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(1000) limit?: number;
   @IsOptional() @IsString() @MaxLength(450) query?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(10000000) offset?: number;
 }
@@ -84,6 +90,12 @@ export class UploadTempCleanup implements NestInterceptor {
 @UseGuards(SessionAuthGuard, CsrfGuard, ProjectPolicyGuard)
 export class UploadedFoldersController {
   constructor(private readonly folders: UploadedFoldersService) {}
+  @Get('settings')
+  @ApiOperation({ summary: 'Get upload policy and your account-wide original storage usage' })
+  @ApiOkResponse({ type: UploadedFolderSettingsResponse })
+  settings(@Param('projectId', ParseUUIDPipe) projectId: string, @CurrentUser() user: User) {
+    return this.folders.settings(projectId, user.id);
+  }
   @Get()
   @ApiOperation({ summary: 'List your private persistent folder uploads' })
   @ApiOkResponse({ type: [UploadedFolderResponse] })
@@ -157,7 +169,7 @@ export class UploadedFoldersController {
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: UploadedFilesQuery,
   ) {
-    return this.folders.files(projectId, user.id, id, query.query, query.offset);
+    return this.folders.files(projectId, user.id, id, query.query, query.offset, query.limit);
   }
   @Get(':id/read')
   @ApiOperation({ summary: 'Read an extracted text page with its file version citation' })

@@ -65,6 +65,10 @@ services:
       HOST: 0.0.0.0
       APP_ORIGIN: http://localhost:3001
       DATABASE_URL: postgresql://ai_workspace:local_dev_only@postgres:5432/ai_workspace
+      FOLDER_STORAGE_QUOTA_BYTES: ${FOLDER_STORAGE_QUOTA_BYTES:-21474836480}
+      FOLDER_MAX_FILE_BYTES: ${FOLDER_MAX_FILE_BYTES:-1073741824}
+      FOLDER_MAX_FILES: ${FOLDER_MAX_FILES:-100000}
+      FOLDER_MAX_SOURCES: ${FOLDER_MAX_SOURCES:-100}
       STORAGE_DRIVER: local
       STORAGE_LOCAL_ROOT: /app/var/uploads
       SWAGGER_ENABLED: 'true'

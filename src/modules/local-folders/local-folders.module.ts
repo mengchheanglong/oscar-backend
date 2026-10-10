@@ -1,3 +1,4 @@
+import { UploadedFolderWorker } from './uploaded-folder-worker';
 import { StorageModule } from '../storage/storage.module';
 import { UploadedFoldersService } from './uploaded-folders.service';
 import { UploadedFoldersController } from './uploaded-folders.controller';
@@ -14,6 +15,7 @@ import { LocalFoldersService } from './local-folders.service';
   controllers: [LocalFoldersController, UploadedFoldersController],
   exports: [LiveFoldersService, UploadedFoldersService],
   providers: [
+    UploadedFolderWorker,
     UploadedFoldersService,
     LocalFoldersService,
     LiveFoldersService,
