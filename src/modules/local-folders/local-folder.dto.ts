@@ -41,3 +41,19 @@ export class SyncLocalFolderResponse {
   @ApiProperty() id!: string;
   @ApiProperty() version!: number;
 }
+
+export class ConnectLiveFolderDto {
+  @ApiProperty({ description: 'Absolute path on the local backend computer' })
+  @IsString()
+  @MaxLength(1000)
+  path!: string;
+}
+export class LiveFolderResponse {
+  @ApiProperty() id!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty() path!: string;
+}
+export class LiveFoldersResponse {
+  @ApiProperty() available!: boolean;
+  @ApiProperty({ type: [LiveFolderResponse] }) folders!: LiveFolderResponse[];
+}

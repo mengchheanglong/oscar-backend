@@ -18,6 +18,56 @@ export interface AgentRuntime {
 
 export const WORKSPACE_TOOLS = [
   {
+    name: 'list_local_folders',
+    description: 'List private connected local folders. No shell access.',
+    parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
+  },
+  {
+    name: 'list_local_files',
+    description:
+      'Find filenames in a connected folder; pages of 100 files. Use nextOffset to continue.',
+    parameters: {
+      type: 'object',
+      properties: {
+        folderId: { type: 'string', format: 'uuid' },
+        query: { type: 'string', maxLength: 500 },
+        offset: { type: 'integer', minimum: 0 },
+      },
+      required: ['folderId'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'search_local_files',
+    description:
+      'Search live text contents using a literal query; returns bounded matches and nextOffset. Documents should be discovered by filename and read.',
+    parameters: {
+      type: 'object',
+      properties: {
+        folderId: { type: 'string', format: 'uuid' },
+        query: { type: 'string', maxLength: 500 },
+        offset: { type: 'integer', minimum: 0 },
+      },
+      required: ['folderId', 'query'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'read_local_file',
+    description:
+      'Read live text or extracted PDF/DOCX content in 8000-character pages. Binary files return metadata. Cite the returned citation.',
+    parameters: {
+      type: 'object',
+      properties: {
+        folderId: { type: 'string', format: 'uuid' },
+        path: { type: 'string', maxLength: 1000 },
+        offset: { type: 'integer', minimum: 0 },
+      },
+      required: ['folderId', 'path'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'search_project_evidence',
     description: 'Retrieve cited evidence in the current authorized project.',
     parameters: {

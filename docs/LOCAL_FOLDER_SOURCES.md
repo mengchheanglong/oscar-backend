@@ -84,3 +84,10 @@ ingestion endpoints to load the current indexed chunks, labels that snapshot's
 revision separately from the historical cited excerpt, and links back to
 Documents. A disconnected source cannot be loaded there; its previously saved
 excerpt may still appear in chat history.
+
+## Optional snapshots and live connections
+
+The behavior above describes **Saved snapshots (optional)**. For Hermes Agent
+work, the primary **Source folders** interface now supports direct on-demand
+access via the local backend. See [Live folders](LIVE_FOLDERS.md). It does not
+create snapshot chunks or send every file when connecting.

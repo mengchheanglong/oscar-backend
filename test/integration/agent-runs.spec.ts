@@ -1,9 +1,13 @@
 import 'reflect-metadata';
 import { randomUUID } from 'node:crypto';
+import { promises as fs } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, In } from 'typeorm';
 import { databaseOptions } from '../../src/database/database-options';
+import { LiveFoldersService } from '../../src/modules/local-folders/live-folders.service';
 import { AgentRunsService } from '../../src/modules/ai/agent-runs.service';
 import { AgentRun, AgentRunStatus } from '../../src/modules/ai/entities/agent-run.entity';
 import { CopilotMemoryService } from '../../src/modules/ai/copilot-memory.service';
@@ -15,7 +19,7 @@ import { ChatMessage } from '../../src/modules/ai/entities/chat-message.entity';
 import { ContextAssembler } from '../../src/modules/ai/context/context-assembler';
 import { RetrievalService } from '../../src/modules/ai/retrieval/retrieval.service';
 import { AgentRuntime } from '../../src/modules/ai/runtime/runtime-contract';
-import { User } from '../../src/modules/users/entities/user.entity';
+import { User, SystemRole } from '../../src/modules/users/entities/user.entity';
 import { Project, ProjectStatus } from '../../src/modules/projects/entities/project.entity';
 import {
   ProjectMember,
@@ -36,6 +40,8 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
   const runtime: AgentRuntime = { available: () => true, execute: jest.fn() };
   const execute = runtime.execute as jest.Mock;
   let retrieval: RetrievalService;
+  let live: LiveFoldersService;
+  let folder: string;
 
   beforeAll(async () => {
     const url = process.env.DATABASE_URL;
@@ -49,6 +55,7 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
         email: `${randomUUID()}@runs.test`,
         displayName: 'Run A',
         passwordHash: 'synthetic-only',
+        systemRole: SystemRole.ADMIN,
       }),
     );
     other = await users.save(
@@ -81,6 +88,18 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
       }),
     );
     retrieval = { retrieve: jest.fn().mockResolvedValue([]) } as unknown as RetrievalService;
+    folder = await fs.mkdtemp(path.join(os.tmpdir(), 'aiw-run-files-'));
+    await fs.mkdir(path.join(folder, 'source'));
+    await fs.writeFile(path.join(folder, 'source', 'notes.txt'), 'Mercury pricing assumptions');
+    live = new LiveFoldersService(
+      db,
+      new ConfigService({
+        LOCAL_FILES_ENABLED: true,
+        HOST: '127.0.0.1',
+        NODE_ENV: 'test',
+        LOCAL_FILES_REGISTRY: path.join(folder, 'registry.json'),
+      }),
+    );
     service = new AgentRunsService(
       db.getRepository(AgentRun),
       db.getRepository(ProjectMember),
@@ -95,6 +114,7 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
       ),
       runtime,
       new AuditService(db.getRepository(AuditLog)),
+      live,
     );
   });
 
@@ -117,6 +137,8 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
     await db.getRepository(AuditLog).delete({ actorId: In([user.id, other.id]) });
     await db.getRepository(User).delete({ id: In([user.id, other.id]) });
     await db.destroy();
+    if (folder.startsWith(os.tmpdir() + path.sep))
+      await fs.rm(folder, { recursive: true, force: true });
   });
 
   async function settled(id: string) {
@@ -127,6 +149,48 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
     }
     throw new Error('Run did not settle');
   }
+
+  it('reads live private folders through run tools and saves versioned file evidence', async () => {
+    const mount = await live.connect(project.id, user.id, path.join(folder, 'source'));
+    expect(await live.list(project.id, other.id)).toEqual([]);
+    execute.mockImplementation(async (input, callbacks) => {
+      expect(input.context).toContain(mount.id);
+      expect(input.context).not.toContain(folder);
+      expect(await callbacks.tool('list_local_folders', {})).toEqual([
+        { id: mount.id, name: 'source' },
+      ]);
+      expect((await callbacks.tool('list_local_files', { folderId: mount.id })).files).toContain(
+        'notes.txt',
+      );
+      expect(
+        (await callbacks.tool('search_local_files', { folderId: mount.id, query: 'Mercury' }))
+          .matches,
+      ).toHaveLength(1);
+      const read = await callbacks.tool('read_local_file', {
+        folderId: mount.id,
+        path: 'notes.txt',
+      });
+      expect(read.text).toContain('Mercury');
+      expect(
+        await callbacks.tool('read_local_file', { folderId: mount.id, path: '../registry.json' }),
+      ).toHaveProperty('error');
+      return `# File report\n${read.text}\n\`${read.citation}\``;
+    });
+    const created = await service.create(project.id, user.id, {
+      prompt: 'Read folder evidence',
+      idempotencyKey: randomUUID(),
+    });
+    const done = await settled(created.id);
+    expect(done.status).toBe(AgentRunStatus.SUCCEEDED);
+    expect(done.events).toHaveLength(5);
+    expect(done.evidence[0]).toMatchObject({
+      sourceId: mount.id,
+      revision: 0,
+      locator: 'notes.txt',
+    });
+    expect(done.evidence[0]?.chunkId).toMatch(/^local:/);
+    await live.disconnect(project.id, user.id, mount.id);
+  });
 
   it('executes scoped retrieval, deterministic calculation and a pending reviewed task', async () => {
     execute.mockImplementation(async (_input, callbacks) => {

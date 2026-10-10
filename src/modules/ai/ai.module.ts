@@ -1,3 +1,4 @@
+import { LocalFoldersModule } from '../local-folders/local-folders.module';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -47,6 +48,7 @@ import { RetrievalService } from './retrieval/retrieval.service';
       User,
     ]),
     IngestionModule,
+    LocalFoldersModule,
   ],
   controllers: [AiController, ProposalsController, CopilotMemoryController, AgentRunsController],
   providers: [

@@ -1010,6 +1010,18 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
   // ── Scenario 3: CSRF Double Submit Cookie Enforcement ──
 
   it('[Security Gate 3] Mutations without x-csrf-token header are rejected with 403 Forbidden', async () => {
+    const livePath = `/api/v1/projects/${projectA.id}/local-folders/live`;
+    await request(app.getHttpServer()).get(livePath).expect(401);
+    await request(app.getHttpServer())
+      .post(livePath)
+      .set('Cookie', sessionA.cookie)
+      .send({ path: 'synthetic' })
+      .expect(403);
+    await request(app.getHttpServer())
+      .get(`/api/v1/projects/${projectB.id}/local-folders/live`)
+      .set('Cookie', sessionA.cookie)
+      .expect(404);
+    await request(app.getHttpServer()).get(livePath).set('Cookie', sessionA.cookie).expect(200);
     const createConvNoCsrf = await request(app.getHttpServer())
       .post(`/api/v1/projects/${projectA.id}/ai/conversations`)
       .set('Cookie', sessionA.cookie)

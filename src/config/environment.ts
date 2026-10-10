@@ -43,6 +43,8 @@ const schema = z
       .default('info'),
     SWAGGER_ENABLED: booleanString.default(false),
     AI_ENABLED: booleanString.default(false),
+    LOCAL_FILES_ENABLED: booleanString.default(false),
+    LOCAL_FILES_REGISTRY: z.string().min(1).default('./var/local-folders.json'),
     HERMES_ENABLED: booleanString.default(false),
     HERMES_PYTHON: emptyStringToUndefined(z.string().optional()),
     HERMES_ROOT: emptyStringToUndefined(z.string().optional()),

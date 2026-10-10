@@ -17,6 +17,10 @@ TOOLS = [
     {"name": "search_project_evidence", "description": "Search", "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}},
     {"name": "calculate_pricing", "description": "Calculate", "parameters": {"type": "object", "properties": {"price": {"type": "number"}, "variableCost": {"type": "number"}, "fixedCost": {"type": "number"}, "units": {"type": "integer"}}, "required": ["price", "variableCost", "fixedCost", "units"]}},
     {"name": "request_task_review", "description": "Draft", "parameters": {"type": "object", "properties": {"requirementId": {"type": "string"}, "title": {"type": "string"}}, "required": ["requirementId", "title"]}},
+    {"name": "list_local_folders", "description": "Folders", "parameters": {"type": "object", "properties": {}}},
+    {"name": "list_local_files", "description": "Files", "parameters": {"type": "object", "properties": {"folderId": {"type": "string"}}, "required": ["folderId"]}},
+    {"name": "search_local_files", "description": "Search files", "parameters": {"type": "object", "properties": {"folderId": {"type": "string"}, "query": {"type": "string"}}, "required": ["folderId", "query"]}},
+    {"name": "read_local_file", "description": "Read file", "parameters": {"type": "object", "properties": {"folderId": {"type": "string"}, "path": {"type": "string"}}, "required": ["folderId", "path"]}},
 ]
 
 
@@ -27,6 +31,10 @@ class BridgeSmoke(unittest.TestCase):
             {"id": "1", "result": [{"title": "Synthetic evidence", "sourceId": "synthetic"}]},
             {"id": "2", "result": {"operatingProfit": 50}},
             {"id": "3", "result": {"reviewRequired": True}},
+            {"id": "4", "result": [{"id": "synthetic-folder", "name": "source"}]},
+            {"id": "5", "result": {"files": ["notes.txt"], "nextOffset": None}},
+            {"id": "6", "result": {"matches": [{"path": "notes.txt", "text": "Mercury"}]}},
+            {"id": "7", "result": {"text": "Mercury", "citation": "local:synthetic-folder:notes.txt#version:0"}},
         ]
         incoming = io.StringIO("\n".join(json.dumps(v) for v in [request, *responses]) + "\n")
         outgoing = io.StringIO()
@@ -35,7 +43,10 @@ class BridgeSmoke(unittest.TestCase):
             ("search_project_evidence", {"query": "pricing"}),
             ("calculate_pricing", {"price": 20, "variableCost": 5, "fixedCost": 100, "units": 10}),
             ("request_task_review", {"requirementId": "9b6bcda4-1f76-4f6b-9d55-7e2167fc7564", "title": "Review pricing"}),
-            ("terminal", {"command": "must-not-run"}),
+            ("list_local_folders", {}),
+            ("list_local_files", {"folderId": "synthetic-folder"}),
+            ("search_local_files", {"folderId": "synthetic-folder", "query": "Mercury"}),
+            ("read_local_file", {"folderId": "synthetic-folder", "path": "notes.txt"}),
         ]
 
         def fake_send(_client, http_request, **_kwargs):
@@ -74,10 +85,10 @@ class BridgeSmoke(unittest.TestCase):
                     sys.stderr.write("Transport stream flag: " + str(calls[-1].get("stream")) + "\n")
                 raise
         events = [json.loads(line) for line in outgoing.getvalue().splitlines()]
-        self.assertEqual([e.get("name") for e in events if e["type"] == "tool"], [name for name, _ in fixtures[:3]])
+        self.assertEqual([e.get("name") for e in events if e["type"] == "tool"], [name for name, _ in fixtures[:7]])
         self.assertEqual(events[-1]["type"], "result")
         self.assertIn("50", events[-1]["content"])
-        self.assertEqual(len(calls), 5)
+        self.assertEqual(len(calls), 8)
         # Also exercise the execution guards directly, independent of any upstream
         # rejection of a tool name absent from the advertised schemas.
         denied = sys.modules["run_agent"].handle_function_call("terminal", {"command": "must-not-run"})

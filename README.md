@@ -232,3 +232,12 @@ The legacy mock verification scripts (`verify-p2-01-ingestion.ts`, `verify-p2-02
 Index Codebase checks every eligible source/document file, with no file-count cap. The frontend automatically follows `nextCursor` through short requests and shows checked-file progress. `POST /projects/:projectId/integrations/github/sync-code` accepts `connectionId`, an optional transient `accessToken`, `cursor` (default 0), `batchSize` (default 2, maximum 5), and `treeVersion` returned by the first batch. Continue until `nextCursor` is null; aggregate each batch's `indexedFilesCount` and `unchangedFilesCount`. A changed manifest rejects continuation and requires restarting from zero.
 
 Successful GitHub SHA checkpoints and an indexed knowledge source allow unchanged files to be skipped. Interrupted or failed files are retried on the next run; partial coverage returns an error instead of success. Truncated recursive GitHub trees are expanded using nonrecursive tree requests. Generated/dependency files, lockfiles, unsupported formats and files over 100 KB remain excluded. An optional GitHub token can be entered for a synchronization/indexing run; it is cleared afterward and is not stored by the integration.
+
+## Live local folders
+
+Documents can connect local folders for read-only Hermes access without indexing.
+Enable `LOCAL_FILES_ENABLED=true` only in the ignored local `.env`; the backend
+must bind to loopback in a non-production environment. Ripgrep (`rg`) is required.
+The local administrator connects an absolute path; connections belong to that
+account and project. Normal Copilot chat continues to use indexed sources.
+See [Live folder setup and boundaries](docs/LIVE_FOLDERS.md).

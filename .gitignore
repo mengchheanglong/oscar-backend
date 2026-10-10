@@ -18,3 +18,6 @@ __pycache__/
 secrets/
 test-results/
 .agents/
+
+# Private machine-local folder connections
+var/local-folders.json*

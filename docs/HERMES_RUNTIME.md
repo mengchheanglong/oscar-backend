@@ -22,8 +22,10 @@ copilot to start a separate, private project run and inspect its report.
   An explicit dispatch guard rejects unlisted tool calls before upstream built-in
   dispatch, independently of which schemas the model sees.
   Runtime source must match the pinned revision and have no tracked edits.
-- Three tools only: `search_project_evidence`, `calculate_pricing`, and
-  `request_task_review`. Authorization is checked before each tool and before
+- Seven tools: `search_project_evidence`, `calculate_pricing`,
+  `request_task_review`, `list_local_folders`, `list_local_files`,
+  `search_local_files`, and `read_local_file`. The four filesystem tools use
+  optional local connections described in [Live folders](LIVE_FOLDERS.md). Authorization is checked before each tool and before
   committing a result. Search is restricted to one active project; reviewed
   private memories belong to that actor/project.
 - A task request stages one draft linked to an existing same-project
@@ -70,8 +72,8 @@ $env:AIW_HERMES_ROOT = '<dedicated-runtime-directory>'
 ```
 
 The second command runs the real Hermes loop with simulated HTTP responses. It
-checks the model and exact tool list on every request, three permitted tool calls,
-an attempted unlisted terminal call, direct dispatch rejection, and the final
+checks the model and exact tool list on every request, all seven permitted tool calls,
+direct rejection of an unlisted terminal call, and the final
 artifact. It is not a live provider test.
 
 ## Release configuration

@@ -1,6 +1,138 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/projects/{projectId}/local-folders/live": {
+      "get": {
+        "operationId": "LocalFoldersController_listLive",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveFoldersResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List your live local connections; no file contents are indexed",
+        "tags": [
+          "Local folders"
+        ]
+      },
+      "post": {
+        "operationId": "LocalFoldersController_connectLive",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectLiveFolderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveFolderResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Grant read-only on-demand access to a local folder",
+        "tags": [
+          "Local folders"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/local-folders/live/{id}": {
+      "delete": {
+        "operationId": "LocalFoldersController_disconnectLive",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Local folders"
+        ]
+      }
+    },
     "/api/v1/projects/{projectId}/local-folders": {
       "get": {
         "operationId": "LocalFoldersController_list",
@@ -4327,6 +4459,55 @@
   "servers": [],
   "components": {
     "schemas": {
+      "LiveFolderResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "path"
+        ]
+      },
+      "LiveFoldersResponse": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "folders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LiveFolderResponse"
+            }
+          }
+        },
+        "required": [
+          "available",
+          "folders"
+        ]
+      },
+      "ConnectLiveFolderDto": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Absolute path on the local backend computer"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      },
       "LocalFolderFileResponse": {
         "type": "object",
         "properties": {

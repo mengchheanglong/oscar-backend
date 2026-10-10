@@ -1050,3 +1050,42 @@ Simplified the user-requested folder review to a compact searchable list, option
 Verification passed: frontend typecheck/lint/build, six scanner tests, desktop/mobile screenshot inspection, optional preview, explicit selection, real local API DOCX indexing with extensionless text and binary metadata, remembered-handle rescan and disconnect cleanup. Browser selection used an origin-private filesystem fixture rather than the native OS picker. Backend lint/typecheck/build/OpenAPI generation and inspection, formatting, 37 unit suites (303 tests), eight HTTP suites (150 tests), and five dedicated PostgreSQL suites (30 tests) passed. Real PDF/DOCX fixtures verify extraction, malformed inputs, size bounds and unauthorized access without persisting originals. The integration runner now enables Node VM modules for the existing PDF parser's dynamic import under Jest. AIW accepted-decision lookup returned none; no assigned task was marked DONE. No migration, paid provider call or deployment database write occurred.
 
 During verification port 3001 was occupied by Logistics Sandbox. With explicit user approval, moved its backend default and frontend HTTP/WebSocket proxy to 3007; backend and frontend-proxy health checks returned 200. These two port edits remain local in that separate repository. Temporary QA services on 3003/3004 were stopped. AI Workspace is restored on 3001/3002 using ai_workspace_develop. Workspace changes are committed locally on develop only; main refs remain unchanged and nothing is pushed.
+
+### Live local folders for Hermes - 2026-10-10
+
+The user approved local on-demand folder access instead of mandatory snapshot
+indexing. Documents now offers compact private Source folders with an absolute
+path connection and disconnect. Saved snapshots remain optional for ordinary
+chat retrieval. Live grants persist in an ignored machine-local registry; no
+file contents or snapshot chunks are created at connection. This requires the
+local administrator, a loopback non-production backend, and explicit local
+enablement. No migration or production configuration change was made.
+
+Hermes receives four additional authorized read-only tools for folder discovery,
+paged path listing, literal text search and paged file reads. Text of any
+extension plus PDF/DOCX extraction is supported; other binaries remain metadata.
+The 100-file/512-KiB snapshot total does not apply to connected directories.
+Per-read, search, iteration and context bounds still apply. Files cannot be edited
+or executed. Version hashes and paths are recorded as run evidence. Authorization,
+private grants and canonical path checks block cross-user/project access, traversal
+and symlink/junction escapes. See docs/LIVE_FOLDERS.md for scope and limits.
+
+Verification passed: backend lint/typecheck/build/format; 38 unit suites (309
+tests), eight HTTP suites (150 tests), five dedicated PostgreSQL suites (31 tests),
+and OpenAPI generation with GET/POST live and DELETE live/:id inspected. The
+expanded AI security HTTP suite separately passed authentication, membership
+and CSRF checks for the new routes. Real temporary filesystem tests covered
+205-file paging, edits without reindexing, unchanged originals after disconnect,
+DOCX extraction, binary metadata and directory-junction escapes. PostgreSQL run
+testing used a simulated runtime with actual folder tools and saved citations.
+The actual pinned Hermes loop exercised all seven approved tools with simulated
+model HTTP and rejected terminal dispatch; no paid model call was made.
+
+Local browser verification with the isolated tester covered real path connection,
+refresh persistence and disconnect while preserving the original file; the
+desktop layout was inspected. Frontend lint/typecheck/build and six existing
+scanner tests passed. AIW accepted-decision lookup returned none; no assigned task was
+provided or marked DONE. Local testing remains isolated on 3001/3002. A duplicate
+Logistics Sandbox service reclaimed 3001 and was stopped under the prior user
+authorization; its existing service on 3007 remains running. Main is unchanged
+and nothing is pushed.
