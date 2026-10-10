@@ -102,6 +102,29 @@ describe('Private local folder snapshots with PostgreSQL', () => {
     await expect(service.disconnect(p.id, b.id, id)).rejects.toThrow(NotFoundException);
     await expect(service.list(other.id, a.id)).rejects.toThrow(NotFoundException);
   });
+  it('refreshes stored search vectors when folder text changes and preserves owner isolation', async () => {
+    const id = randomUUID();
+    await service.sync(p.id, a.id, id, manifest(0, 'Uniquevectoralpha working capital'));
+    expect(
+      (await search(a.id, 'Uniquevectoralpha')).some((e) => e.text?.includes('Uniquevectoralpha')),
+    ).toBe(true);
+    await service.sync(p.id, a.id, id, manifest(1, 'Uniquevectorbeta inventory financing'));
+    const rows = await db.query(
+      `SELECT c.search_vector::text AS vector FROM knowledge_chunks c
+      JOIN knowledge_sources s ON s.id=c.knowledge_source_id
+      WHERE s.project_id=$1 AND s.owner_id=$2 AND c.index_version=s.active_index_version
+      AND c.text LIKE 'Uniquevectorbeta%'`,
+      [p.id, a.id],
+    );
+    expect(rows.length).toBeGreaterThan(0);
+    expect(
+      rows.every(
+        (r: { vector: string }) =>
+          r.vector.includes('uniquevectorbeta') && !r.vector.includes('uniquevectoralpha'),
+      ),
+    ).toBe(true);
+    expect(await search(b.id, 'Uniquevectorbeta')).toEqual([]);
+  });
   it('accepts extensionless, hidden and binary metadata manifests without weakening path isolation', async () => {
     await service.sync(p.id, a.id, randomUUID(), {
       name: 'Any files',

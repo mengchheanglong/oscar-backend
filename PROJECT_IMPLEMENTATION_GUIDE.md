@@ -1200,3 +1200,34 @@ auth vault. AIW accepted decision lookup returned none; no assigned task was
 supplied or marked DONE. Main is unchanged; local develop commits only. Hosting,
 TLS, cloud object storage and automatic orphan/temp blob reconciliation remain
 future work.
+
+### 2026-10-10: Copilot search timeout and harness reliability
+
+Consulted [Awesome Harness Engineering](https://github.com/walkinglabs/awesome-harness-engineering)
+and its linked [Inngest harness article](https://www.inngest.com/blog/your-agent-needs-a-harness-not-a-framework).
+Applied stage-specific failure reporting, preserved working state and real-workload
+verification. No new framework or replacement for Hermes was introduced.
+
+The startup question reproduced PostgreSQL cancellation 57014 after 10 seconds
+across 10,441 local chunks. Keyword retrieval repeatedly rebuilt search vectors.
+Migration 1791650000000 stores generated chunk vectors and adds a GIN index.
+Inserts and text updates refresh vectors automatically; title/body ranking and
+project, revision and owner filters are preserved. The compound ranking query can
+still scan candidates; an index-only plan is not guaranteed. Apply this migration
+before the updated backend. It rewrites the chunk table and locks it; plan migration
+capacity for larger databases. Applied only to isolated develop and test databases.
+
+Retrieval failures now expose AI_RETRIEVAL_FAILED with a safe search-specific
+message, without raw SQL or provider details. The submitted turn stays saved.
+Idempotent automatic retries and stage timing traces remain future work. Whole-turn
+retries currently persist another user message and should not be added blindly.
+
+Checks passed: lint, typecheck, build, 39 unit suites (312 tests), the later-added
+failure regression (11 tests in the affected suite), 9 HTTP suites (153 tests),
+6 PostgreSQL suites (40 tests), dedicated test DB startup and OpenAPI generation.
+Existing format check passed; checked this ledger after updating it. The real query
+returned eight chunks in 1.484 seconds. A temporary test-account conversation via
+the frontend proxy completed the original question with deepseek-v4-pro in 8.459
+seconds (HTTP 201, COMPLETED). QA conversations were deleted and the backend was
+restarted on 127.0.0.1:3001. AIW accepted decision lookup returned none; no assigned
+task was supplied. Local develop work only; deployment and main unchanged.

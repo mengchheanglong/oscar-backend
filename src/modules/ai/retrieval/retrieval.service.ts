@@ -271,9 +271,9 @@ export class RetrievalService {
         p.name AS project_name,
         p.key AS project_key,
         (
-          COALESCE(ts_rank_cd(to_tsvector('english', s.title || ' ' || c.text), q.ptq), 0) * 2.0
+          COALESCE(ts_rank_cd((to_tsvector('english', s.title) || c.search_vector), q.ptq), 0) * 2.0
           + CASE 
-              WHEN q.exp_tq IS NOT NULL THEN COALESCE(ts_rank_cd(to_tsvector('english', s.title || ' ' || c.text), q.exp_tq), 0) * 3.0
+              WHEN q.exp_tq IS NOT NULL THEN COALESCE(ts_rank_cd((to_tsvector('english', s.title) || c.search_vector), q.exp_tq), 0) * 3.0
               ELSE 0.0 
             END
           + CASE 
@@ -301,8 +301,8 @@ export class RetrievalService {
         AND s.deleted_at IS NULL
         AND c.index_version = s.active_index_version
         AND (
-          (q.ptq != ''::tsquery AND to_tsvector('english', s.title || ' ' || c.text) @@ q.ptq)
-          OR (q.exp_tq IS NOT NULL AND to_tsvector('english', s.title || ' ' || c.text) @@ q.exp_tq)
+          (q.ptq != ''::tsquery AND (to_tsvector('english', s.title) || c.search_vector) @@ q.ptq)
+          OR (q.exp_tq IS NOT NULL AND (to_tsvector('english', s.title) || c.search_vector) @@ q.exp_tq)
           OR ($7::text[] IS NOT NULL AND (s.title ILIKE ANY($7::text[]) OR c.text ILIKE ANY($7::text[])))
           OR c.text ILIKE $4
           OR s.title ILIKE $4

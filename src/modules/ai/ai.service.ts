@@ -1,4 +1,11 @@
-import { Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
 import { ProjectMember } from '../projects/entities/project-member.entity';
@@ -171,15 +178,23 @@ export class AiService implements OnModuleInit {
     }
 
     // Retrieve evidence
-    const retrievedEvidence = await this.retrievalService.retrieve({
-      actorId: userId,
-      projectId,
-      projectIds: targetProjectIds,
-      query: dto.content,
-      filters: dto.sourceType ? { sourceType: dto.sourceType } : undefined,
-      limit: includeAllWorkspaces ? 12 : 8,
-      mode: 'hybrid',
-    });
+    const retrievedEvidence = await this.retrievalService
+      .retrieve({
+        actorId: userId,
+        projectId,
+        projectIds: targetProjectIds,
+        query: dto.content,
+        filters: dto.sourceType ? { sourceType: dto.sourceType } : undefined,
+        limit: includeAllWorkspaces ? 12 : 8,
+        mode: 'hybrid',
+      })
+      .catch(() => {
+        this.logger.error('AI_RETRIEVAL_FAILED');
+        throw new ServiceUnavailableException({
+          code: 'AI_RETRIEVAL_FAILED',
+          message: 'Project search could not complete. Your request is saved; please retry.',
+        });
+      });
 
     // Build inventory overview for the target workspaces
     const inventoryOverview = await this.buildInventoryOverview(targetProjectIds);

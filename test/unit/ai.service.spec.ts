@@ -170,6 +170,27 @@ describe('AiService', () => {
   });
 
   describe('postMessage', () => {
+    it('identifies retrieval failure without exposing database details or invoking the model', async () => {
+      mockConversationRepo.findOne.mockResolvedValue({
+        id: 'conv-1',
+        title: 'Work',
+        defaultMode: AiMode.WORKSPACE,
+      });
+      mockRetrievalService.retrieve.mockRejectedValue(new Error('private database detail'));
+      await expect(
+        service.postMessage(mockProjectId, mockUserId, 'conv-1', {
+          content: 'Analyze this project.',
+        }),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'AI_RETRIEVAL_FAILED',
+          message: 'Project search could not complete. Your request is saved; please retry.',
+        },
+      });
+      expect(mockMessageRepo.save).toHaveBeenCalledTimes(1);
+      expect(mockLlmProvider.generateAnswer).not.toHaveBeenCalled();
+    });
+
     it('loads only actor/project memory before the provider call and keeps it separate from citations', async () => {
       mockConversationRepo.findOne.mockResolvedValue({
         id: 'conv-1',
