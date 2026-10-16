@@ -1683,3 +1683,29 @@ The prior continuity changes remain intact and passed the same suites. This does
 not add Hermes private-history tools or rerun the paid answer-evaluation suite.
 AIW accepted-decision lookup returned none; no assigned task was supplied.
 Local develop work only, without pushing, deploying or changing main.
+
+### 2026-10-16: Project and chat workspace controls
+
+Added persisted project icon/instructions and private chat rename/pin metadata for
+the supplied Grok-style project/chat workflows. The frontend keeps the full Files
+library, with project settings, documents, private folder copies and membership
+controls alongside chat. Project creation supports initial files/folders through
+the existing upload paths; retries reuse the created project. Owner archive/restore
+uses the existing service. No placeholder cloud connectors or automations added.
+
+Instructions reach Assistant and Hermes without widening permissions or replacing
+mandatory grounding/review rules. PATCH conversation metadata queries include
+project, author and nondeleted status; update only changed fields. The explicit
+1792368000000 migration was applied to verified isolated develop and test targets.
+
+Checks passed: backend lint/typecheck/build, 348 unit tests, 156 HTTP tests, 79
+PostgreSQL tests, OpenAPI generation and formatting. Frontend lint/typecheck/build
+and eight folder checks passed. Real browser acceptance covered file/folder project
+creation, upload status, chat rename/pin across reload, instruction save with draft
+preservation, project rename/icon, membership controls, archive/restore and mobile
+panel focus/Escape. Three synthetic QA projects and their stored files were removed.
+No paid AI calls or model-quality evaluation were needed for this UI work. AIW
+accepted-decision lookup returned none; no assigned task was supplied. Changes are
+local on develop, with no push, deployment, main edits or deployment database access.
+See docs/PROJECT_CHAT.md. Next AI capability milestone remains scoped private-history
+search/read tools for Hermes; it is not part of this UI change.

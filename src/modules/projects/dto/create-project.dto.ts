@@ -56,6 +56,22 @@ export class CreateProjectDto {
   @MaxLength(2000)
   description?: string;
 
+  @ApiPropertyOptional({ nullable: true, maxLength: 32, description: 'Project emoji icon' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  icon?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    maxLength: 4000,
+    description: 'Shared project guidance for Assistant and Hermes; does not grant permissions',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(4000)
+  instructions?: string | null;
+
   @ApiPropertyOptional({
     type: () => [ProjectInitialMemberDto],
     description: 'Initial workspace members to invite into the project',

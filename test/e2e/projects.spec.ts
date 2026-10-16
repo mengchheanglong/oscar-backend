@@ -483,6 +483,50 @@ describe('Projects and Policies API (E2E)', () => {
 
   let createdProjectId: string;
 
+  it('persists shared project preferences behind membership, role and version checks', async () => {
+    const result = await request(app.getHttpServer())
+      .post('/api/v1/projects')
+      .set('Cookie', ownerAuth.cookies)
+      .set('x-csrf-token', ownerAuth.csrfToken)
+      .send({ key: 'PREFS', name: 'Preferences', icon: '📈', instructions: 'Compare assumptions.' })
+      .expect(201);
+    const id = result.body.data.id as string;
+    expect(result.body.data).toMatchObject({ icon: '📈', instructions: 'Compare assumptions.' });
+    await request(app.getHttpServer())
+      .patch(`/api/v1/projects/${id}`)
+      .set('Cookie', outsiderAuth.cookies)
+      .set('x-csrf-token', outsiderAuth.csrfToken)
+      .send({ instructions: 'Not authorized', version: 1 })
+      .expect(404);
+    for (const payload of [{ instructions: 'x'.repeat(4001) }, { icon: 'x'.repeat(33) }]) {
+      await request(app.getHttpServer())
+        .patch(`/api/v1/projects/${id}`)
+        .set('Cookie', ownerAuth.cookies)
+        .set('x-csrf-token', ownerAuth.csrfToken)
+        .send({ ...payload, version: 1 })
+        .expect(400);
+    }
+    const cleared = await request(app.getHttpServer())
+      .patch(`/api/v1/projects/${id}`)
+      .set('Cookie', ownerAuth.cookies)
+      .set('x-csrf-token', ownerAuth.csrfToken)
+      .send({ instructions: null, icon: null, version: 1 })
+      .expect(200);
+    expect(cleared.body.data).toMatchObject({ icon: null, instructions: null });
+    await request(app.getHttpServer())
+      .patch(`/api/v1/projects/${id}`)
+      .set('Cookie', ownerAuth.cookies)
+      .set('x-csrf-token', ownerAuth.csrfToken)
+      .send({ instructions: 'Stale', version: 1 })
+      .expect(409);
+    projects.splice(
+      projects.findIndex((project) => project.id === id),
+      1,
+    );
+    for (let i = projectMembers.length - 1; i >= 0; i--)
+      if (projectMembers[i]?.projectId === id) projectMembers.splice(i, 1);
+  });
+
   describe('Project Creation', () => {
     it('POST /api/v1/projects requires authentication', async () => {
       await request(app.getHttpServer())

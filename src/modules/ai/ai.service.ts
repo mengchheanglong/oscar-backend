@@ -12,6 +12,7 @@ import { ProjectMember } from '../projects/entities/project-member.entity';
 import { Project, ProjectStatus } from '../projects/entities/project.entity';
 import { SystemRole, User } from '../users/entities/user.entity';
 import { ContextAssembler } from './context/context-assembler';
+import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { PostMessageDto } from './dto/post-message.dto';
 import {
@@ -105,6 +106,21 @@ export class AiService implements OnModuleInit {
     }
 
     return conversation;
+  }
+
+  async updateConversation(
+    projectId: string,
+    userId: string,
+    id: string,
+    dto: UpdateConversationDto,
+  ): Promise<Conversation> {
+    await this.getConversation(projectId, userId, id);
+    const changes: { title?: string; isPinned?: boolean } = {};
+    if (dto.title !== undefined) changes.title = dto.title;
+    if (dto.isPinned !== undefined) changes.isPinned = dto.isPinned;
+    if (Object.keys(changes).length)
+      await this.conversationRepo.update({ id, projectId, userId, deletedAt: IsNull() }, changes);
+    return this.getConversation(projectId, userId, id);
   }
 
   async deleteConversation(projectId: string, userId: string, id: string): Promise<void> {
@@ -228,6 +244,7 @@ export class AiService implements OnModuleInit {
       includeAllWorkspaces,
       inventoryOverview,
       memories,
+      includeAllWorkspaces ? undefined : (project?.instructions ?? undefined),
     );
 
     const scope = { projectId, userId, conversationId };

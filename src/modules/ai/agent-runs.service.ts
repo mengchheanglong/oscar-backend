@@ -425,6 +425,7 @@ export class AgentRunsService implements OnModuleDestroy {
       false,
       undefined,
       memories,
+      member.project?.instructions ?? undefined,
     );
     if (r.conversationId && r.threadContext?.length)
       assembled.systemPrompt +=

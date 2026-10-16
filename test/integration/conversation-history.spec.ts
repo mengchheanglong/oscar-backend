@@ -116,6 +116,34 @@ describe('Conversation history recall and privacy with PostgreSQL', () => {
       .getRepository(ChatMessage)
       .save({ conversationId: s.conversationId, role, content, mode: AiMode.WORKSPACE });
 
+  it('persists project guidance and chat metadata while keeping chat ownership scoped', async () => {
+    await db
+      .getRepository(Project)
+      .update(project.id, { icon: '📈', instructions: 'Use scenarios.' });
+    const saved = await db.getRepository(Project).findOneByOrFail({ id: project.id });
+    expect(saved).toMatchObject({ icon: '📈', instructions: 'Use scenarios.' });
+    const scope = await conversation();
+    const repo = db.getRepository(Conversation);
+    expect((await repo.findOneByOrFail({ id: scope.conversationId })).isPinned).toBe(false);
+    expect(
+      (
+        await repo.update(
+          { id: scope.conversationId, projectId: project.id, userId: other.id },
+          { title: 'Forbidden', isPinned: true },
+        )
+      ).affected,
+    ).toBe(0);
+    await repo.update(
+      { id: scope.conversationId, projectId: project.id, userId: user.id },
+      { title: 'Pricing research', isPinned: true },
+    );
+    expect(await repo.findOneByOrFail({ id: scope.conversationId })).toMatchObject({
+      title: 'Pricing research',
+      isPinned: true,
+    });
+    await db.getRepository(Project).update(project.id, { icon: null, instructions: null });
+  });
+
   it('measures keyword versus hybrid retrieval across the controlled evaluation corpus', async () => {
     const report = await evaluateHistoryRecall(
       db,

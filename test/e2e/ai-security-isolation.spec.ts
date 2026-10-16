@@ -327,18 +327,41 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       else conversations.push(conv);
       return conv;
     }),
-    findOne: jest.fn(async (opts: { where: { id?: string; projectId?: string } }) => {
-      return (
-        conversations.find(
+    update: jest.fn(
+      async (
+        where: { id: string; projectId: string; userId: string },
+        changes: Partial<Conversation>,
+      ) => {
+        const conversation = conversations.find(
           (c) =>
-            (!opts.where.id || c.id === opts.where.id) &&
-            (!opts.where.projectId || c.projectId === opts.where.projectId),
-        ) ?? null
-      );
-    }),
-    find: jest.fn(async (opts: { where: { projectId?: string } }) => {
+            c.id === where.id &&
+            c.projectId === where.projectId &&
+            c.userId === where.userId &&
+            !c.deletedAt,
+        );
+        if (conversation) Object.assign(conversation, changes);
+        return { affected: conversation ? 1 : 0 };
+      },
+    ),
+    findOne: jest.fn(
+      async (opts: { where: { id?: string; projectId?: string; userId?: string } }) => {
+        return (
+          conversations.find(
+            (c) =>
+              (!opts.where.id || c.id === opts.where.id) &&
+              (!opts.where.projectId || c.projectId === opts.where.projectId) &&
+              (!opts.where.userId || c.userId === opts.where.userId) &&
+              !c.deletedAt,
+          ) ?? null
+        );
+      },
+    ),
+    find: jest.fn(async (opts: { where: { projectId?: string; userId?: string } }) => {
       return conversations.filter(
-        (c) => !opts.where.projectId || c.projectId === opts.where.projectId,
+        (c) =>
+          (!opts.where.projectId || c.projectId === opts.where.projectId) &&
+          (!opts.where.userId || c.userId === opts.where.userId) &&
+          !c.deletedAt,
       );
     }),
   };
@@ -837,6 +860,74 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
     proposalCommits.length = 0;
     tasks.length = 0;
     reqA.version = 1;
+  });
+
+  it('renames and pins only the author’s chat, with CSRF and strict metadata validation', async () => {
+    const root = `/api/v1/projects/${projectA.id}/ai/conversations`;
+    const created = await request(app.getHttpServer())
+      .post(root)
+      .set('Cookie', sessionA.cookie)
+      .set('x-csrf-token', sessionA.csrf)
+      .send({ title: 'Original' })
+      .expect(201);
+    const id = (created.body.data ?? created.body).id as string;
+    const path = `${root}/${id}`;
+    await request(app.getHttpServer()).patch(path).send({ title: 'Rename' }).expect(401);
+    await request(app.getHttpServer())
+      .patch(path)
+      .set('Cookie', sessionA.cookie)
+      .send({ title: 'Rename' })
+      .expect(403);
+    await request(app.getHttpServer())
+      .patch(path.replace(projectA.id, projectB.id))
+      .set('Cookie', sessionA.cookie)
+      .set('x-csrf-token', sessionA.csrf)
+      .send({ isPinned: true })
+      .expect(404);
+    await request(app.getHttpServer())
+      .patch(path)
+      .set('Cookie', sessionViewer.cookie)
+      .set('x-csrf-token', sessionViewer.csrf)
+      .send({ title: 'Not mine', isPinned: true })
+      .expect(404);
+    for (const payload of [
+      { title: '  ' },
+      { title: null },
+      { title: 'x'.repeat(201) },
+      { isPinned: null },
+      { isPinned: 'true' },
+      { userId: userViewer.id },
+    ]) {
+      await request(app.getHttpServer())
+        .patch(path)
+        .set('Cookie', sessionA.cookie)
+        .set('x-csrf-token', sessionA.csrf)
+        .send(payload)
+        .expect(400);
+    }
+    const saved = await request(app.getHttpServer())
+      .patch(path)
+      .set('Cookie', sessionA.cookie)
+      .set('x-csrf-token', sessionA.csrf)
+      .send({ title: '  Research plan  ', isPinned: true })
+      .expect(200);
+    expect(saved.body.data ?? saved.body).toMatchObject({ title: 'Research plan', isPinned: true });
+    const listed = await request(app.getHttpServer())
+      .get(root)
+      .set('Cookie', sessionA.cookie)
+      .expect(200);
+    expect(listed.body.data ?? listed.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id, title: 'Research plan', isPinned: true }),
+      ]),
+    );
+    const privateList = await request(app.getHttpServer())
+      .get(root)
+      .set('Cookie', sessionViewer.cookie)
+      .expect(200);
+    expect(privateList.body.data ?? privateList.body).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id })]),
+    );
   });
 
   // ── Scenario 1: Cross-Project Isolation (404 Leak Prevention) ──

@@ -33,6 +33,12 @@ export class Project {
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  icon?: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  instructions?: string | null;
+
   @Column({
     type: 'varchar',
     length: 20,

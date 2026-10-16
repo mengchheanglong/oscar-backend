@@ -4460,6 +4460,61 @@
           "AI Assistant"
         ]
       },
+      "patch": {
+        "operationId": "AiController_updateConversation",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConversationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conversation not found or inaccessible"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Rename or pin your own conversation",
+        "tags": [
+          "AI Assistant"
+        ]
+      },
       "delete": {
         "operationId": "AiController_deleteConversation",
         "parameters": [
@@ -5784,6 +5839,18 @@
             "type": "string",
             "example": "Central backend workspace for multi-modal project management"
           },
+          "icon": {
+            "type": "object",
+            "nullable": true,
+            "maxLength": 32,
+            "description": "Project emoji icon"
+          },
+          "instructions": {
+            "type": "object",
+            "nullable": true,
+            "maxLength": 4000,
+            "description": "Shared project guidance for Assistant and Hermes; does not grant permissions"
+          },
           "members": {
             "description": "Initial workspace members to invite into the project",
             "type": "array",
@@ -5809,6 +5876,18 @@
           "description": {
             "type": "string",
             "example": "Updated project description"
+          },
+          "icon": {
+            "type": "object",
+            "nullable": true,
+            "maxLength": 32,
+            "description": "Project emoji icon"
+          },
+          "instructions": {
+            "type": "object",
+            "nullable": true,
+            "maxLength": 4000,
+            "description": "Shared project guidance for Assistant and Hermes; does not grant permissions"
           },
           "version": {
             "type": "number",
@@ -6934,6 +7013,10 @@
             ],
             "example": "PM"
           },
+          "isPinned": {
+            "type": "boolean",
+            "default": false
+          },
           "createdAt": {
             "type": "string",
             "example": "2026-09-16T10:00:00.000Z"
@@ -6949,6 +7032,7 @@
           "userId",
           "title",
           "defaultMode",
+          "isPinned",
           "createdAt",
           "updatedAt"
         ]
@@ -6973,6 +7057,19 @@
               "PRESENTATION"
             ],
             "default": "PM"
+          }
+        }
+      },
+      "UpdateConversationDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "isPinned": {
+            "type": "boolean"
           }
         }
       },

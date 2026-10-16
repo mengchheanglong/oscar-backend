@@ -17,6 +17,9 @@ export class ConversationResponseDto {
   @ApiProperty({ enum: AiMode, example: AiMode.PM })
   defaultMode!: AiMode;
 
+  @ApiProperty({ default: false })
+  isPinned!: boolean;
+
   @ApiProperty({ example: '2026-09-16T10:00:00.000Z' })
   createdAt!: string;
 
@@ -29,6 +32,7 @@ export class ConversationResponseDto {
       projectId: conversation.projectId,
       userId: conversation.userId,
       title: conversation.title,
+      isPinned: conversation.isPinned ?? false,
       defaultMode: conversation.defaultMode,
       createdAt:
         conversation.createdAt instanceof Date

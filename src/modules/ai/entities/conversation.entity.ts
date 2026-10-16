@@ -41,6 +41,9 @@ export class Conversation {
   @Column({ name: 'default_mode', type: 'varchar', length: 50, default: AiMode.PM })
   defaultMode!: AiMode;
 
+  @Column({ name: 'is_pinned', type: 'boolean', default: false })
+  isPinned!: boolean;
+
   @Column({ name: 'deleted_at', type: 'timestamptz', nullable: true })
   deletedAt!: Date | null;
 

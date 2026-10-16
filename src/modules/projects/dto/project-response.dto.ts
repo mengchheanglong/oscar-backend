@@ -15,6 +15,12 @@ export class ProjectResponseDto {
   @ApiPropertyOptional({ example: 'Project description', nullable: true })
   description!: string | null;
 
+  @ApiPropertyOptional({ nullable: true })
+  icon!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  instructions!: string | null;
+
   @ApiProperty({ enum: ProjectStatus, example: ProjectStatus.ACTIVE })
   status!: ProjectStatus;
 
@@ -39,6 +45,8 @@ export class ProjectResponseDto {
       key: project.key,
       name: project.name,
       description: project.description,
+      icon: project.icon ?? null,
+      instructions: project.instructions ?? null,
       status: project.status,
       createdBy: project.createdBy,
       version: project.version,

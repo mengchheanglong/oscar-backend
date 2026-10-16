@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -34,6 +35,7 @@ import { User } from '../users/entities/user.entity';
 import { AiService } from './ai.service';
 import { ChatMessageResponseDto } from './dto/chat-message-response.dto';
 import { ConversationResponseDto } from './dto/conversation-response.dto';
+import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { PostMessageDto } from './dto/post-message.dto';
 
@@ -83,6 +85,21 @@ export class AiController {
   ): Promise<ConversationResponseDto> {
     const conversation = await this.aiService.getConversation(projectId, user.id, id);
     return ConversationResponseDto.fromEntity(conversation);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Rename or pin your own conversation' })
+  @ApiOkResponse({ type: ConversationResponseDto })
+  @ApiNotFoundResponse({ description: 'Conversation not found or inaccessible' })
+  async updateConversation(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
+    @Body() dto: UpdateConversationDto,
+  ): Promise<ConversationResponseDto> {
+    return ConversationResponseDto.fromEntity(
+      await this.aiService.updateConversation(projectId, user.id, id, dto),
+    );
   }
 
   @Delete(':id')

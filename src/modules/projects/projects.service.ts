@@ -102,6 +102,8 @@ export class ProjectsService {
         key,
         name: dto.name.trim(),
         description: dto.description?.trim() ?? null,
+        icon: dto.icon?.trim() || null,
+        instructions: dto.instructions?.trim() || null,
         status: ProjectStatus.ACTIVE,
         createdBy: userId,
         version: 1,
@@ -210,6 +212,9 @@ export class ProjectsService {
     if (dto.description !== undefined) {
       project.description = dto.description.trim();
     }
+
+    if (dto.icon !== undefined) project.icon = dto.icon?.trim() || null;
+    if (dto.instructions !== undefined) project.instructions = dto.instructions?.trim() || null;
 
     const saved = await this.projectRepository.save(project);
 
