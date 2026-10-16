@@ -9,7 +9,7 @@ async function main() {
   if (!apiKey) {
     console.error(
       'Error: AI_WORKSPACE_API_KEY is required.\n' +
-        'Generate a Personal Access Token in your AI Workspace web app (Integrations > Coding Agent & MCP),\n' +
+        'Generate a Personal Access Token in your Continuum web app (Integrations > Coding Agent & MCP),\n' +
         'then set the AI_WORKSPACE_API_KEY environment variable in your Claude Code or Cursor config.',
     );
     process.exit(1);
@@ -24,14 +24,14 @@ async function main() {
   const transport = new StdioServerTransport();
 
   process.stderr.write(
-    `[AI-Workspace-MCP] Server starting via stdio transport (API: ${apiUrl}, Project: ${defaultProjectIdOrKey || 'auto-detect'})...\n`,
+    `[Continuum-MCP] Server starting via stdio transport (API: ${apiUrl}, Project: ${defaultProjectIdOrKey || 'auto-detect'})...\n`,
   );
 
   await aiwServer.server.connect(transport);
-  process.stderr.write('[AI-Workspace-MCP] Connected and ready to handle agent requests.\n');
+  process.stderr.write('[Continuum-MCP] Connected and ready to handle agent requests.\n');
 }
 
 main().catch((err) => {
-  console.error('[AI-Workspace-MCP] Fatal error:', err);
+  console.error('[Continuum-MCP] Fatal error:', err);
   process.exit(1);
 });

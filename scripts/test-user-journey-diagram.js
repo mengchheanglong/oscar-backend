@@ -176,7 +176,7 @@ flowchart LR
   </div>
 
   <div class="footer">
-    <span>AI Workspace Architecture • High-Level User Journey</span>
+    <span>Continuum Architecture • High-Level User Journey</span>
     <span>PostgreSQL • DeepSeek V4 Pro • Model Context Protocol • Next.js</span>
   </div>
 

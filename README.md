@@ -1,6 +1,24 @@
-# AI Project Workspace Backend
+# Continuum — Backend
 
-NestJS backend foundation for the two-phase AI Project Workspace. Start with [AGENTS.md](AGENTS.md) for coding instructions and [PROJECT_IMPLEMENTATION_GUIDE.md](PROJECT_IMPLEMENTATION_GUIDE.md) for the complete roadmap.
+Continuum is a personal, chat-first workspace for business, finance, research,
+project files, tasks, decisions, and AI-assisted work. This is an independent
+repository derived from AI Workspace's develop branch, with its Git history
+preserved. The original AI Workspace repositories remain separate.
+
+- Frontend: https://github.com/mengchheanglong/continuum-frontend
+- Backend: https://github.com/mengchheanglong/continuum-backend
+- Working and default branch: `develop`.
+- Local frontend: `http://localhost:3002`; local API: `http://127.0.0.1:3001`.
+- Environment files, access tokens, uploaded content, and machine MCP settings
+  stay local and are not part of this repository.
+
+The inherited implementation guide and verification notes describe the original
+foundation. Continuum's current direction is the personal workspace above.
+Legacy `aiw_*` storage keys, API environment names, database migration identifiers,
+and the existing isolated development database remain compatible with current
+local data. Repository branding changes do not migrate or reset that data.
+
+NestJS backend foundation for the two-phase Continuum. Start with [AGENTS.md](AGENTS.md) for coding instructions and [PROJECT_IMPLEMENTATION_GUIDE.md](PROJECT_IMPLEMENTATION_GUIDE.md) for the complete roadmap.
 
 ## What exists
 

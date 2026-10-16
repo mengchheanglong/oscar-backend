@@ -1,6 +1,6 @@
 # Complete Oracle Cloud "Always Free" Deployment Guide
 
-This guide walks you through deploying the complete **AI Workspace** stack on an **Oracle Cloud Infrastructure (OCI) Always Free** virtual machine for **$0/month forever**.
+This guide walks you through deploying the complete **Continuum** stack on an **Oracle Cloud Infrastructure (OCI) Always Free** virtual machine for **$0/month forever**.
 
 ---
 
@@ -85,7 +85,7 @@ By default, Oracle Cloud blocks all incoming traffic except port 22 (SSH). You m
    - **Source CIDR**: `0.0.0.0/0`
    - **IP Protocol**: `TCP`
    - **Destination Port Range**: `80,443`
-   - **Description**: `Allow HTTP and HTTPS for AI Workspace`
+   - **Description**: `Allow HTTP and HTTPS for Continuum`
 5. Click **Add Ingress Rules**.
 
 ---

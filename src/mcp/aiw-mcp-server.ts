@@ -20,7 +20,7 @@ export class AiwMcpServer {
     this.defaultProjectIdOrKey = config.defaultProjectIdOrKey;
 
     this.server = new McpServer({
-      name: 'ai-workspace',
+      name: 'continuum',
       version: '2.0.0',
     });
 
@@ -167,7 +167,7 @@ export class AiwMcpServer {
         this.recordData(errorBody.error).message ||
         errorBody.message ||
         (typeof errorBody.error === 'string' ? errorBody.error : `HTTP error ${res.status}`);
-      throw new Error(`AI Workspace API error (${res.status}): ${msg}`);
+      throw new Error(`Continuum API error (${res.status}): ${msg}`);
     }
 
     if (res.status === 204) {

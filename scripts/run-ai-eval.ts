@@ -210,7 +210,7 @@ async function runEvaluation() {
       }
 
       // Gate 3: Context Assembly
-      const assembled = contextAssembler.assemble('AI Workspace', testCase.mode, retrieved);
+      const assembled = contextAssembler.assemble('Continuum', testCase.mode, retrieved);
 
       // Handle Structured Action cases vs Chat cases
       if (testCase.category === 'structured_action') {

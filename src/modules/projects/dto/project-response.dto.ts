@@ -9,7 +9,7 @@ export class ProjectResponseDto {
   @ApiProperty({ example: 'AIW' })
   key!: string;
 
-  @ApiProperty({ example: 'AI Workspace Core' })
+  @ApiProperty({ example: 'Continuum Core' })
   name!: string;
 
   @ApiPropertyOptional({ example: 'Project description', nullable: true })

@@ -73,7 +73,7 @@ export class ProjectSummaryDto {
   @ApiProperty({ example: 'AIW' })
   key!: string;
 
-  @ApiProperty({ example: 'AI Project Workspace' })
+  @ApiProperty({ example: 'Continuum' })
   name!: string;
 
   @ApiPropertyOptional({ example: 'Workspace for building AI software', nullable: true })

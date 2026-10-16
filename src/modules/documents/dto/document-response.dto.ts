@@ -45,7 +45,7 @@ export class DocumentResponseDto {
   version!: number;
 
   @ApiPropertyOptional({
-    example: { id: 'uuid', name: 'AI Project Workspace', key: 'AIW' },
+    example: { id: 'uuid', name: 'Continuum', key: 'AIW' },
   })
   project?: {
     id: string;

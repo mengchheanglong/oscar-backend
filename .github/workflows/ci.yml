@@ -39,4 +39,4 @@ jobs:
       - run: pnpm build
       - run: pnpm openapi:generate
       - run: git diff --exit-code -- docs/openapi.json
-      - run: docker build -t ai-workspace-backend:ci .
+      - run: docker build -t continuum-backend:ci .

@@ -44,7 +44,7 @@ export class CreateProjectDto {
   })
   key!: string;
 
-  @ApiProperty({ example: 'AI Workspace Core', minLength: 1, maxLength: 100 })
+  @ApiProperty({ example: 'Continuum Core', minLength: 1, maxLength: 100 })
   @IsString()
   @MinLength(1)
   @MaxLength(100)

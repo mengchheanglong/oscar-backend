@@ -51,7 +51,7 @@ async function main() {
       console.log('ℹ️  No migrations applied yet. Run: pnpm migration:run to apply them.');
     }
 
-    console.log('\n🎉 Database is ready for AI Workspace!');
+    console.log('\n🎉 Database is ready for Continuum!');
   } catch (error: any) {
     console.error('\n❌ Connection failed:');
     console.error(error.message);

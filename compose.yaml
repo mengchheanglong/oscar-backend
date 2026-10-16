@@ -1,4 +1,4 @@
-name: ai-workspace-backend
+name: continuum-backend
 
 services:
   postgres:
@@ -47,7 +47,7 @@ services:
   migrate:
     profiles: ['app']
     build: .
-    image: ai-workspace-backend:local
+    image: continuum-backend:local
     command: ['pnpm', 'migration:run:prod']
     environment:
       DATABASE_URL: postgresql://ai_workspace:local_dev_only@postgres:5432/ai_workspace
@@ -58,7 +58,7 @@ services:
   api:
     profiles: ['app']
     build: .
-    image: ai-workspace-backend:local
+    image: continuum-backend:local
     environment:
       NODE_ENV: development
       PORT: '3000'

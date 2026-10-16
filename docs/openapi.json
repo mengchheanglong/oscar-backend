@@ -5115,8 +5115,8 @@
     }
   },
   "info": {
-    "title": "AI Project Workspace API",
-    "description": "Foundation endpoints only. Authentication and workspace features are not implemented yet.",
+    "title": "Continuum API",
+    "description": "Continuum project work, files, search, conversations, memory, and agent APIs.",
     "version": "0.1.0",
     "contact": {}
   },
@@ -5831,7 +5831,7 @@
           },
           "name": {
             "type": "string",
-            "example": "AI Workspace Core",
+            "example": "Continuum Core",
             "minLength": 1,
             "maxLength": 100
           },
@@ -6584,7 +6584,7 @@
             "type": "object",
             "example": {
               "id": "uuid",
-              "name": "AI Project Workspace",
+              "name": "Continuum",
               "key": "AIW"
             }
           },

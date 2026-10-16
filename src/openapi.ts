@@ -5,9 +5,9 @@ export function createOpenApiDocument(app: INestApplication) {
   return SwaggerModule.createDocument(
     app,
     new DocumentBuilder()
-      .setTitle('AI Project Workspace API')
+      .setTitle('Continuum API')
       .setDescription(
-        'Foundation endpoints only. Authentication and workspace features are not implemented yet.',
+        'Continuum project work, files, search, conversations, memory, and agent APIs.',
       )
       .setVersion('0.1.0')
       .build(),

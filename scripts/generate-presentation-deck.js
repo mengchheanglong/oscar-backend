@@ -15,7 +15,7 @@ const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AI Workspace - User Flow & Architecture Presentation</title>
+  <title>Continuum - User Flow & Architecture Presentation</title>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
@@ -288,7 +288,7 @@ const htmlContent = `<!DOCTYPE html>
       </div>
     </div>
     <div class="slide-footer">
-      <span>AI Workspace Platform Architecture • Executive Presentation</span>
+      <span>Continuum Platform Architecture • Executive Presentation</span>
       <span>NestJS • DeepSeek V4 Pro • PostgreSQL / pgvector • Next.js</span>
     </div>
   </div>
@@ -444,7 +444,7 @@ const htmlContent = `<!DOCTYPE html>
       </div>
     </div>
     <div class="slide-footer">
-      <span>AI Workspace Platform Architecture • High-Level Flow</span>
+      <span>Continuum Platform Architecture • High-Level Flow</span>
       <span>Slide 2 of 7</span>
     </div>
   </div>
@@ -593,7 +593,7 @@ const htmlContent = `<!DOCTYPE html>
       </div>
     </div>
     <div class="slide-footer">
-      <span>AI Workspace Platform Architecture • Relational Lifecycle</span>
+      <span>Continuum Platform Architecture • Relational Lifecycle</span>
       <span>Slide 3 of 7</span>
     </div>
   </div>
@@ -702,7 +702,7 @@ const htmlContent = `<!DOCTYPE html>
       </div>
     </div>
     <div class="slide-footer">
-      <span>AI Workspace Platform Architecture • Copilot Pipeline</span>
+      <span>Continuum Platform Architecture • Copilot Pipeline</span>
       <span>Slide 4 of 7</span>
     </div>
   </div>
@@ -820,7 +820,7 @@ const htmlContent = `<!DOCTYPE html>
       </div>
     </div>
     <div class="slide-footer">
-      <span>AI Workspace Platform Architecture • Proposal Governance</span>
+      <span>Continuum Platform Architecture • Proposal Governance</span>
       <span>Slide 5 of 7</span>
     </div>
   </div>
@@ -925,7 +925,7 @@ const htmlContent = `<!DOCTYPE html>
       </div>
     </div>
     <div class="slide-footer">
-      <span>AI Workspace Platform Architecture • MCP Integration</span>
+      <span>Continuum Platform Architecture • MCP Integration</span>
       <span>Slide 6 of 7</span>
     </div>
   </div>
@@ -1038,7 +1038,7 @@ const htmlContent = `<!DOCTYPE html>
       </div>
     </div>
     <div class="slide-footer">
-      <span>AI Workspace Platform Architecture • Security & RBAC</span>
+      <span>Continuum Platform Architecture • Security & RBAC</span>
       <span>Slide 7 of 7</span>
     </div>
   </div>

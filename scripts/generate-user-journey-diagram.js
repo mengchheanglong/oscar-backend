@@ -10,7 +10,7 @@ const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>High-Level User Journey Diagram - AI Workspace</title>
+  <title>High-Level User Journey Diagram - Continuum</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
@@ -451,7 +451,7 @@ const htmlContent = `<!DOCTYPE html>
 
   <!-- BOTTOM FOOTER -->
   <div class="slide-footer">
-    <span>AI Workspace Platform Architecture • Presentation Diagram</span>
+    <span>Continuum Platform Architecture • Presentation Diagram</span>
     <span>Figure 1: High-Level User Journey Flowchart</span>
   </div>
 

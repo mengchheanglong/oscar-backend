@@ -1,8 +1,8 @@
 {
-  "name": "ai-workspace-backend",
+  "name": "continuum-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "NestJS backend for AI Project Workspace",
+  "description": "Continuum API, project knowledge, and agent runtime",
   "license": "UNLICENSED",
   "packageManager": "pnpm@10.32.1",
   "engines": {

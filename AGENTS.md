@@ -47,5 +47,15 @@
 
 - Node version is pinned in `.node-version`; pnpm is pinned in `package.json`.
 - API defaults to `http://localhost:3000`; development PostgreSQL uses `127.0.0.1:55432`; test PostgreSQL uses `127.0.0.1:55433`.
-- Do not stop unrelated Docker containers or processes. The Compose project is `ai-workspace-backend`.
+- Do not stop unrelated Docker containers or processes. The Compose project is `continuum-backend`.
 - Docker Compose here is for local development/demo only. Production secrets, TLS, database roles, backups, and hosting require deployment-specific configuration.
+
+## Continuum repository split
+
+- This checkout belongs to Continuum. Keep the original AI Workspace repositories
+  separate; do not push Continuum changes to their remotes.
+- The user's 2026-10-17 request authorizes the initial private Continuum repository
+  creation and initial develop push. Future pushes still require user direction.
+- The original AIW implementation guide and MCP project are inherited references;
+  do not rename existing user project records or database identifiers as part of
+  product branding. Report MCP unavailability honestly.
