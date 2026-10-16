@@ -1,3 +1,8 @@
+import { ConversationContextService } from '../src/modules/ai/context/conversation-context.service';
+import { ConversationHistoryRepository } from '../src/modules/ai/context/conversation-history.repository';
+import { HistoryRecallService } from '../src/modules/ai/context/history-recall.service';
+import { HistoryVectorRepository } from '../src/modules/ai/context/history-vector.repository';
+import { ConfigService } from '@nestjs/config';
 import 'reflect-metadata';
 import 'dotenv/config';
 import { mockVerificationDatabaseUrl } from './mock-verification-database';
@@ -74,8 +79,19 @@ async function main() {
       mockLlmProvider,
       mockIngestionService,
       {
-        list: async () => [],
-      } as unknown as import('../src/modules/ai/copilot-memory.service').CopilotMemoryService,
+        select: async () => [],
+      } as unknown as import('../src/modules/ai/memory/private-memory.service').PrivateMemoryService,
+      new ConversationContextService(
+        dataSource,
+        new ConfigService({ AI_CHAT_MODEL: 'deepseek-v4-pro' }),
+        mockLlmProvider,
+        new ConversationHistoryRepository(dataSource),
+        new HistoryRecallService(
+          new ConversationHistoryRepository(dataSource),
+          new HistoryVectorRepository(dataSource),
+          null,
+        ),
+      ),
     );
 
     // 3. Find or Create Test Project & User

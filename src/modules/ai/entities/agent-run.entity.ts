@@ -39,6 +39,14 @@ export class AgentRun {
   project?: Project;
   @Column({ name: 'user_id', type: 'uuid' }) userId!: string;
   @ManyToOne(() => User, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'user_id' }) user?: User;
+  @Column({ name: 'conversation_id', type: 'uuid', nullable: true }) conversationId!: string | null;
+  @Column({ name: 'user_message_id', type: 'uuid', nullable: true }) userMessageId!: string | null;
+  @Column({ name: 'assistant_message_id', type: 'uuid', nullable: true }) assistantMessageId!:
+    string | null;
+  @Column({ name: 'history_revision', type: 'bigint', nullable: true }) historyRevision!:
+    string | null;
+  @Column({ name: 'thread_context', type: 'jsonb', nullable: true, select: false })
+  threadContext!: Array<{ role: string; content: string }> | null;
   @Column({ type: 'text' }) prompt!: string;
   @Column({ type: 'varchar', length: 20 }) status!: AgentRunStatus;
   @Column({ type: 'varchar', length: 100 }) model!: string;

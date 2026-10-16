@@ -27,6 +27,12 @@ export class ChatMessageResponseDto {
   status!: MessageStatus;
 
   @ApiProperty({
+    description: 'Excluded from future dialogue context and history recall.',
+    default: false,
+  })
+  contextExcluded!: boolean;
+
+  @ApiProperty({
     type: 'array',
     items: {
       type: 'object',
@@ -68,6 +74,7 @@ export class ChatMessageResponseDto {
       mode: message.mode,
       content: message.content,
       status: message.status,
+      contextExcluded: message.contextExcluded ?? false,
       citations: message.citations || [],
       modelName: message.modelName,
       promptTokens: message.promptTokens,

@@ -20,6 +20,9 @@ describe('Environment validation', () => {
   });
 
   it.each([
+    { AI_HISTORY_AUTO_INDEX_ENABLED: 'true' },
+    { AI_HISTORY_INDEX_DAILY_TEXTS: '-1' },
+    { AI_HISTORY_INDEX_SCOPE_DAILY_BYTES: 'NaN' },
     { PORT: 'not-a-number' },
     { PORT: '0' },
     { AI_ENABLED: 'yes' },

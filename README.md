@@ -24,6 +24,23 @@ prepared Python/source environment plus explicit database migrations. See
 not bundle Hermes. The current local environment is enabled and passed a real
 DeepSeek V4 Pro workflow; production runtime packaging/deployment remains pending.
 
+Normal chat supports bounded history and durable conversation summaries. Apply
+the explicit context migration before running the updated backend; see
+[conversation context](docs/CONVERSATION_CONTEXT.md) for the budget, connection
+requirements, and rollout status. The budget uses conservative byte estimates,
+not an exact DeepSeek token count.
+
+Older private dialogue can also be retrieved within the owning user/project.
+[History recall and exclusions](docs/CONVERSATION_HISTORY_RECALL.md) explains the
+retrieval, exclusion control, dependency invalidation and required migrations.
+Optional [semantic history recall](docs/SEMANTIC_HISTORY_RECALL.md) adds compatible
+pgvector embeddings through explicit bounded indexing or optional
+[automatic history indexing](docs/AUTOMATIC_HISTORY_INDEXING.md) with persistent
+daily limits and retries. Read the
+[evaluation results](docs/HISTORY_RECALL_EVALUATION.md) for measured gains and limits.
+The [English answer evaluation](docs/HISTORY_ANSWER_EVALUATION.md) checks actual
+generated answers, including corrections, exclusions, private scope and compaction.
+
 ## Prerequisites
 
 For current manual testing on develop, use the separate local database and server
@@ -281,3 +298,13 @@ still needs a reachable authenticated backend and persistent storage. Hard
 crashes may leave orphan/temp blobs; automatic blob reconciliation is future
 work. Extraction is eventually consistent, not a guarantee that every format
 can be understood by AI.
+
+## Unified Copilot
+
+Copilot now uses one general assistant and one conversation surface. Select
+**Use tools** in the composer to run Hermes inside a project conversation.
+Progress and reports remain in that thread; ordinary follow-up questions can use
+the saved report. Reviewed proposals still require explicit product confirmation.
+Apply the new migration before starting the updated backend. See
+[Unified Copilot](docs/UNIFIED_COPILOT.md) for persistence, privacy, legacy API
+compatibility, context bounds and verification.

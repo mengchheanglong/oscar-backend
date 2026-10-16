@@ -1,3 +1,4 @@
+import { ConversationContextService } from '../../src/modules/ai/context/conversation-context.service';
 import { NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { AiService } from '../../src/modules/ai/ai.service';
@@ -14,7 +15,7 @@ import { IngestionService } from '../../src/modules/ingestion/ingestion.service'
 import { KnowledgeSourceType } from '../../src/modules/ingestion/entities';
 import { ProjectMember } from '../../src/modules/projects/entities/project-member.entity';
 import { Project } from '../../src/modules/projects/entities/project.entity';
-import { CopilotMemoryService } from '../../src/modules/ai/copilot-memory.service';
+import { PrivateMemoryService } from '../../src/modules/ai/memory/private-memory.service';
 import { CopilotMemoryKind } from '../../src/modules/ai/entities/copilot-memory.entity';
 import { SystemRole, User } from '../../src/modules/users/entities/user.entity';
 
@@ -53,7 +54,7 @@ describe('AiService', () => {
   let mockIngestionService: {
     getEmbeddingProvider: jest.Mock;
   };
-  let mockMemoryService: { list: jest.Mock };
+  let mockMemoryService: { select: jest.Mock };
 
   const mockProjectId = 'proj-1111-1111';
   const mockUserId = 'user-2222-2222';
@@ -105,7 +106,7 @@ describe('AiService', () => {
     mockIngestionService = {
       getEmbeddingProvider: jest.fn().mockReturnValue(null),
     };
-    mockMemoryService = { list: jest.fn().mockResolvedValue([]) };
+    mockMemoryService = { select: jest.fn().mockResolvedValue([]) };
 
     service = new AiService(
       mockConversationRepo as unknown as Repository<Conversation>,
@@ -117,7 +118,26 @@ describe('AiService', () => {
       contextAssembler,
       mockLlmProvider as unknown as LlmProvider,
       mockIngestionService as unknown as IngestionService,
-      mockMemoryService as unknown as CopilotMemoryService,
+      mockMemoryService as unknown as PrivateMemoryService,
+      {
+        withTurn: async (_scope: unknown, action: () => Promise<unknown>) => action(),
+        prepare: async (_scope: unknown, currentId: string, system: string) => ({
+          messages: [
+            { role: 'system', content: system },
+            ...(await mockMessageRepo.find())
+              .reverse()
+              .filter((m: { id: string }) => m.id !== currentId)
+              .map((m: { role: string; content: string }) => ({
+                role: m.role,
+                content: m.content,
+              })),
+            { role: 'user', content: mockMessageRepo.save.mock.calls[0]?.[0]?.content },
+          ],
+        }),
+        commit: async (_scope: unknown, _prepared: unknown, answer: ChatMessage) => {
+          await mockMessageRepo.save(answer);
+        },
+      } as unknown as ConversationContextService,
     );
   });
 
@@ -197,7 +217,7 @@ describe('AiService', () => {
         title: 'Work',
         defaultMode: AiMode.WORKSPACE,
       });
-      mockMemoryService.list.mockResolvedValue([
+      mockMemoryService.select.mockResolvedValue([
         {
           id: 'memory-1',
           kind: CopilotMemoryKind.LESSON,
@@ -213,7 +233,11 @@ describe('AiService', () => {
       await service.postMessage(mockProjectId, mockUserId, 'conv-1', {
         content: 'Analyze this project.',
       });
-      expect(mockMemoryService.list).toHaveBeenCalledWith(mockProjectId, mockUserId, 8);
+      expect(mockMemoryService.select).toHaveBeenCalledWith(
+        mockProjectId,
+        mockUserId,
+        expect.any(String),
+      );
       const input = mockLlmProvider.generateAnswer.mock.calls[0]![0];
       expect(input.messages[0].content).toContain('Verify cash-flow assumptions');
       expect(input.messages[0].content).toContain('UNTRUSTED CONTEXT');
@@ -222,7 +246,7 @@ describe('AiService', () => {
 
     it('does not contact the provider when memory access is revoked', async () => {
       mockConversationRepo.findOne.mockResolvedValue({ id: 'conv-1', title: 'Work' });
-      mockMemoryService.list.mockRejectedValue(new NotFoundException('Project not found'));
+      mockMemoryService.select.mockRejectedValue(new NotFoundException('Project not found'));
       await expect(
         service.postMessage(mockProjectId, mockUserId, 'conv-1', { content: 'Work' }),
       ).rejects.toThrow(NotFoundException);
@@ -328,7 +352,7 @@ describe('AiService', () => {
     });
 
     it('retrieves evidence across multiple workspaces and attaches project metadata to citations when includeAllWorkspaces is true', async () => {
-      mockMemoryService.list.mockResolvedValue([
+      mockMemoryService.select.mockResolvedValue([
         {
           id: 'own-memory',
           kind: CopilotMemoryKind.PREFERENCE,
@@ -417,8 +441,12 @@ describe('AiService', () => {
       expect(assistantMessage.citations[0]!.projectKey).toBe('P1');
       expect(assistantMessage.citations[1]!.projectName).toBe('Project 2');
       expect(assistantMessage.citations[1]!.projectKey).toBe('P2');
-      expect(mockMemoryService.list).toHaveBeenCalledTimes(1);
-      expect(mockMemoryService.list).toHaveBeenCalledWith(mockProjectId, mockUserId, 8);
+      expect(mockMemoryService.select).toHaveBeenCalledTimes(1);
+      expect(mockMemoryService.select).toHaveBeenCalledWith(
+        mockProjectId,
+        mockUserId,
+        expect.any(String),
+      );
       const systemPrompt = mockLlmProvider.generateAnswer.mock.calls[0]![0].messages[0].content;
       expect(systemPrompt).toContain('across all authorized project workspaces');
       expect(systemPrompt).toContain('Compare assumptions before deciding.');

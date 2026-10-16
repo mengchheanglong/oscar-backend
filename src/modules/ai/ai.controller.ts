@@ -19,6 +19,12 @@ import {
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
+  ApiConflictResponse,
+  ApiTooManyRequestsResponse,
+  ApiPayloadTooLargeResponse,
+  ApiServiceUnavailableResponse,
+  ApiExtraModels,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CsrfGuard } from '../../common/guards/csrf.guard';
@@ -32,6 +38,7 @@ import { CreateConversationDto } from './dto/create-conversation.dto';
 import { PostMessageDto } from './dto/post-message.dto';
 
 @ApiTags('AI Assistant')
+@ApiExtraModels(ChatMessageResponseDto)
 @ApiCookieAuth()
 @Controller('projects/:projectId/ai/conversations')
 @UseGuards(SessionAuthGuard, CsrfGuard, ProjectPolicyGuard)
@@ -106,7 +113,27 @@ export class AiController {
 
   @Post(':id/messages')
   @ApiOperation({ summary: 'Post a message and receive an AI assistant response' })
-  @ApiCreatedResponse({ description: 'Message sent and assistant response generated' })
+  @ApiConflictResponse({ description: 'Conversation is busy or its context changed.' })
+  @ApiTooManyRequestsResponse({
+    description: 'This backend has reached its concurrent chat capacity.',
+  })
+  @ApiPayloadTooLargeResponse({
+    description: 'Required context or unsummarized history exceeds safe bounds.',
+  })
+  @ApiServiceUnavailableResponse({
+    description: 'Retrieval or context summarization failed; original messages are preserved.',
+  })
+  @ApiCreatedResponse({
+    description: 'Message sent and assistant response generated',
+    schema: {
+      type: 'object',
+      required: ['userMessage', 'assistantMessage'],
+      properties: {
+        userMessage: { $ref: getSchemaPath(ChatMessageResponseDto) },
+        assistantMessage: { $ref: getSchemaPath(ChatMessageResponseDto) },
+      },
+    },
+  })
   @ApiNotFoundResponse({ description: 'Conversation not found' })
   async postMessage(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -125,5 +152,22 @@ export class AiController {
       userMessage: ChatMessageResponseDto.fromEntity(userMessage),
       assistantMessage: ChatMessageResponseDto.fromEntity(assistantMessage),
     };
+  }
+
+  @Post(':id/messages/:messageId/exclude-context')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary:
+      'Exclude a message and affected generated replies from future context; preserve transcripts',
+  })
+  @ApiNoContentResponse({ description: 'Message excluded, dependent summaries invalidated.' })
+  @ApiNotFoundResponse({ description: 'Conversation or message not found.' })
+  async excludeMessage(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('messageId', ParseUUIDPipe) messageId: string,
+    @CurrentUser() user: User,
+  ): Promise<void> {
+    await this.aiService.excludeMessage(projectId, user.id, id, messageId);
   }
 }

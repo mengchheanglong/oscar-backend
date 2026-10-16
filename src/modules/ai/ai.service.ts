@@ -24,7 +24,8 @@ import { AiMode, Conversation } from './entities/conversation.entity';
 import { LlmProvider } from './llm/llm-provider.interface';
 import { RetrievalService } from './retrieval/retrieval.service';
 import { IngestionService } from '../ingestion/ingestion.service';
-import { CopilotMemoryService } from './copilot-memory.service';
+import { PrivateMemoryService } from './memory/private-memory.service';
+import { ConversationContextService } from './context/conversation-context.service';
 
 @Injectable()
 export class AiService implements OnModuleInit {
@@ -46,7 +47,8 @@ export class AiService implements OnModuleInit {
     @Inject('LLM_PROVIDER')
     private readonly llmProvider: LlmProvider,
     private readonly ingestionService: IngestionService,
-    private readonly memoryService: CopilotMemoryService,
+    private readonly memoryService: PrivateMemoryService,
+    private readonly conversationContext: ConversationContextService,
   ) {}
 
   onModuleInit(): void {
@@ -106,9 +108,16 @@ export class AiService implements OnModuleInit {
   }
 
   async deleteConversation(projectId: string, userId: string, id: string): Promise<void> {
-    const conversation = await this.getConversation(projectId, userId, id);
-    conversation.deletedAt = new Date();
-    await this.conversationRepo.save(conversation);
+    await this.conversationContext.deleteConversation({ projectId, userId, conversationId: id });
+  }
+
+  async excludeMessage(
+    projectId: string,
+    userId: string,
+    conversationId: string,
+    messageId: string,
+  ): Promise<void> {
+    await this.conversationContext.excludeMessage({ projectId, userId, conversationId }, messageId);
   }
 
   async listMessages(
@@ -125,6 +134,17 @@ export class AiService implements OnModuleInit {
   }
 
   async postMessage(
+    projectId: string,
+    userId: string,
+    conversationId: string,
+    dto: PostMessageDto,
+  ): Promise<{ userMessage: ChatMessage; assistantMessage: ChatMessage }> {
+    return this.conversationContext.withTurn({ projectId, userId, conversationId }, () =>
+      this.postMessageTurn(projectId, userId, conversationId, dto),
+    );
+  }
+
+  private async postMessageTurn(
     projectId: string,
     userId: string,
     conversationId: string,
@@ -200,7 +220,7 @@ export class AiService implements OnModuleInit {
     const inventoryOverview = await this.buildInventoryOverview(targetProjectIds);
 
     // Assemble context
-    const memories = await this.memoryService.list(projectId, userId, 8);
+    const memories = await this.memoryService.select(projectId, userId, dto.content);
     const assembled = this.contextAssembler.assemble(
       includeAllWorkspaces ? 'All Workspaces' : projectName,
       mode,
@@ -210,36 +230,22 @@ export class AiService implements OnModuleInit {
       memories,
     );
 
-    // Fetch bounded history (up to 10 most recent messages)
-    const recentMessages = await this.messageRepo.find({
-      where: { conversationId: conversation.id },
-      order: { createdAt: 'DESC' },
-      take: 11,
-    });
-
-    const history = recentMessages
-      .reverse()
-      .filter((m) => m.id !== userMessage.id)
-      .map((m) => ({
-        role: m.role as 'system' | 'user' | 'assistant',
-        content: m.content,
-      }));
-
-    const messagesForLlm = [
-      { role: 'system' as const, content: assembled.systemPrompt },
-      ...history,
-      { role: 'user' as const, content: dto.content },
-    ];
+    const scope = { projectId, userId, conversationId };
+    const prepared = await this.conversationContext.prepare(
+      scope,
+      userMessage.id,
+      assembled.systemPrompt,
+    );
 
     // Generate LLM response
     let generateResult;
     try {
       generateResult = await this.llmProvider.generateAnswer({
-        messages: messagesForLlm,
+        messages: prepared.messages,
         evidence: assembled.evidenceItems,
       });
-    } catch (err: unknown) {
-      this.logger.error(`LLM error: ${err instanceof Error ? err.message : 'Unknown'}`);
+    } catch {
+      this.logger.error('AI_GENERATION_FAILED');
       const failedMessage = this.messageRepo.create({
         conversationId: conversation.id,
         role: MessageRole.ASSISTANT,
@@ -248,7 +254,7 @@ export class AiService implements OnModuleInit {
         status: MessageStatus.FAILED,
         citations: [],
       });
-      await this.messageRepo.save(failedMessage);
+      await this.conversationContext.commit(scope, { ...prepared, compactions: 0 }, failedMessage);
       return { userMessage, assistantMessage: failedMessage };
     }
 
@@ -279,7 +285,7 @@ export class AiService implements OnModuleInit {
       completionTokens: generateResult.completionTokens,
     });
 
-    await this.messageRepo.save(assistantMessage);
+    await this.conversationContext.commit(scope, prepared, assistantMessage);
 
     return { userMessage, assistantMessage };
   }

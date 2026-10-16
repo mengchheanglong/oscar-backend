@@ -1231,3 +1231,455 @@ the frontend proxy completed the original question with deepseek-v4-pro in 8.459
 seconds (HTTP 201, COMPLETED). QA conversations were deleted and the backend was
 restarted on 127.0.0.1:3001. AIW accepted decision lookup returned none; no assigned
 task was supplied. Local develop work only; deployment and main unchanged.
+
+### 2026-10-14: Continuity integration audit
+
+Completed a source-level reuse audit of Continuity, this backend and the existing
+workspace frontend. The integration specification is
+[CONTINUITY_INTEGRATION_AUDIT.md](docs/CONTINUITY_INTEGRATION_AUDIT.md).
+AI Workspace retains canonical records, authorization, reviewed memory, provider
+configuration and the existing Hermes runtime. Continuity supplies selected
+memory/context algorithms and regression scenarios; its server, auth, database
+migrations and batch-provider stack are not adopted.
+
+The first specified implementation slice is query-aware private reviewed-memory
+retrieval for normal chat and Agent work, replacing recent-eight selection while
+preserving actor/project boundaries and explicit reviewed saves. The audit records
+the 256/1536 embedding dimension mismatch, model identity/re-index requirements,
+current ten-message chat history, context duplication in agent instructions, and
+differences between Continuity RLS and workspace membership/service authorization.
+These findings are implementation requirements, not completed fixes.
+
+Verification: four existing offline unit suites passed (20 tests): context
+assembly, evidence retrieval, Hermes subprocess boundary and MCP memory. These
+use mocked collaborators and do not prove live database/provider behavior. No
+application code, environment settings, persistent data or migrations changed;
+no provider calls or deployment occurred. AIW decision tools are unavailable in
+this session, so accepted decisions were not consulted and no task was marked
+done. Integration implementation remains the next milestone.
+
+### 2026-10-14: Relevant private-memory retrieval implemented
+
+Implemented the first Continuity integration slice in the existing NestJS backend.
+Chat and Hermes now share a query-based private-memory selector, replacing the
+recent-eight lookup while retaining reviewed CRUD, actor/project scope and the
+eight-entry/4,000-character context bound. PostgreSQL full-text retrieval searches
+beyond the management panel's 100-row listing limit. Optional exact pgvector
+retrieval fuses ranks using only compatible model identities; no ANN index or
+separate vector service is introduced.
+
+New memory contracts, repository, provider factory and orchestration live under
+`src/modules/ai/memory/`. An explicit operator command indexes at most 32 eligible
+entries per batch, with version/content checks and reauthorization after provider
+work. No startup or chat-triggered backfill occurs. Editing/deleting a memory
+immediately excludes stale derived versions. Readable embedding identities retain
+provider namespace, model, dimensions and preprocessing revision; old-model rows
+are never compared to new-model query vectors. Shared embedding response handling
+now validates cardinality, indices, dimensions and finite/nonzero vectors, rejects
+model mismatches when returned, and avoids exposing provider error bodies.
+
+Verification: the full 40 unit suites passed (322 tests), full nine HTTP suites
+passed (153 tests), and final six dedicated PostgreSQL suites passed (47 tests).
+After the readable-identity follow-up and safe JSON error handling, the affected
+nine provider/memory unit tests passed again. Typecheck and build passed on the
+final code; lint and repository format checks also passed. PostgreSQL tests include old-entry recall, shared-project and same-user
+cross-project isolation, inactive accounts, revocation/deletion during external
+work, stale activation, model re-indexing and database scope/dimension constraints.
+All embeddings/provider replies used in these checks were synthetic or mocked.
+
+Migrations `1791936000000` and `1791936000001` were applied only to the dedicated
+test database on 55433. No development/production migration, server restart,
+paid backfill or live provider/browser acceptance occurred. Public HTTP contracts
+are unchanged. [PRIVATE_MEMORY_RECALL.md](docs/PRIVATE_MEMORY_RECALL.md) documents
+the explicit release/indexing steps and limitations, including English lexical
+search, uncalibrated semantic relevance and deferred conversation-history recall.
+AIW decision tools remain unavailable; no task status was changed. Next capability:
+provider-aware conversation context budgeting and durable compaction boundaries.
+
+### 2026-10-14: DeepSeek compatibility verification
+
+Inspected only whitelisted provider configuration values and credential-presence
+booleans: local generation is DeepSeek V4 Pro, Hermes is enabled, embeddings are
+disabled and no separate OpenAI embedding credential is configured. No credential
+values were printed or changed. No generation-provider adjustment is required for
+keyword private-memory recall. Semantic recall additionally requires the separate
+embedding configuration and explicit indexing described in PRIVATE_MEMORY_RECALL.md.
+
+Added regression checks that DeepSeek credentials cannot configure embeddings,
+incompatible embedding dimensions fail explicitly, and real PostgreSQL selection
+feeds only the initiating actor's memory into the actual DeepSeek adapter request.
+The HTTP response in that test is mocked and confirms the configured model and
+request payload, not live DeepSeek availability or answer quality. No paid calls
+were made. Three focused unit suites passed (26 tests), and all six PostgreSQL
+suites passed (48 tests). Typecheck, changed-test lint and format checks passed.
+Application code and provider settings were unchanged in this verification turn.
+
+Read-only inspection could not obtain the local development migration status.
+The dedicated test database was verified separately; no claim is made that the
+new recall migrations are applied to the running development workspace.
+
+### 2026-10-14: Local recall activation and live DeepSeek acceptance
+
+Under the user's explicit activation/testing request, started the existing local
+PostgreSQL service using its persistent volume and verified the configured target
+was loopback 55432 / ai_workspace_develop with pgvector 0.8.2. Applied only
+PrivateMemoryRecall1791936000000 and ReadableMemoryEmbeddingIdentity1791936000001
+transactionally. No migrations remain pending; user, project and canonical memory
+counts were unchanged by migration. Rebuilt the backend and started it on 3001;
+started the existing frontend on 3002. No deployed database or model configuration
+was changed. Keyword recall remains active; embeddings remain disabled.
+
+Live acceptance used the existing local test-account login and CSRF-protected API
+with two temporary synthetic projects. The first saved preference was followed by
+ten unrelated entries to put it outside the former recent-eight selection. Four
+real deepseek-v4-pro requests in separate fresh conversations all passed:
+
+| Check             | Expected behavior                  | Elapsed  |
+| ----------------- | ---------------------------------- | -------- |
+| Older memory      | Answer uses the older saved label  | 1,230 ms |
+| Project isolation | Other project reports UNKNOWN      | 1,179 ms |
+| Edited memory     | Answer uses the replacement label  | 1,034 ms |
+| Deleted memory    | Fresh conversation reports UNKNOWN | 1,681 ms |
+
+The provider reported 3,443 prompt tokens and eight completion tokens across these
+four requests. This was live billed inference, not mocked; no currency cost was
+inferred. It verifies this bounded synthetic workflow, not general memory quality.
+Temporary projects and their cascading test records were removed, and the test
+login session was logged out. Existing project content was not used in these
+provider calls. The ignored timestamped report is under test-results/memory-live-*.
+Backend readiness, frontend API-proxy readiness and the frontend login page returned
+HTTP 200. The initial cold root-page request timed out; the subsequent login-page
+request succeeded. This acceptance exercised real API behavior;
+it does not claim browser interaction or a Hermes agent run was tested this turn.
+
+### 2026-10-15: Bounded chat history and durable conversation summaries
+
+Replaced normal chat's fixed ten-message history with a dedicated context planner
+and PostgreSQL persistence service. The planner retains eligible recent dialogue,
+compacts older whole turns within bounded provider requests, and keeps the latest
+request and original transcript. The default working budget is 128,000 conservative
+UTF-8 byte-based units, not 128,000 measured DeepSeek tokens. Summary and answer
+save atomically; failed answers do not advance the summary. Access is rechecked
+after provider work, including failure persistence. Session advisory locks prevent
+overlapping turns and a per-process cap protects database-pool capacity.
+
+Migration `1792022400000-ConversationContext` adds stable message sequence numbers
+and scoped durable summaries with revision checks and committed summary usage.
+It was applied only to the dedicated test database. Development/production still
+need the explicit migration and backend restart. Generation and embedding settings
+were not changed. No paid inference, live context-quality evaluation, browser test,
+or deployment occurred in this milestone.
+
+Validation: all 41 unit suites (329 tests), nine HTTP suites (153 tests), and six
+PostgreSQL suites (53 tests) passed. The initial overlapping runs had setup timeouts;
+isolated reruns passed, with `--testTimeout=30000` for the HTTP suite. A transient
+unit failure while sources were changing was resolved before the complete unit
+rerun. Lint, typecheck, build, formatting and OpenAPI generation passed. The generated
+chat endpoint documents 409/413/429/503 failure responses. PostgreSQL checks cover
+history beyond ten messages, restart persistence, stale commits, owner isolation,
+revocation, lock release, and answer/summary transaction rollback. Providers are
+scripted in these checks; they do not establish summary fidelity or recall quality.
+
+See [CONVERSATION_CONTEXT.md](docs/CONVERSATION_CONTEXT.md) for release steps,
+connection requirements, limits and privacy caveats. Next: activate locally and
+evaluate long-dialogue retention/correction with the configured provider, then add
+scoped historical-message recall and summary invalidation for excluded history.
+AIW decision tools remain unavailable; no external task status was changed.
+
+### 2026-10-16: Local context activation and live service acceptance
+
+Verified the local loopback 55432 / ai_workspace_develop target and pgvector 0.8.2.
+Applied only ConversationContext1792022400000 transactionally during activation;
+the counts remained one user, one project and six original messages. Rechecked
+today that the context migration is present and no migrations remain pending.
+No production target or provider configuration was changed.
+
+An authenticated API-test command was rejected by automatic approval review with
+no detailed reason. No saved login credentials were read by that command. Used
+a separate service-level evaluation with a temporary synthetic user/project and
+112 seeded messages instead. The initial summarization attempt failed, with no
+completed quality checks or reported usage; cleanup succeeded. A diagnostic retry
+received HTTP 200 from DeepSeek and passed all three checks: early-fact recall after
+compaction, a correction after recreating the context service and database pool,
+and UNKNOWN in a fresh conversation. This was not a backend process restart test,
+an authenticated API test, a full AiService test, or a browser test.
+
+The successful run made one summary call and three answer calls using DeepSeek V4
+Pro: 29,712 reported prompt tokens and 66 completion tokens. End-to-end service
+times were 4,199 ms, 1,138 ms and 538 ms. These figures exclude unknown usage from
+the failed first attempt. Synthetic records were removed; ignored reports are
+under test-results/context-live-*.json. No general quality or latency claim follows
+from this small synthetic sample. Application source was unchanged in this turn.
+
+Started the existing compiled backend and frontend locally. After cold startup,
+backend readiness, frontend readiness proxy and the login page all returned HTTP 200. Final database counts returned to one user, one project and six original
+messages. Formatting and diff-whitespace checks passed. No code suite was rerun
+for this activation/documentation-only turn; prior automated results remain above.
+
+### 2026-10-16: Private history recall, exclusions and derived-context invalidation
+
+Normal chat now searches older dialogue using bounded PostgreSQL English full-text
+retrieval. Every selection retains private user/project, active account/membership,
+live conversation and exclusion filters. All Workspaces does not broaden dialogue
+recall. Historical snippets carry message/conversation provenance and explicit
+untrusted/outdated framing; they do not become project citations or reviewed memory.
+The planner includes their byte cost. This is keyword recall, not semantic history
+search or a demonstrated general multilingual/paraphrase recall capability.
+
+Added a history repository, versioned HistoryRecall1792108800000 migration,
+composite-owner conversation dependencies and a per-user/project history revision.
+Excluding a message clears affected summaries and conservatively excludes existing
+assistant replies in the source and transitively dependent chats, preserving visible
+transcripts. Deleting a conversation performs the same invalidation before soft
+deletion. In-flight answers cannot commit against a changed history revision.
+Repeated exclusions are no-ops. Explicit user-authored copies and reviewed saved
+memories remain separate controls. Also fixed double stemming in the existing
+saved-memory lexical query; normalized tsquery text is no longer normalized twice.
+
+Frontend changes add a confirmed Exclude from context action, excluded badges,
+scoped refresh protection and a clear refresh-failure message after successful
+mutation. Deletion copy now reflects soft deletion and future-context effects.
+The native AIW decision/status tools are unavailable; accepted decisions were not
+consulted and no external task was marked done.
+
+Validation passed: 41 unit suites / 329 tests, nine HTTP suites / 154 tests, and seven
+PostgreSQL suites / 59 tests; backend lint, typecheck, build and OpenAPI generation;
+frontend TypeScript and lint for both changed files. Initial new database checks
+exposed a fixture mode omission and a query-normalization issue, both fixed before
+the complete passing run. Inspected the exclusion endpoint and contextExcluded
+response schema in generated OpenAPI. The database tests use scripted providers.
+
+Applied only HistoryRecall1792108800000 to loopback 55432 / ai_workspace_develop
+with pgvector 0.8.2; one user, one project and six existing messages were unchanged.
+No migrations remain pending. Restarted only this workspace's verified backend.
+A real local API acceptance used a temporary synthetic account/project and passed
+login, CSRF rejection, exclusion, dependent reply flags, summary invalidation,
+repeated exclusion, deletion, hidden deleted chat, and logout. Cleanup returned
+the original database counts. This made no model calls and read no saved login
+credentials. The ignored report is test-results/history-api-live-*.json. No browser
+interaction, live recall-quality evaluation or production deployment is claimed.
+
+See [CONVERSATION_HISTORY_RECALL.md](docs/CONVERSATION_HISTORY_RECALL.md) for limits
+and rollout requirements. Next: evaluate retrieval relevance and paraphrase recall,
+then add model-compatible semantic history indexing with an explicit cost-bounded
+re-index path; retain exact search as the baseline.
+
+### 2026-10-16: Semantic history retrieval and measured calibration
+
+Added a dedicated history vector repository, hybrid recall service, ranking/input
+contract, bounded indexing command and reusable retrieval evaluation harness.
+HistoryVectors1792108800001 requires pgvector and stores vector(1536), canonical
+endpoint/model/input-format identity, source head/fingerprint and composite owner
+references. Exact vector search retains all tenant, membership, deletion, exclusion
+and current-compaction filters before ranking. No approximate index was added.
+Source revalidation and a shared privacy-change lock prevent stale or excluded
+sources from activating during indexing. Exclusions/deletions remove affected
+derived vectors. New model identities require explicit re-indexing; old identities
+remain isolated rather than being relabelled or mixed.
+
+The user explicitly authorized taking credentials from Continuity's environment.
+Copied only its OpenRouter credential into the ignored local embedding settings,
+using openai/text-embedding-3-small at 1,536 dimensions through the existing compatible
+adapter. No secret value was printed or tracked; Continuity, DeepSeek generation
+and the database target were unchanged. OpenRouter's live response uses the bare
+upstream model name, so a tested alias rule accepts that exact model/endpoint only.
+An earlier strict-alias rejection was cleaned up; its billed usage is unknown.
+
+The first real calibration runs at distance 0.35 passed 5/8 for both keyword and
+hybrid. Recorded cosine distances informed the new configurable default of 0.65:
+calibration then passed 7/8 versus 5/8. A separate held-out wording set, evaluated
+after freezing the cutoff, passed 7/8 hybrid versus 4/8 keyword, with no forbidden
+results. Thai-to-English recall still missed. Corrected facts were retrieved but
+final generated-answer conflict resolution was not evaluated. The held-out run
+used 11 embedding requests, 18 texts and 184 provider-reported tokens; hybrid query
+latency was about 1.16–1.26 s in this tiny corpus. Earlier calibration/probe usage
+and the incomplete billing scope are documented in HISTORY_RECALL_EVALUATION.md.
+This is a small retrieval evaluation, not a general production accuracy guarantee.
+
+All regression checks passed: 42 unit suites / 335 tests, seven PostgreSQL suites /
+63 tests, nine HTTP suites / 154 tests, lint, typecheck and build. Automated suites
+ran with real embedding credentials disabled; oracle vectors verify mechanics only.
+The live evaluation used temporary synthetic users/projects in the dedicated test
+database, with scoped cleanup. No generation calls or frontend changes were needed.
+Public HTTP contracts are unchanged, so OpenAPI was not regenerated this milestone.
+
+Applied only HistoryVectors1792108800001 to local ai_workspace_develop on loopback
+55432 with pgvector 0.8.2, preserving one user, one project and six original messages.
+Restarted only the verified workspace backend. One explicit indexing batch indexed
+four eligible messages and returned remaining=false; all four vectors are 1,536
+dimensions. No migrations remain pending. Backend readiness and the frontend API
+proxy returned HTTP 200. New messages still need explicit indexing; no automatic
+paid backfill, scheduler, production deployment or browser test was introduced.
+
+See [SEMANTIC_HISTORY_RECALL.md](docs/SEMANTIC_HISTORY_RECALL.md) and the
+[evaluation report](docs/HISTORY_RECALL_EVALUATION.md) for commands, measured results
+and limitations. Next: broader multilingual and answer-level evaluation, passage
+retrieval for long messages, and explicitly budgeted incremental indexing.
+
+### 2026-10-16: Automatic history indexing with persistent workload limits
+
+Added an optional HistoryIndexWorker and separate HistoryIndexRepository inside
+the existing AI context module. No frontend, second backend, Redis dependency or
+generation-provider change was needed. Every 15 seconds an enabled worker discovers
+eligible committed history and claims one user/project batch of at most eight head
+excerpts. Discovery includes canonical ownership, active account/membership,
+completed status, role, deletion and exclusion. Source revalidation precedes external
+work; access and activation checks still apply after it. Existing exact pgvector
+search, model identities and privacy invalidation remain authoritative.
+
+HistoryIndexing1792195200000 adds persistent attempts/leases and UTC-day input
+reservations. A PostgreSQL advisory transaction lock serializes claims across
+replicas, with global and user/project text/UTF-8-byte allowances reserved before
+requests. Failed or crashed attempts retain reservations. Two-minute leases allow
+restart recovery; errors back off one/five minutes, with at most three attempts
+per message fingerprint/model identity. Stale completion updates cannot release a
+newer lease. Changed source/model identities can be indexed separately without
+resetting daily usage. This is at-least-once work, not exactly-once provider
+billing. Exhausted attempts require deliberate operator recovery.
+
+The checked-in example keeps automatic indexing disabled. Enabling requires AI,
+the separate configured embedding provider/key and 1536 dimensions. Parsed boolean
+flags are checked strictly so an unvalidated string `false` cannot enable the
+worker. Default daily limits are 256 texts/512,000 input bytes globally and 64
+texts/128,000 input bytes per user/project; zero pauses that allowance. These are
+input workload limits, not token or USD guarantees. Query embeddings, other
+embedding workflows, generation and explicit operator indexing are outside this
+ledger. Eligible older history is also caught up under the same limits; no
+unbounded startup loop or approximate vector index was added.
+
+Verification passed: 43 unit suites / 343 tests, eight real PostgreSQL suites /
+70 tests, nine HTTP suites / 154 tests (567 total), lint, typecheck, build,
+format check and diff check. PostgreSQL checks cover concurrent reservations,
+cross-owner scheduling, UTF-8 byte caps, global quota exhaustion across model
+changes, UTC-day selection, lease recovery/fencing, retry exhaustion, source
+changes, membership/account revocation and deletion during embedding. Worker
+lifecycle tests cover disabled mode, overlapping ticks, graceful drain and invalid
+vectors. Automated tests use scripted embeddings and disabled live credentials.
+No HTTP contract changed, so OpenAPI regeneration was not required.
+
+Applied only HistoryIndexing1792195200000 to verified loopback 55432 /
+ai_workspace_develop with pgvector 0.8.2. The original one user, one project,
+six messages and four vectors were preserved. Enabled only the new worker flags
+and daily limits in the ignored local environment and restarted the verified local
+backend. An initial combined environment-read/restart command was rejected by
+automatic review without a detailed reason; a narrower setting-only patch and
+separate verified restart succeeded. No credentials or chat models were changed.
+The embedding path already uses normal synchronous OpenRouter requests, so no
+`:batch` model setting needed replacing.
+
+Live timer acceptance created a temporary synthetic user/project and two messages
+sequentially. The running application indexed them without manual worker calls in
+17,234 ms and 15,170 ms, both at 1536 dimensions. The scoped ledger reserved two
+requests, two texts and 98 UTF-8 input bytes. No generation calls were made and no
+token/currency cost was inferred. Fixture cleanup restored original counts; global
+usage reservations were retained. The ignored report is
+test-results/automatic-history-live.json. Backend and frontend proxy readiness
+returned HTTP 200; no migrations remain pending. No browser acceptance, production
+deployment, commit or push is claimed. The dedicated test container was stopped.
+
+See [automatic history indexing](docs/AUTOMATIC_HISTORY_INDEXING.md) for operation
+and limits. Cross-language improvements are deferred per the user. Next: English
+answer-level correction/recall evaluation and scoped private-history tools for
+Hermes; passage indexing remains necessary for facts beyond message heads.
+
+### 2026-10-16: English generated-answer evaluation and chronology correction
+
+Added a reusable ten-scenario answer evaluation through the real AiService inside
+a Nest application context, with a dedicated test database and only synthetic
+owners/projects/messages. It exercises same-chat recall after 14 unrelated
+exchanges, English cross-chat paraphrase, current and later-chat corrections,
+assistant suggestions, excluded content, owner/project isolation, updated reviewed
+preferences and a forced durable compaction. No HTTP listener, saved account login,
+development chat import, independent model judge or provider reasoning is used.
+
+The first live run passed 9/10. In the later-chat correction, both old and new
+values were retrieved, but the model returned UNKNOWN because relevance ordering
+did not establish which user statement was newer. Added canonical saved-message
+order to lexical/vector history readers and their source revalidation. Relevance
+still selects candidates; normal chat sorts the selected records chronologically.
+Only relative positions enter the prompt, keeping global counters and gaps
+server-side. The system prompt explains personal continuity, current corrections,
+later user updates, assistant suggestions, ambiguity and the project-evidence
+boundary. No embedding identity, dimension, search threshold or schema changed.
+Existing vectors need no re-indexing. Optional recall now checks the complete
+instruction-plus-data size rather than an estimated fixed framing allowance, so
+it cannot make an otherwise fitting current request overflow its working budget.
+
+A fresh-fixture replay passed 10/10 with no forbidden-value mentions or citations.
+It made ten answer calls and one real summary call; the compaction case committed
+its summary while retaining the early synthetic label. A final targeted correction
+recheck after projecting chronology to relative positions passed 1/1. The full
+replay is a regression of the same ten scenarios, not a held-out accuracy claim.
+The initial, replay and targeted runs together made 23 generation requests and
+45 embedding requests for 50 texts. Reported aggregate usage was 28,012 prompt
+tokens, 197 completion tokens and 1,441 embedding tokens; no currency cost is
+inferred. Each run stayed within the explicit 14-generation/40-embedding request
+ceilings and byte/text/output ceilings. Failed attempts reserve workload, and
+provider cost confirmation is required. The CLI restricts endpoints/model/output
+caps, disables background indexing, Hermes, GitHub and admin bootstrap locally
+within its process, and writes only ignored synthetic reports. Fixture cleanup
+and temporary context-budget restoration also run on case errors.
+
+Validation passed: 44 unit suites / 347 tests, nine PostgreSQL suites / 73 tests,
+nine HTTP suites / 154 tests (574 total), focused context/ranking/scorer unit
+checks, lint, typecheck, build, formatting and diff checks. New PostgreSQL checks
+exercise old relevance outranking new chronology, both retrieval paths, private
+relative-order presentation, exact optional-context budgeting and fixture cleanup
+on generation failure. An intermediate run mixed an already-loaded context class
+with a subsequently edited test; a fresh full PostgreSQL run on the final sources
+passed all 73 tests. Live tests use real providers; automated regressions use
+scripted providers with live embedding credentials disabled.
+
+No migrations were added or applied in this slice and no HTTP contract changed.
+The development database retained one user, one project, six messages and four
+vectors, with no pending migrations. Restarted only the verified local backend;
+backend and frontend proxy readiness returned HTTP 200. Automatic history indexing
+remains enabled with its existing limits. No keys, chat model or development
+context-budget settings changed. An initial combined restart/health command was
+rejected by automatic approval review without a detailed reason; a narrower
+verified restart and separate read-only health checks succeeded. Stopped only the
+dedicated test container. No browser acceptance, production rollout, commit or
+push is claimed.
+
+See [English answer evaluation](docs/HISTORY_ANSWER_EVALUATION.md) for scenario
+results, commands, exact scoring and usage limits. The raw reports are ignored
+test-results/history-answer-eval-{1792111612633,1792111854938,1792112272191}.json.
+Cross-language support remains deferred. Next: scoped private-history search/read
+tools for Hermes; subsequent English evaluations should cover effective dates,
+historical retellings, long-message passages, summary/history conflicts and
+free-form personalization rather than treating this small suite as broad parity.
+
+### 2026-10-16: One assistant and inline Hermes conversation work
+
+Implemented the selected Copilot simplification. The frontend sends Workspace mode
+for all new turns, including older conversations, and removes persona selection
+and the separate Agent work entry point. A Use tools control invokes Hermes in
+the same conversation. Progress, cancellation, source metadata, reports and
+reviewed proposals are inline; existing memory/exclusion controls are preserved.
+Mobile header controls no longer overlap at 390px.
+
+Migration 1792281600000 links runs to owned same-project conversations and canonical
+user/pending assistant messages. Run creation and successful publication are
+transactional. Retry-key locking fixes the concurrent-creation regression found
+in the first test pass. A normal turn cannot overlap active work in its thread.
+Hermes receives bounded, nonexcluded recent dialogue and reviewed private memory;
+ordinary follow-ups can use its saved report. Privacy revisions are checked before
+tools and publication. Cancellation and privacy invalidation cannot publish late
+artifacts or staged proposals. Deleted threads are hidden from run retrieval.
+Legacy API modes and unthreaded runs remain supported without automatic migration.
+See docs/UNIFIED_COPILOT.md for limits, locking and API details.
+
+Checks passed: backend lint/typecheck/build, 44 unit suites (347 tests), nine HTTP
+suites (154 tests), nine PostgreSQL suites (78 tests), OpenAPI generation and
+formatting. Frontend lint/typecheck and eight existing file tests passed; its
+production build was run after the final UI updates. Applied the migration only
+after verifying the 127.0.0.1:55432 ai_workspace_develop target; test migration
+used the dedicated database. Real browser acceptance observed calculate_pricing,
+a successful persisted report, a reload, and a normal follow-up returning $70.
+There was one work prompt and four total messages. The temporary conversation
+was hidden through the normal API after QA. Desktop/mobile screenshots were
+inspected; no project records or proposals were created by this scenario.
+The prior continuity changes remain intact and passed the same suites. This does
+not add Hermes private-history tools or rerun the paid answer-evaluation suite.
+AIW accepted-decision lookup returned none; no assigned task was supplied.
+Local develop work only, without pushing, deploying or changing main.

@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiCookieAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AllowArchived } from '../../common/decorators/project-role.decorator';
@@ -22,8 +31,14 @@ export class AgentRunsController {
   }
   @Get()
   @ApiOkResponse({ type: [AgentRunResponseDto] })
-  async list(@Param('projectId', ParseUUIDPipe) projectId: string, @CurrentUser() user: User) {
-    return (await this.runs.list(projectId, user.id)).map(AgentRunResponseDto.fromEntity);
+  async list(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @CurrentUser() user: User,
+    @Query('conversationId', new ParseUUIDPipe({ optional: true })) conversationId?: string,
+  ) {
+    return (await this.runs.list(projectId, user.id, conversationId)).map(
+      AgentRunResponseDto.fromEntity,
+    );
   }
   @Get(':id')
   @ApiOkResponse({ type: AgentRunResponseDto })

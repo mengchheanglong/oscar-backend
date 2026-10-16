@@ -1,5 +1,7 @@
 import { LocalFoldersModule } from '../local-folders/local-folders.module';
 import { Module } from '@nestjs/common';
+import { HistoryIndexRepository } from './context/history-index.repository';
+import { HistoryIndexWorker } from './context/history-index.worker';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectMember } from '../projects/entities/project-member.entity';
@@ -29,6 +31,17 @@ import { User } from '../users/entities/user.entity';
 import { ProposalsController } from './proposals.controller';
 import { ProposalsService } from './proposals.service';
 import { RetrievalService } from './retrieval/retrieval.service';
+import { PrivateMemoryRepository } from './memory/private-memory.repository';
+import { PrivateMemoryService, MEMORY_EMBEDDER } from './memory/private-memory.service';
+import { memoryEmbedder } from './memory/private-memory.provider';
+import { ConversationContextService } from './context/conversation-context.service';
+import { ConversationHistoryRepository } from './context/conversation-history.repository';
+import { HistoryRecallService } from './context/history-recall.service';
+import { HistoryVectorRepository } from './context/history-vector.repository';
+import {
+  HISTORY_MAX_DISTANCE,
+  DEFAULT_HISTORY_MAX_DISTANCE,
+} from './context/history-retrieval.contract';
 
 @Module({
   imports: [
@@ -52,6 +65,21 @@ import { RetrievalService } from './retrieval/retrieval.service';
   ],
   controllers: [AiController, ProposalsController, CopilotMemoryController, AgentRunsController],
   providers: [
+    HistoryIndexRepository,
+    HistoryIndexWorker,
+    HistoryRecallService,
+    HistoryVectorRepository,
+    {
+      provide: HISTORY_MAX_DISTANCE,
+      useFactory: (config: ConfigService) =>
+        config.get<number>('AI_HISTORY_MAX_COSINE_DISTANCE', DEFAULT_HISTORY_MAX_DISTANCE),
+      inject: [ConfigService],
+    },
+    ConversationHistoryRepository,
+    ConversationContextService,
+    PrivateMemoryRepository,
+    PrivateMemoryService,
+    { provide: MEMORY_EMBEDDER, useFactory: memoryEmbedder, inject: [ConfigService] },
     RetrievalService,
     ContextAssembler,
     AiService,

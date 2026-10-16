@@ -4580,10 +4580,41 @@
         },
         "responses": {
           "201": {
-            "description": "Message sent and assistant response generated"
+            "description": "Message sent and assistant response generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "userMessage",
+                    "assistantMessage"
+                  ],
+                  "properties": {
+                    "userMessage": {
+                      "$ref": "#/components/schemas/ChatMessageResponseDto"
+                    },
+                    "assistantMessage": {
+                      "$ref": "#/components/schemas/ChatMessageResponseDto"
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
             "description": "Conversation not found"
+          },
+          "409": {
+            "description": "Conversation is busy or its context changed."
+          },
+          "413": {
+            "description": "Required context or unsummarized history exceeds safe bounds."
+          },
+          "429": {
+            "description": "This backend has reached its concurrent chat capacity."
+          },
+          "503": {
+            "description": "Retrieval or context summarization failed; original messages are preserved."
           }
         },
         "security": [
@@ -4592,6 +4623,54 @@
           }
         ],
         "summary": "Post a message and receive an AI assistant response",
+        "tags": [
+          "AI Assistant"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai/conversations/{id}/messages/{messageId}/exclude-context": {
+      "post": {
+        "operationId": "AiController_excludeMessage",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Message excluded, dependent summaries invalidated."
+          },
+          "404": {
+            "description": "Conversation or message not found."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Exclude a message and affected generated replies from future context; preserve transcripts",
         "tags": [
           "AI Assistant"
         ]
@@ -4812,6 +4891,14 @@
             "name": "projectId",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conversationId",
+            "required": true,
+            "in": "query",
             "schema": {
               "type": "string"
             }
@@ -6693,6 +6780,128 @@
           "meta"
         ]
       },
+      "ChatMessageResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "32cb5e48-8dfa-45c1-8419-756da3df4f32"
+          },
+          "conversationId": {
+            "type": "string",
+            "example": "85bb1fd2-d5cb-42a1-8d2a-43d96924b17f"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant",
+              "system"
+            ],
+            "example": "user"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "WORKSPACE",
+              "PM",
+              "DEVELOPER",
+              "QA",
+              "DX",
+              "INFRASTRUCTURE",
+              "PRESENTATION"
+            ],
+            "example": "PM"
+          },
+          "content": {
+            "type": "string",
+            "example": "What are the key decisions made regarding the database architecture?"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "example": "COMPLETED"
+          },
+          "contextExcluded": {
+            "type": "boolean",
+            "description": "Excluded from future dialogue context and history recall.",
+            "default": false
+          },
+          "citations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "evidenceNumber": {
+                  "type": "number",
+                  "description": "Original evidence marker number in the answer"
+                },
+                "chunkId": {
+                  "type": "string"
+                },
+                "sourceId": {
+                  "type": "string"
+                },
+                "sourceType": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "revision": {
+                  "type": "number"
+                },
+                "locator": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                },
+                "snippet": {
+                  "type": "string",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "modelName": {
+            "type": "object",
+            "example": "deepseek-flash",
+            "nullable": true
+          },
+          "promptTokens": {
+            "type": "object",
+            "example": 450,
+            "nullable": true
+          },
+          "completionTokens": {
+            "type": "object",
+            "example": 180,
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-09-16T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "conversationId",
+          "role",
+          "mode",
+          "content",
+          "status",
+          "contextExcluded",
+          "citations",
+          "createdAt"
+        ]
+      },
       "ConversationResponseDto": {
         "type": "object",
         "properties": {
@@ -6766,122 +6975,6 @@
             "default": "PM"
           }
         }
-      },
-      "ChatMessageResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "32cb5e48-8dfa-45c1-8419-756da3df4f32"
-          },
-          "conversationId": {
-            "type": "string",
-            "example": "85bb1fd2-d5cb-42a1-8d2a-43d96924b17f"
-          },
-          "role": {
-            "type": "string",
-            "enum": [
-              "user",
-              "assistant",
-              "system"
-            ],
-            "example": "user"
-          },
-          "mode": {
-            "type": "string",
-            "enum": [
-              "WORKSPACE",
-              "PM",
-              "DEVELOPER",
-              "QA",
-              "DX",
-              "INFRASTRUCTURE",
-              "PRESENTATION"
-            ],
-            "example": "PM"
-          },
-          "content": {
-            "type": "string",
-            "example": "What are the key decisions made regarding the database architecture?"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "PENDING",
-              "COMPLETED",
-              "FAILED"
-            ],
-            "example": "COMPLETED"
-          },
-          "citations": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "evidenceNumber": {
-                  "type": "number",
-                  "description": "Original evidence marker number in the answer"
-                },
-                "chunkId": {
-                  "type": "string"
-                },
-                "sourceId": {
-                  "type": "string"
-                },
-                "sourceType": {
-                  "type": "string"
-                },
-                "title": {
-                  "type": "string"
-                },
-                "revision": {
-                  "type": "number"
-                },
-                "locator": {
-                  "type": "string",
-                  "nullable": true
-                },
-                "score": {
-                  "type": "number",
-                  "nullable": true
-                },
-                "snippet": {
-                  "type": "string",
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "modelName": {
-            "type": "object",
-            "example": "deepseek-flash",
-            "nullable": true
-          },
-          "promptTokens": {
-            "type": "object",
-            "example": 450,
-            "nullable": true
-          },
-          "completionTokens": {
-            "type": "object",
-            "example": 180,
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "string",
-            "example": "2026-09-16T10:00:00.000Z"
-          }
-        },
-        "required": [
-          "id",
-          "conversationId",
-          "role",
-          "mode",
-          "content",
-          "status",
-          "citations",
-          "createdAt"
-        ]
       },
       "PostMessageDto": {
         "type": "object",
@@ -7072,6 +7165,18 @@
           "projectId": {
             "type": "string"
           },
+          "conversationId": {
+            "type": "object",
+            "nullable": true
+          },
+          "userMessageId": {
+            "type": "object",
+            "nullable": true
+          },
+          "assistantMessageId": {
+            "type": "object",
+            "nullable": true
+          },
           "prompt": {
             "type": "string"
           },
@@ -7138,6 +7243,11 @@
       "CreateAgentRunDto": {
         "type": "object",
         "properties": {
+          "conversationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Owned conversation for inline work."
+          },
           "prompt": {
             "type": "string",
             "maxLength": 4000

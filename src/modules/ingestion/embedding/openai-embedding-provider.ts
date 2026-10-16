@@ -40,20 +40,50 @@ export class OpenAiEmbeddingProvider implements EmbeddingProvider {
           input: chunk,
           dimensions: this.dimensions,
         }),
+        signal: AbortSignal.timeout(30000),
+        redirect: 'error',
       });
 
       if (!res.ok) {
-        const errorText = await res.text().catch(() => '');
-        throw new Error(
-          `OpenAI embedding API failed with HTTP ${res.status}: ${errorText.substring(0, 300)}`,
-        );
+        throw new Error(`EMBEDDING_HTTP_${res.status}`);
       }
 
-      const body = (await res.json()) as {
-        data: { embedding: number[]; index: number }[];
-      };
-
-      for (const item of body.data) {
+      const body: unknown = await res.json().catch(() => {
+        throw new Error('EMBEDDING_RESPONSE_INVALID');
+      });
+      if (
+        !body ||
+        typeof body !== 'object' ||
+        !('data' in body) ||
+        !Array.isArray(body.data) ||
+        body.data.length !== chunk.length
+      )
+        throw new Error('EMBEDDING_RESPONSE_INVALID');
+      // OpenRouter's live embedding response uses the upstream bare model name
+      // for this exact route. Keep the configured host/model in vector identity;
+      // do not accept arbitrary suffix matches or aliases on other endpoints.
+      const routedSmallAlias =
+        this.baseUrl === 'https://openrouter.ai/api/v1' &&
+        this.modelName === 'openai/text-embedding-3-small' &&
+        'model' in body &&
+        body.model === 'text-embedding-3-small';
+      if ('model' in body && body.model !== this.modelName && !routedSmallAlias)
+        throw new Error('EMBEDDING_MODEL_MISMATCH');
+      const seen = new Set<number>();
+      for (const item of body.data as { embedding: number[]; index: number }[]) {
+        if (
+          !item ||
+          !Number.isInteger(item.index) ||
+          item.index < 0 ||
+          item.index >= chunk.length ||
+          seen.has(item.index) ||
+          !Array.isArray(item.embedding) ||
+          item.embedding.length !== this.dimensions ||
+          item.embedding.some((n) => typeof n !== 'number' || !Number.isFinite(n)) ||
+          !item.embedding.some((n) => n !== 0)
+        )
+          throw new Error('EMBEDDING_RESPONSE_INVALID');
+        seen.add(item.index);
         const targetIdx = i + item.index;
         results[targetIdx] = item.embedding;
       }

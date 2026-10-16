@@ -1,3 +1,5 @@
+import { ConversationContextService } from '../../src/modules/ai/context/conversation-context.service';
+import { PrivateMemoryService } from '../../src/modules/ai/memory/private-memory.service';
 import 'reflect-metadata';
 import { Global, INestApplication, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -639,6 +641,15 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       .useValue({})
       .overrideProvider(getRepositoryToken(AgentRun))
       .useValue({})
+      .overrideProvider(ConversationContextService)
+      .useValue({
+        withTurn: async (_s: unknown, fn: () => Promise<unknown>) => fn(),
+        prepare: async () => ({ messages: [] }),
+        commit: async () => undefined,
+        excludeMessage: async () => undefined,
+      })
+      .overrideProvider(PrivateMemoryService)
+      .useValue({ select: jest.fn().mockResolvedValue([]) })
       .overrideProvider(CopilotMemoryService)
       .useValue({ list: jest.fn().mockResolvedValue([]) })
       .overrideProvider(getRepositoryToken(AIProposal))
@@ -829,6 +840,29 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
   });
 
   // ── Scenario 1: Cross-Project Isolation (404 Leak Prevention) ──
+  it('protects context exclusions with authentication, project scope, CSRF and UUID validation', async () => {
+    const conversationId = randomUUID(),
+      messageId = randomUUID();
+    const path = `/api/v1/projects/${projectA.id}/ai/conversations/${conversationId}/messages/${messageId}/exclude-context`;
+    await request(app.getHttpServer()).post(path).expect(401);
+    await request(app.getHttpServer()).post(path).set('Cookie', sessionA.cookie).expect(403);
+    await request(app.getHttpServer())
+      .post(path.replace(projectA.id, projectB.id))
+      .set('Cookie', sessionA.cookie)
+      .set('x-csrf-token', sessionA.csrf)
+      .expect(404);
+    await request(app.getHttpServer())
+      .post(path.replace(messageId, 'invalid'))
+      .set('Cookie', sessionA.cookie)
+      .set('x-csrf-token', sessionA.csrf)
+      .expect(400);
+    await request(app.getHttpServer())
+      .post(path)
+      .set('Cookie', sessionA.cookie)
+      .set('x-csrf-token', sessionA.csrf)
+      .expect(204);
+  });
+
   it('requires authentication, project membership and CSRF for uploaded folders', async () => {
     const path = `/api/v1/projects/${projectA.id}/uploaded-folders`;
     await request(app.getHttpServer()).get(path).expect(401);

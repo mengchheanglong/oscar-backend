@@ -63,6 +63,9 @@ export class ChatMessage {
   @Column({ type: 'varchar', length: 50, default: MessageStatus.COMPLETED })
   status!: MessageStatus;
 
+  @Column({ name: 'context_excluded', type: 'boolean', default: false })
+  contextExcluded!: boolean;
+
   @Column({ type: 'jsonb', default: () => "'[]'" })
   citations!: CitationItem[];
 

@@ -1,9 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import { AgentRun, AgentRunStatus } from '../entities/agent-run.entity';
 
 export class CreateAgentRunDto {
+  @ApiPropertyOptional({ format: 'uuid', description: 'Owned conversation for inline work.' })
+  @IsOptional()
+  @IsUUID()
+  conversationId?: string;
   @ApiProperty({ maxLength: 4000 })
   @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
@@ -20,6 +24,9 @@ export class CreateAgentRunDto {
 export class AgentRunResponseDto {
   @ApiProperty() id!: string;
   @ApiProperty() projectId!: string;
+  @ApiPropertyOptional({ nullable: true }) conversationId!: string | null;
+  @ApiPropertyOptional({ nullable: true }) userMessageId!: string | null;
+  @ApiPropertyOptional({ nullable: true }) assistantMessageId!: string | null;
   @ApiProperty() prompt!: string;
   @ApiProperty({ enum: AgentRunStatus }) status!: AgentRunStatus;
   @ApiProperty() model!: string;
@@ -36,6 +43,9 @@ export class AgentRunResponseDto {
       id: r.id,
       projectId: r.projectId,
       prompt: r.prompt,
+      conversationId: r.conversationId,
+      userMessageId: r.userMessageId,
+      assistantMessageId: r.assistantMessageId,
       status: r.status,
       model: r.model,
       runtimeRevision: r.runtimeRevision,

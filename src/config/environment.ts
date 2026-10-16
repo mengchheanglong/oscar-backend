@@ -71,6 +71,18 @@ const schema = z
     GITHUB_USE_MOCK: booleanString.default(false),
     REDIS_URL: z.string().default('redis://127.0.0.1:56379'),
     AI_LLM_PROVIDER: emptyStringToUndefined(z.literal('deepseek').default('deepseek')),
+    AI_CONTEXT_INPUT_BUDGET: z.coerce.number().int().min(16000).max(512000).default(128000),
+    AI_HISTORY_MAX_COSINE_DISTANCE: z.coerce.number().min(0).max(2).default(0.65),
+    AI_HISTORY_AUTO_INDEX_ENABLED: booleanString.default(false),
+    AI_HISTORY_INDEX_DAILY_TEXTS: z.coerce.number().int().min(0).max(100000).default(256),
+    AI_HISTORY_INDEX_DAILY_BYTES: z.coerce.number().int().min(0).max(100000000).default(512000),
+    AI_HISTORY_INDEX_SCOPE_DAILY_TEXTS: z.coerce.number().int().min(0).max(100000).default(64),
+    AI_HISTORY_INDEX_SCOPE_DAILY_BYTES: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .max(100000000)
+      .default(128000),
     DEEPSEEK_API_KEY: emptyStringToUndefined(z.string().optional()),
     DEEPSEEK_BASE_URL: emptyStringToUndefined(
       z.literal('https://api.deepseek.com').default('https://api.deepseek.com'),
@@ -92,6 +104,20 @@ const schema = z
     SUPABASE_JWKS_URL: emptyStringToUndefined(z.string().url().optional()),
   })
   .superRefine((value, context) => {
+    if (
+      value.AI_HISTORY_AUTO_INDEX_ENABLED &&
+      (!value.AI_ENABLED ||
+        value.AI_EMBEDDING_PROVIDER !== 'openai' ||
+        !value.OPENAI_API_KEY ||
+        value.AI_EMBEDDING_DIMENSIONS !== 1536)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['AI_HISTORY_AUTO_INDEX_ENABLED'],
+        message:
+          'History indexing requires AI_ENABLED and a configured 1536-dimensional embedding provider.',
+      });
+    }
     if (value.HERMES_ENABLED && (!value.AI_ENABLED || !value.HERMES_PYTHON || !value.HERMES_ROOT)) {
       context.addIssue({
         code: 'custom',
