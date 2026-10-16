@@ -21,3 +21,7 @@ test-results/
 
 # Private machine-local folder connections
 var/local-folders.json*
+
+# Machine-specific database/storage mounts
+compose.override.yaml
+compose.override.yml

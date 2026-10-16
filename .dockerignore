@@ -8,3 +8,6 @@ var
 tmp
 secrets
 *.log
+
+.codex
+.agents

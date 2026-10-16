@@ -1709,3 +1709,25 @@ accepted-decision lookup returned none; no assigned task was supplied. Changes a
 local on develop, with no push, deployment, main edits or deployment database access.
 See docs/PROJECT_CHAT.md. Next AI capability milestone remains scoped private-history
 search/read tools for Hermes; it is not part of this UI change.
+
+### 2026-10-17: Continuum Docker and relocated local runtime
+
+Continuum now runs from the sibling continuum-frontend and continuum-backend
+folders in C:/Users/User/study-workspace. Docker uses the Continuum Compose
+project, with the existing isolated development database volume reused through
+an ignored machine override. The existing database has 29 recorded migrations;
+no development schema changes or demo records were applied during this work.
+
+The app profile now builds both repositories, publishes frontend 3002 and API
+3001, and builds the frontend API rewrite to the Compose API service. Docker
+contexts exclude local environment and MCP settings. Migrations are an explicit
+separate profile. Node-only API containers disable Hermes/native host folders;
+normal host development retains those features. See docs/DOCKER_LOCAL.md.
+
+Verified: both Docker images built, all four app-profile services became healthy,
+and Docker frontend, direct API, and frontend API proxy each returned HTTP 200.
+Then frontend/API/Redis app containers were stopped and the host frontend/backend
+were started from their new locations; direct API and frontend proxy returned 200.
+All 79 integration tests across 9 suites passed on the dedicated local test DB
+on port 55433. Compose validation and changed Markdown/YAML formatting passed.
+Provider generation was not exercised. No remote push or hosted deployment.

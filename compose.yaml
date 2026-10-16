@@ -6,13 +6,13 @@ services:
     environment:
       POSTGRES_USER: ai_workspace
       POSTGRES_PASSWORD: local_dev_only
-      POSTGRES_DB: ai_workspace
+      POSTGRES_DB: ai_workspace_develop
     ports:
       - '127.0.0.1:55432:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ai_workspace -d ai_workspace']
+      test: ['CMD-SHELL', 'pg_isready -U ai_workspace -d ai_workspace_develop']
       interval: 5s
       timeout: 3s
       retries: 15
@@ -35,6 +35,7 @@ services:
       retries: 15
 
   redis:
+    profiles: ['app', 'redis']
     image: redis:7-alpine
     ports:
       - '127.0.0.1:56379:6379'
@@ -45,12 +46,15 @@ services:
       retries: 15
 
   migrate:
-    profiles: ['app']
+    profiles: ['migrations']
     build: .
     image: continuum-backend:local
     command: ['pnpm', 'migration:run:prod']
+    env_file:
+      - path: .env
+        required: false
     environment:
-      DATABASE_URL: postgresql://ai_workspace:local_dev_only@postgres:5432/ai_workspace
+      DATABASE_URL: postgresql://ai_workspace:local_dev_only@postgres:5432/ai_workspace_develop
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,12 +63,15 @@ services:
     profiles: ['app']
     build: .
     image: continuum-backend:local
+    env_file:
+      - path: .env
+        required: false
     environment:
       NODE_ENV: development
-      PORT: '3000'
+      PORT: '3001'
       HOST: 0.0.0.0
-      APP_ORIGIN: http://localhost:3001
-      DATABASE_URL: postgresql://ai_workspace:local_dev_only@postgres:5432/ai_workspace
+      APP_ORIGIN: http://localhost:3002
+      DATABASE_URL: postgresql://ai_workspace:local_dev_only@postgres:5432/ai_workspace_develop
       FOLDER_STORAGE_QUOTA_BYTES: ${FOLDER_STORAGE_QUOTA_BYTES:-21474836480}
       FOLDER_MAX_FILE_BYTES: ${FOLDER_MAX_FILE_BYTES:-1073741824}
       FOLDER_MAX_FILES: ${FOLDER_MAX_FILES:-100000}
@@ -72,23 +79,52 @@ services:
       STORAGE_DRIVER: local
       STORAGE_LOCAL_ROOT: /app/var/uploads
       SWAGGER_ENABLED: 'true'
-      AI_ENABLED: 'false'
-      GITHUB_ENABLED: 'false'
+      DATABASE_SSL: 'false'
+      HERMES_ENABLED: 'false'
+      LOCAL_FILES_ENABLED: 'false'
     ports:
-      - '127.0.0.1:3000:3000'
+      - '127.0.0.1:3001:3001'
     volumes:
       - upload-data:/app/var/uploads
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
     healthcheck:
       test:
         [
           'CMD',
           'node',
           '-e',
-          "fetch('http://127.0.0.1:3000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+          "fetch('http://127.0.0.1:3001/api/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
         ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  frontend:
+    profiles: ['app']
+    build:
+      context: ../continuum-frontend
+      args:
+        NEXT_PUBLIC_API_URL: /api/v1
+        BACKEND_INTERNAL_URL: http://api:3001
+    image: continuum-frontend:local
+    environment:
+      PORT: '3000'
+      HOSTNAME: 0.0.0.0
+      BACKEND_INTERNAL_URL: http://api:3001
+    ports:
+      - '127.0.0.1:3002:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
       interval: 10s
       timeout: 5s
       retries: 10

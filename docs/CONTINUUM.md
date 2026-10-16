@@ -16,10 +16,10 @@ port 3002, and API port 3001. Backend storage paths point to existing local file
 to keep current document records readable. User project titles and records have
 not been renamed. No database reset, seed, or schema migration is part of the split.
 
-The new Compose project is continuum-backend. Do not launch its database alongside
-the existing AI Workspace database container on port 55432. This machine can
-continue using that existing isolated PostgreSQL service. A fresh installation
-should provision its own database and local configuration.
+The Compose project is continuum-backend. This machine's ignored Compose override
+reuses the existing PostgreSQL volume and documents. Keep the old AI Workspace
+PostgreSQL container stopped while Continuum uses that volume. See
+[running locally and Docker](DOCKER_LOCAL.md) for both supported modes.
 
 Public application branding, package names, API documentation, generated MCP
 server labels, and deployment template service names use Continuum. Legacy API

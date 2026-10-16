@@ -1,5 +1,9 @@
 # Continuum — Backend
 
+For host development and the full Docker app, see
+[Running Continuum locally](docs/DOCKER_LOCAL.md). The Docker app profile includes
+the sibling frontend repository and uses ports 3002 (web) and 3001 (API).
+
 Continuum is a personal, chat-first workspace for business, finance, research,
 project files, tasks, decisions, and AI-assisted work. This is an independent
 repository derived from AI Workspace's develop branch, with its Git history
