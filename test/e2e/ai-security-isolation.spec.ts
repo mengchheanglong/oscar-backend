@@ -868,8 +868,9 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       .post(root)
       .set('Cookie', sessionA.cookie)
       .set('x-csrf-token', sessionA.csrf)
-      .send({ title: 'Original' })
+      .send({ title: 'Original', includeAllWorkspaces: true })
       .expect(201);
+    expect(created.body.data ?? created.body).toMatchObject({ includeAllWorkspaces: true });
     const id = (created.body.data ?? created.body).id as string;
     const path = `${root}/${id}`;
     await request(app.getHttpServer()).patch(path).send({ title: 'Rename' }).expect(401);
@@ -888,7 +889,7 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       .patch(path)
       .set('Cookie', sessionViewer.cookie)
       .set('x-csrf-token', sessionViewer.csrf)
-      .send({ title: 'Not mine', isPinned: true })
+      .send({ title: 'Not mine', isPinned: true, includeAllWorkspaces: false })
       .expect(404);
     for (const payload of [
       { title: '  ' },
@@ -896,6 +897,8 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       { title: 'x'.repeat(201) },
       { isPinned: null },
       { isPinned: 'true' },
+      { includeAllWorkspaces: 'true' },
+      { includeAllWorkspaces: null },
       { userId: userViewer.id },
     ]) {
       await request(app.getHttpServer())
@@ -918,7 +921,12 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       .expect(200);
     expect(listed.body.data ?? listed.body).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id, title: 'Research plan', isPinned: true }),
+        expect.objectContaining({
+          id,
+          title: 'Research plan',
+          isPinned: true,
+          includeAllWorkspaces: true,
+        }),
       ]),
     );
     const privateList = await request(app.getHttpServer())

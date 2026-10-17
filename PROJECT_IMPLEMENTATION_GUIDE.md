@@ -1731,3 +1731,11 @@ were started from their new locations; direct API and frontend proxy returned 20
 All 79 integration tests across 9 suites passed on the dedicated local test DB
 on port 55433. Compose validation and changed Markdown/YAML formatting passed.
 Provider generation was not exercised. No remote push or hosted deployment.
+
+### 2026-10-17 — Durable all-project chat context
+
+- Added `ConversationWorkspaceScope1792368000001`: `ai_conversations.include_all_workspaces` defaults false, preserving existing project chats. Create/update/read contracts expose the boolean. A legacy all-project message request promotes and persists the chat scope; later turns use that saved scope even if the client omits or sends false in the message body.
+- Existing authenticated ownership/project guards remain in place. Workspace retrieval still uses only projects available to the actor. This is durable context scope, not a migration to projectless storage: conversations retain their existing protected storage project and project-private memory/history behavior. Zero-project chat storage is not introduced by this change.
+- Frontend imports browser-tagged legacy standalone chats through authenticated metadata updates. Standalone chats appear under Chats and use all-project context; project folders contain project-scoped chats. The composer labels the active all-project context explicitly.
+- Verification: 350 unit tests, 156 e2e tests, and 79 PostgreSQL integration tests passed; typecheck, lint, build, OpenAPI generation, and format check passed. Integration tests used only the isolated `_test` database on port 55433. Applied the additive migration to the existing isolated develop database on port 55432 and restarted the host API. No seed/reset/provider request was used. Live API/browser verified saved scope and root-chat placement, then removed the temporary QA chat.
+- Rollout: run the new migration before starting the updated backend. API compatibility retains the message flag for older clients. New workspace chats no longer depend on local browser tags to retain context scope.

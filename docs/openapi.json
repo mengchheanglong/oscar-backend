@@ -7013,6 +7013,10 @@
             ],
             "example": "PM"
           },
+          "includeAllWorkspaces": {
+            "type": "boolean",
+            "default": false
+          },
           "isPinned": {
             "type": "boolean",
             "default": false
@@ -7032,6 +7036,7 @@
           "userId",
           "title",
           "defaultMode",
+          "includeAllWorkspaces",
           "isPinned",
           "createdAt",
           "updatedAt"
@@ -7044,6 +7049,11 @@
             "type": "string",
             "example": "Sprint Architecture Q&A",
             "maxLength": 200
+          },
+          "includeAllWorkspaces": {
+            "type": "boolean",
+            "description": "Use context across all accessible projects for this chat",
+            "default": false
           },
           "defaultMode": {
             "type": "string",
@@ -7070,6 +7080,10 @@
           },
           "isPinned": {
             "type": "boolean"
+          },
+          "includeAllWorkspaces": {
+            "type": "boolean",
+            "description": "Retrieve context across all accessible projects"
           }
         }
       },

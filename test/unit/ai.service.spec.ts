@@ -154,8 +154,16 @@ describe('AiService', () => {
         userId: mockUserId,
         title: 'Q&A on sprint',
         defaultMode: AiMode.DEVELOPER,
+        includeAllWorkspaces: false,
       });
       expect(result.id).toBe('conv-1');
+    });
+
+    it('persists all-project scope when creating a standalone chat', async () => {
+      const result = await service.createConversation(mockProjectId, mockUserId, {
+        includeAllWorkspaces: true,
+      });
+      expect(result.includeAllWorkspaces).toBe(true);
     });
 
     it('throws NotFoundException when project does not exist', async () => {
@@ -190,6 +198,42 @@ describe('AiService', () => {
   });
 
   describe('postMessage', () => {
+    it('uses durable all-project scope on later turns even when a client omits or sends false', async () => {
+      const conv = {
+        id: 'conv-1',
+        projectId: mockProjectId,
+        userId: mockUserId,
+        title: 'Workspace chat',
+        defaultMode: AiMode.WORKSPACE,
+        includeAllWorkspaces: true,
+      };
+      mockConversationRepo.findOne.mockResolvedValue(conv);
+      mockProjectMemberRepo.find.mockResolvedValue([
+        { projectId: mockProjectId },
+        { projectId: 'other-member-project' },
+      ]);
+      mockLlmProvider.generateAnswer.mockResolvedValue({
+        content: 'Done',
+        citations: [],
+        modelName: 'test',
+        promptTokens: 1,
+        completionTokens: 1,
+      });
+      await service.postMessage(mockProjectId, mockUserId, conv.id, {
+        content: 'Compare project context',
+      });
+      await service.postMessage(mockProjectId, mockUserId, conv.id, {
+        content: 'Continue',
+        includeAllWorkspaces: false,
+      });
+      expect(mockRetrievalService.retrieve).toHaveBeenCalledTimes(2);
+      for (const [params] of mockRetrievalService.retrieve.mock.calls) {
+        expect(params.projectIds).toEqual([mockProjectId, 'other-member-project']);
+        expect(params.actorId).toBe(mockUserId);
+      }
+      expect(conv.includeAllWorkspaces).toBe(true);
+    });
+
     it('identifies retrieval failure without exposing database details or invoking the model', async () => {
       mockConversationRepo.findOne.mockResolvedValue({
         id: 'conv-1',

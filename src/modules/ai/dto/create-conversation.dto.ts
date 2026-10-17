@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import { AiMode } from '../entities/conversation.entity';
 
 export class CreateConversationDto {
@@ -8,6 +8,14 @@ export class CreateConversationDto {
   @IsString()
   @MaxLength(200)
   title?: string;
+
+  @ApiPropertyOptional({
+    description: 'Use context across all accessible projects for this chat',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  includeAllWorkspaces?: boolean;
 
   @ApiPropertyOptional({ enum: AiMode, default: AiMode.PM })
   @IsOptional()

@@ -41,6 +41,9 @@ export class Conversation {
   @Column({ name: 'default_mode', type: 'varchar', length: 50, default: AiMode.PM })
   defaultMode!: AiMode;
 
+  @Column({ name: 'include_all_workspaces', type: 'boolean', default: false })
+  includeAllWorkspaces!: boolean;
+
   @Column({ name: 'is_pinned', type: 'boolean', default: false })
   isPinned!: boolean;
 

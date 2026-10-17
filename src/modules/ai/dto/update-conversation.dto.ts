@@ -14,4 +14,9 @@ export class UpdateConversationDto {
   @ValidateIf((_object, value: unknown) => value !== undefined)
   @IsBoolean()
   isPinned?: boolean;
+
+  @ApiPropertyOptional({ description: 'Retrieve context across all accessible projects' })
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsBoolean()
+  includeAllWorkspaces?: boolean;
 }

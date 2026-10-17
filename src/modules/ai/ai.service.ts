@@ -75,6 +75,7 @@ export class AiService implements OnModuleInit {
       userId,
       title: dto.title?.trim() || 'New Conversation',
       defaultMode: dto.defaultMode || AiMode.PM,
+      includeAllWorkspaces: dto.includeAllWorkspaces ?? false,
     });
 
     return this.conversationRepo.save(conversation);
@@ -115,9 +116,11 @@ export class AiService implements OnModuleInit {
     dto: UpdateConversationDto,
   ): Promise<Conversation> {
     await this.getConversation(projectId, userId, id);
-    const changes: { title?: string; isPinned?: boolean } = {};
+    const changes: { title?: string; isPinned?: boolean; includeAllWorkspaces?: boolean } = {};
     if (dto.title !== undefined) changes.title = dto.title;
     if (dto.isPinned !== undefined) changes.isPinned = dto.isPinned;
+    if (dto.includeAllWorkspaces !== undefined)
+      changes.includeAllWorkspaces = dto.includeAllWorkspaces;
     if (Object.keys(changes).length)
       await this.conversationRepo.update({ id, projectId, userId, deletedAt: IsNull() }, changes);
     return this.getConversation(projectId, userId, id);
@@ -189,10 +192,12 @@ export class AiService implements OnModuleInit {
       conversation.title = trimmed.length > 50 ? `${trimmed.substring(0, 47)}...` : trimmed;
     }
     conversation.updatedAt = new Date();
+    // Persist legacy all-project requests; later turns retain this scope without browser state.
+    if (dto.includeAllWorkspaces === true) conversation.includeAllWorkspaces = true;
     await this.conversationRepo.save(conversation);
 
     // Determine target project scope
-    const includeAllWorkspaces = !!dto.includeAllWorkspaces;
+    const includeAllWorkspaces = conversation.includeAllWorkspaces === true;
     let targetProjectIds = [projectId];
     if (includeAllWorkspaces) {
       const user = await this.userRepo.findOne({ where: { id: userId } });

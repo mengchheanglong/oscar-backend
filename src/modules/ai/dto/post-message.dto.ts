@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { AiMode } from '../entities/conversation.entity';
 import { KnowledgeSourceType } from '../../ingestion/entities';
 
@@ -26,5 +26,6 @@ export class PostMessageDto {
     default: false,
   })
   @IsOptional()
+  @IsBoolean()
   includeAllWorkspaces?: boolean;
 }

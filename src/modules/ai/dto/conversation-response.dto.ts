@@ -18,6 +18,9 @@ export class ConversationResponseDto {
   defaultMode!: AiMode;
 
   @ApiProperty({ default: false })
+  includeAllWorkspaces!: boolean;
+
+  @ApiProperty({ default: false })
   isPinned!: boolean;
 
   @ApiProperty({ example: '2026-09-16T10:00:00.000Z' })
@@ -33,6 +36,7 @@ export class ConversationResponseDto {
       userId: conversation.userId,
       title: conversation.title,
       isPinned: conversation.isPinned ?? false,
+      includeAllWorkspaces: conversation.includeAllWorkspaces ?? false,
       defaultMode: conversation.defaultMode,
       createdAt:
         conversation.createdAt instanceof Date

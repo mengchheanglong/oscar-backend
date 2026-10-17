@@ -124,22 +124,26 @@ describe('Conversation history recall and privacy with PostgreSQL', () => {
     expect(saved).toMatchObject({ icon: '📈', instructions: 'Use scenarios.' });
     const scope = await conversation();
     const repo = db.getRepository(Conversation);
-    expect((await repo.findOneByOrFail({ id: scope.conversationId })).isPinned).toBe(false);
+    expect(await repo.findOneByOrFail({ id: scope.conversationId })).toMatchObject({
+      isPinned: false,
+      includeAllWorkspaces: false,
+    });
     expect(
       (
         await repo.update(
           { id: scope.conversationId, projectId: project.id, userId: other.id },
-          { title: 'Forbidden', isPinned: true },
+          { title: 'Forbidden', isPinned: true, includeAllWorkspaces: true },
         )
       ).affected,
     ).toBe(0);
     await repo.update(
       { id: scope.conversationId, projectId: project.id, userId: user.id },
-      { title: 'Pricing research', isPinned: true },
+      { title: 'Pricing research', isPinned: true, includeAllWorkspaces: true },
     );
     expect(await repo.findOneByOrFail({ id: scope.conversationId })).toMatchObject({
       title: 'Pricing research',
       isPinned: true,
+      includeAllWorkspaces: true,
     });
     await db.getRepository(Project).update(project.id, { icon: null, instructions: null });
   });

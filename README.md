@@ -330,3 +330,9 @@ the saved report. Reviewed proposals still require explicit product confirmation
 Apply the new migration before starting the updated backend. See
 [Unified Copilot](docs/UNIFIED_COPILOT.md) for persistence, privacy, legacy API
 compatibility, context bounds and verification.
+
+Standalone chats retain their all-project context in conversation metadata. Apply
+`ConversationWorkspaceScope1792368000001` with the explicit migration command
+before starting this backend revision. The private chat remains in its existing
+storage project; broader context means permitted project knowledge, not broader
+access to another user's private conversation or memory.
