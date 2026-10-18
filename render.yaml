@@ -3,7 +3,7 @@ services:
   # Continuum Backend (NestJS + Express)
   # ==============================================================================
   - type: web
-    name: continuum-backend
+    name: oscar-backend
     runtime: node
     plan: free
     region: singapore
@@ -16,7 +16,7 @@ services:
       - key: HOST
         value: 0.0.0.0
       - key: APP_ORIGIN
-        sync: false # Set to your frontend URL (e.g., https://continuum-frontend.onrender.com)
+        sync: false # Set to your frontend URL (e.g., https://oscar-frontend.onrender.com)
       - key: DATABASE_URL
         sync: false # Set to your Supabase PostgreSQL connection string (pooler)
       - key: REDIS_URL

@@ -58,7 +58,7 @@ Retrieved excerpts also carry canonical saved-message sequence numbers. Relevanc
 ranking does not imply chronology; normal chat presents selected excerpts in saved
 order and explains how later user statements can update a personal detail. This
 metadata is read from canonical messages, so no vector re-index or migration is
-required. See the [English answer evaluation](HISTORY_ANSWER_EVALUATION.md).
+required. See the [English answer evaluation](../evaluation/HISTORY_ANSWER_EVALUATION.md).
 
 ## Configuration and explicit indexing
 
@@ -117,6 +117,6 @@ when returned, request/input counts and measured retrieval latency. It does not
 infer currency cost. The synthetic mode uses oracle vectors and only verifies
 mechanics; it cannot establish embedding quality. No generation calls are made.
 
-See [measured evaluation](HISTORY_RECALL_EVALUATION.md) for the calibration and
+See [measured evaluation](../evaluation/HISTORY_RECALL_EVALUATION.md) for the calibration and
 held-out results, remaining misses and practical limits. The guide records actual
 regression checks, local migration/indexing and activation status.

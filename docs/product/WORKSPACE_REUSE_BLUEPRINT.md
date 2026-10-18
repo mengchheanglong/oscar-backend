@@ -94,7 +94,7 @@ services or adds permissions. Keep the existing generation provider contract;
 using runtime architecture does not authorize changing the configured model.
 
 The user selected Hermes for the bounded integration trial. The direct Python
-adapter and run lifecycle are implemented; see [HERMES_RUNTIME.md](HERMES_RUNTIME.md)
+adapter and run lifecycle are implemented; see [HERMES_RUNTIME.md](../architecture/HERMES_RUNTIME.md)
 for the verified revision, tool contract and release limitations. The existing
 Paperclip OpenClaw gateway adapter and mc-operator dispatch remain architecture
 references. Current
@@ -169,7 +169,7 @@ and real DeepSeek V4 Pro execution produced a saved AIW report and pending task
 draft. Cancellation persistence and stable creation retries passed. The next
 step is human review of that artifact/draft and additional approved tools driven
 by real work. Production Python packaging, public deployment and environment-
-specific acceptance remain separate work. See [HERMES_RUNTIME.md](HERMES_RUNTIME.md).
+specific acceptance remain separate work. See [HERMES_RUNTIME.md](../architecture/HERMES_RUNTIME.md).
 
 Add a skill registry or explicit concept graph only when those work flows need
 it. Finance, economics and business are working domains, not mandatory tutoring

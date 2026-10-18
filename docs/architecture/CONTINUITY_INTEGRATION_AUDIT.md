@@ -14,7 +14,7 @@ before this audit. Continuity source was inspected at
 This is a focused inspection of memory, retrieval, context, provider boundaries,
 runtime integration and associated tests, not a full security audit.
 
-The [reuse blueprint](WORKSPACE_REUSE_BLUEPRINT.md) establishes product ownership.
+The [reuse blueprint](../product/WORKSPACE_REUSE_BLUEPRINT.md) establishes product ownership.
 The [runtime guide](HERMES_RUNTIME.md) explains the existing direct Hermes bridge.
 Current source, rather than historical completion claims, informs the findings
 below. No real environment files, credentials, transcripts or database records

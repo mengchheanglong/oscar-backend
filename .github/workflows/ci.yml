@@ -38,5 +38,5 @@ jobs:
       - run: pnpm test:integration
       - run: pnpm build
       - run: pnpm openapi:generate
-      - run: git diff --exit-code -- docs/openapi.json
-      - run: docker build -t continuum-backend:ci .
+      - run: git diff --exit-code -- docs/api/openapi.json
+      - run: docker build -t oscar-backend:ci .

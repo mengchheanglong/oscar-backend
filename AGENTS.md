@@ -36,14 +36,14 @@
 
 - For code changes run `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, and `pnpm build` as appropriate.
 - For database/bootstrap changes also run `pnpm db:test:up` and `pnpm test:integration`. This uses a dedicated test database; never point tests at the development database.
-- For HTTP contract changes run `pnpm openapi:generate`; inspect `docs/openapi.json` and add behavior tests.
+- For HTTP contract changes run `pnpm openapi:generate`; inspect `docs/api/openapi.json` and add behavior tests.
 - Run `pnpm format:check` before handoff. Use meaningful tests for access isolation, failure handling, transactions, and retries; do not add implementation-mirroring tests just to increase counts.
 - Update the guide's progress ledger with checks actually run and limitations. Never label mocked, planned, or unverified functionality complete.
 - Summarize the outcome, verification, and next milestone. Do not commit, push, provision paid services, or deploy publicly unless that work is requested.
 
 ## Local environment
 
-- Local development and manual testing use `ai_workspace_develop` on `127.0.0.1:55432`, with the local frontend on port 3002 and backend on port 3001. Do not point local tests or this development server at the deployment database. Keep deployment configuration separate; do not copy its records into local testing or run demo seeds. See `docs/LOCAL_DEVELOPMENT.md`.
+- Local development and manual testing use `ai_workspace_develop` on `127.0.0.1:55432`, with the local frontend on port 3002 and backend on port 3001. Do not point local tests or this development server at the deployment database. Keep deployment configuration separate; do not copy its records into local testing or run demo seeds. See `docs/operations/LOCAL_DEVELOPMENT.md`.
 
 - Node version is pinned in `.node-version`; pnpm is pinned in `package.json`.
 - API defaults to `http://localhost:3000`; development PostgreSQL uses `127.0.0.1:55432`; test PostgreSQL uses `127.0.0.1:55433`.

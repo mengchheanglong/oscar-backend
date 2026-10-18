@@ -2,7 +2,7 @@
 
 ## 1. System Overview & Deployment Topology
 
-The **Continuum Backend** is a workspace engine built with **NestJS**, **TypeScript**, **Express**, and **PostgreSQL** with **pgvector**. It provides projects, decisions, tasks, documents, grounded AI chat, and reviewed task proposals. Meetings, Requirements, and Dashboard APIs are retired; their historical database migrations remain for compatibility. See [feature retirement](FEATURE_RETIREMENT.md).
+The **Continuum Backend** is a workspace engine built with **NestJS**, **TypeScript**, **Express**, and **PostgreSQL** with **pgvector**. It provides projects, decisions, tasks, documents, grounded AI chat, and reviewed task proposals. Meetings, Requirements, and Dashboard APIs are retired; their historical database migrations remain for compatibility. See [feature retirement](../product/FEATURE_RETIREMENT.md).
 
 ### 1.1 Architecture Topology
 
@@ -334,4 +334,4 @@ curl "http://localhost:3000/api/v1/projects/$PROJECT_ID/tasks" \
   -b "aiws_session=$SESSION_COOKIE"
 ```
 
-_Verify: The confirmed tasks appear in the project task list. Meetings, Requirements, and Dashboard routes are retired; see [feature retirement](FEATURE_RETIREMENT.md) for compatibility details._
+_Verify: The confirmed tasks appear in the project task list. Meetings, Requirements, and Dashboard routes are retired; see [feature retirement](../product/FEATURE_RETIREMENT.md) for compatibility details._

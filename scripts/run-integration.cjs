@@ -29,6 +29,9 @@ const result = spawnSync(
     '--selectProjects',
     'integration',
     '--runInBand',
+    // Jest consumes this from its global config, not the nested project config.
+    '--testTimeout',
+    '30000',
   ],
   {
     stdio: 'inherit',

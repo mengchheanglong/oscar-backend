@@ -1,7 +1,14 @@
-# Running Continuum locally
+# Running OSCAR locally
 
-Keep `continuum-frontend` and `continuum-backend` beside each other. Run Compose
-commands from `continuum-backend`. Docker Desktop must be running.
+Keep `oscar-frontend` and `oscar-backend` beside each other. Run Compose
+commands from `oscar-backend`. Docker Desktop must be running.
+
+The repositories were renamed from Continuum on 18 October 2026. Existing local
+folders can retain the `continuum-*` names: set `OSCAR_FRONTEND_PATH=../continuum-frontend`
+in the ignored backend `.env` for that layout. The Compose project name remains
+`continuum-backend` deliberately so its existing containers and volumes remain
+associated with the same application. New image tags use `oscar-backend:local`
+and `oscar-frontend:local`; rebuild them with `pnpm stack:up` before app startup.
 
 ## Development with Hermes
 

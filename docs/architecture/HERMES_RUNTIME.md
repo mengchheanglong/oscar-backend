@@ -1,7 +1,7 @@
 # Hermes runtime integration
 
 Current local testing uses the isolated `ai_workspace_develop` database. See
-[Isolated local development](LOCAL_DEVELOPMENT.md) for startup, account and MCP
+[Isolated local development](../operations/LOCAL_DEVELOPMENT.md) for startup, account and MCP
 configuration. The real-provider acceptance record below is historical: it ran
 before this database switch, and its report/proposal were not copied locally.
 
@@ -25,11 +25,11 @@ copilot to start a separate, private project run and inspect its report.
 - Seven tools: `search_project_evidence`, `calculate_pricing`,
   `request_task_review`, `list_local_folders`, `list_local_files`,
   `search_local_files`, and `read_local_file`. The four filesystem tools use
-  optional local connections described in [Live folders](LIVE_FOLDERS.md). Authorization is checked before each tool and before
+  optional local connections described in [Live folders](../operations/LIVE_FOLDERS.md). Authorization is checked before each tool and before
   committing a result. Search is restricted to one active project; reviewed
   private memories belong to that actor/project.
 - A task request stages one draft linked to an existing same-project
-  requirement. On success, the report and a pending proposal save atomically.
+  decision. On success, the report and a pending proposal save atomically.
   The existing proposal review/confirmation service enforces role permissions,
   privacy, source versions, expiration and transactional/idempotent task creation.
   No agent tool can confirm a proposal or create a task directly.
@@ -56,7 +56,7 @@ sessions or memory into the dedicated checkout. The Python interpreter must have
 Hermes dependencies; the bridge imports source from `HERMES_ROOT` explicitly.
 
 For the current Windows machine, a clean dedicated checkout was prepared at
-`C:\Users\User\Internship\ai-workspace-runtime\hermes-agent`. Its import/protocol
+`C:\Users\User\study-workspace\OSCAR\runtimes\hermes-agent`. Its import/protocol
 probe passed using the already prepared interpreter at
 `C:\Users\User\AppData\Local\hermes\hermes-agent\.venv\Scripts\python.exe`.
 The personal installation was not changed. These are machine-specific paths,

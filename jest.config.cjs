@@ -13,7 +13,6 @@ module.exports = {
       ...base,
       displayName: 'integration',
       testMatch: ['<rootDir>/test/integration/**/*.spec.ts'],
-      testTimeout: 30000,
     },
   ],
 };

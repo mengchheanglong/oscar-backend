@@ -1,7 +1,7 @@
 # Query-based private memory
 
 Implemented 2026-10-14 as the first slice of the
-[Continuity integration](CONTINUITY_INTEGRATION_AUDIT.md).
+[Continuity integration](../architecture/CONTINUITY_INTEGRATION_AUDIT.md).
 
 Normal Copilot chat and Hermes Agent work now use the same private-memory
 selector. It searches all eligible reviewed memories in the owning project,

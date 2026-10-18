@@ -1,8 +1,8 @@
 {
-  "name": "continuum-backend",
+  "name": "oscar-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "Continuum API, project knowledge, and agent runtime",
+  "description": "OSCAR API, project knowledge, and agent runtime built on Continuum",
   "license": "UNLICENSED",
   "packageManager": "pnpm@10.32.1",
   "engines": {
@@ -12,6 +12,7 @@
   "scripts": {
     "dev": "node --watch --watch-path=src -r ts-node/register src/main.ts",
     "build": "tsc -p tsconfig.build.json",
+    "verify:foundation": "node scripts/verify-foundation.cjs",
     "start:prod": "node dist/main.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

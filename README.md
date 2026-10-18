@@ -1,12 +1,36 @@
-# Continuum — Backend
+# OSCAR — Backend
+
+## Current product plan: OSCAR & MAVIS
+
+The [OSCAR & MAVIS vision and architecture](docs/product/OSCAR_MAVIS_Vision_and_Architecture.md)
+is the new product direction supplied on 18 October 2026. OSCAR is the personal,
+goal-driven AI Chief of Staff; MAVIS is its shared memory and continuity system.
+The existing Continuum frontend and backend remain the engineering foundation.
+
+Start with the [Phase 0 foundation](docs/product/OSCAR_MAVIS_FOUNDATION.md) for the current
+baseline, system boundaries, known gaps, and repeatable cross-repository checks:
+`pnpm verify:foundation` (add `--integration` for the isolated local database).
+
+Use the blueprint's [implementation roadmap](docs/product/OSCAR_MAVIS_Vision_and_Architecture.md#15-implementation-roadmap)
+for new planning, beginning with Phase 0: preserve and verify the current baseline.
+Its [first MVP](docs/product/OSCAR_MAVIS_Vision_and_Architecture.md#16-the-first-mvp-i-would-actually-build)
+connects a real goal, approved memory, and one supervised external agent workflow.
+Goals, Paperclip/T3 integrations, and expanded MAVIS capabilities described there
+are planned work, not claims of existing functionality. The inherited implementation
+guide remains a record of the foundation and its verification history.
+
+The [documentation map](docs/README.md) groups the product, architecture, memory,
+evaluation, operations, and API references by topic.
+
+## Existing foundation
 
 Current scope: Meetings, Requirements, and Dashboard functionality have been
-retired. See [feature retirement](docs/FEATURE_RETIREMENT.md) for removed API/MCP
+retired. See [feature retirement](docs/product/FEATURE_RETIREMENT.md) for removed API/MCP
 contracts, preserved data, and verification. This supersedes the inherited
 foundation-era feature inventory below.
 
 For host development and the full Docker app, see
-[Running Continuum locally](docs/DOCKER_LOCAL.md). The Docker app profile includes
+[Running Continuum locally](docs/operations/DOCKER_LOCAL.md). The Docker app profile includes
 the sibling frontend repository and uses ports 3002 (web) and 3001 (API).
 
 Continuum is a personal, chat-first workspace for business, finance, research,
@@ -14,20 +38,22 @@ project files, tasks, decisions, and AI-assisted work. This is an independent
 repository derived from AI Workspace's develop branch, with its Git history
 preserved. The original AI Workspace repositories remain separate.
 
-- Frontend: https://github.com/mengchheanglong/continuum-frontend
-- Backend: https://github.com/mengchheanglong/continuum-backend
-- Working and default branch: `develop`.
+- Frontend: https://github.com/mengchheanglong/oscar-frontend
+- Backend: https://github.com/mengchheanglong/oscar-backend
+- Working branch: `develop`; GitHub default branch: `main`.
 - Local frontend: `http://localhost:3002`; local API: `http://127.0.0.1:3001`.
 - Environment files, access tokens, uploaded content, and machine MCP settings
   stay local and are not part of this repository.
 
 The inherited implementation guide and verification notes describe the original
-foundation. Continuum's current direction is the personal workspace above.
+foundation. The OSCAR & MAVIS blueprint above defines the new product direction.
 Legacy `aiw_*` storage keys, API environment names, database migration identifiers,
 and the existing isolated development database remain compatible with current
 local data. Repository branding changes do not migrate or reset that data.
 
-NestJS backend foundation for the two-phase Continuum. Start with [AGENTS.md](AGENTS.md) for coding instructions and [PROJECT_IMPLEMENTATION_GUIDE.md](PROJECT_IMPLEMENTATION_GUIDE.md) for the complete roadmap.
+NestJS backend foundation for Continuum. Read the OSCAR & MAVIS blueprint for the
+current plan and [PROJECT_IMPLEMENTATION_GUIDE.md](PROJECT_IMPLEMENTATION_GUIDE.md)
+for the inherited architecture, API conventions, and implementation history.
 
 ## What exists
 
@@ -47,31 +73,31 @@ a current feature-status inventory.
 AI uses the existing configured DeepSeek provider/model. Embeddings have separate
 settings. Optional Hermes execution remains disabled by default and needs a
 prepared Python/source environment plus explicit database migrations. See
-[Hermes runtime setup](docs/HERMES_RUNTIME.md); the Node-only Docker image does
+[Hermes runtime setup](docs/architecture/HERMES_RUNTIME.md); the Node-only Docker image does
 not bundle Hermes. The current local environment is enabled and passed a real
 DeepSeek V4 Pro workflow; production runtime packaging/deployment remains pending.
 
 Normal chat supports bounded history and durable conversation summaries. Apply
 the explicit context migration before running the updated backend; see
-[conversation context](docs/CONVERSATION_CONTEXT.md) for the budget, connection
+[conversation context](docs/memory/CONVERSATION_CONTEXT.md) for the budget, connection
 requirements, and rollout status. The budget uses conservative byte estimates,
 not an exact DeepSeek token count.
 
 Older private dialogue can also be retrieved within the owning user/project.
-[History recall and exclusions](docs/CONVERSATION_HISTORY_RECALL.md) explains the
+[History recall and exclusions](docs/memory/CONVERSATION_HISTORY_RECALL.md) explains the
 retrieval, exclusion control, dependency invalidation and required migrations.
-Optional [semantic history recall](docs/SEMANTIC_HISTORY_RECALL.md) adds compatible
+Optional [semantic history recall](docs/memory/SEMANTIC_HISTORY_RECALL.md) adds compatible
 pgvector embeddings through explicit bounded indexing or optional
-[automatic history indexing](docs/AUTOMATIC_HISTORY_INDEXING.md) with persistent
+[automatic history indexing](docs/memory/AUTOMATIC_HISTORY_INDEXING.md) with persistent
 daily limits and retries. Read the
-[evaluation results](docs/HISTORY_RECALL_EVALUATION.md) for measured gains and limits.
-The [English answer evaluation](docs/HISTORY_ANSWER_EVALUATION.md) checks actual
+[evaluation results](docs/evaluation/HISTORY_RECALL_EVALUATION.md) for measured gains and limits.
+The [English answer evaluation](docs/evaluation/HISTORY_ANSWER_EVALUATION.md) checks actual
 generated answers, including corrections, exclusions, private scope and compaction.
 
 ## Prerequisites
 
 For current manual testing on develop, use the separate local database and server
-targets in [Isolated local development](docs/LOCAL_DEVELOPMENT.md). Local testing
+targets in [Isolated local development](docs/operations/LOCAL_DEVELOPMENT.md). Local testing
 must not use the deployment database.
 
 Team is scoped to yourself and active collaborators sharing a project. Pending
@@ -80,7 +106,7 @@ Inviting a system administrator requires an administrator account.
 
 Read-only local folder sources are available through Documents. Selected text is
 indexed privately for the owning account and project; original files remain on
-the user's computer. See [folder sources](docs/LOCAL_FOLDER_SOURCES.md) for the
+the user's computer. See [folder sources](docs/operations/LOCAL_FOLDER_SOURCES.md) for the
 browser connector, data transfer, rescan/disconnect workflow, and limits.
 
 - Node.js **24.14.0**, as pinned in `.node-version`.
@@ -145,7 +171,7 @@ Compose is a **local demo/development configuration**: credentials are public lo
 | `pnpm test:integration`                      | Real PostgreSQL/pgvector migration tests                          |
 | `pnpm migration:run` / `pnpm migration:show` | Explicitly apply/list development migrations                      |
 | `pnpm migration:run:prod`                    | Apply compiled migrations in release environment                  |
-| `pnpm openapi:generate`                      | Write `docs/openapi.json` without database or API keys            |
+| `pnpm openapi:generate`                      | Write `docs/api/openapi.json` without database or API keys        |
 
 To generate a migration after editing entities:
 
@@ -188,7 +214,7 @@ src/
   openapi.ts
 scripts/                     # Offline OpenAPI and guarded integration runner
 test/{unit,e2e,integration}/
-docs/openapi.json             # Actual generated contract
+docs/api/openapi.json             # Actual generated contract
 .github/workflows/ci.yml
 ```
 
@@ -244,7 +270,7 @@ retries; edits/removals use the current version. Restart MCP clients after a
 rebuild. Removed memories stop appearing in saved context; existing messages
 are retained.
 
-See [the reuse blueprint](docs/WORKSPACE_REUSE_BLUEPRINT.md) for the inspected
+See [the reuse blueprint](docs/product/WORKSPACE_REUSE_BLUEPRINT.md) for the inspected
 source revisions, memory responsibilities, and next runtime integration.
 OpenClaw, Hermes, Paperclip, and Langflow are references/integration candidates;
 this slice does not install or connect their runtimes.
@@ -347,7 +373,7 @@ Copilot now uses one general assistant and one conversation surface. Select
 Progress and reports remain in that thread; ordinary follow-up questions can use
 the saved report. Reviewed proposals still require explicit product confirmation.
 Apply the new migration before starting the updated backend. See
-[Unified Copilot](docs/UNIFIED_COPILOT.md) for persistence, privacy, legacy API
+[Unified Copilot](docs/architecture/UNIFIED_COPILOT.md) for persistence, privacy, legacy API
 compatibility, context bounds and verification.
 
 Standalone chats retain their all-project context in conversation metadata. Apply

@@ -144,7 +144,7 @@ if (require.main === module) {
   void generateOpenApiDocument()
     .then(async (document) => {
       await mkdir('docs', { recursive: true });
-      await writeFile('docs/openapi.json', `${JSON.stringify(document, null, 2)}\n`);
+      await writeFile('docs/api/openapi.json', `${JSON.stringify(document, null, 2)}\n`);
     })
     .catch(() => {
       process.stderr.write('OpenAPI generation failed.\n');
