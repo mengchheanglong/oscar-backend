@@ -43,16 +43,6 @@ export class CreateTaskDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'dueDate must be in YYYY-MM-DD format' })
   dueDate?: string;
 
-  @ApiPropertyOptional({ description: 'UUID of linked requirement in same project' })
-  @IsOptional()
-  @IsUUID()
-  requirementId?: string;
-
-  @ApiPropertyOptional({ description: 'UUID of source meeting in same project' })
-  @IsOptional()
-  @IsUUID()
-  sourceMeetingId?: string;
-
   @ApiPropertyOptional({
     example: 'Waiting on Phase 2 scope decision',
     description: 'Reason why the task is blocked',

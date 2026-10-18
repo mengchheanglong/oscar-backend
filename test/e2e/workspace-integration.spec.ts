@@ -1,3 +1,4 @@
+import { Priority } from '../../src/common/enums/priority.enum';
 import 'reflect-metadata';
 import { Global, INestApplication, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -10,12 +11,9 @@ import { configureApp } from '../../src/common/configure-app';
 import { AuthModule } from '../../src/modules/auth/auth.module';
 import { UsersModule } from '../../src/modules/users/users.module';
 import { ProjectsModule } from '../../src/modules/projects/projects.module';
-import { RequirementsModule } from '../../src/modules/requirements/requirements.module';
 import { DecisionsModule } from '../../src/modules/decisions/decisions.module';
 import { TasksModule } from '../../src/modules/tasks/tasks.module';
-import { MeetingsModule } from '../../src/modules/meetings/meetings.module';
 import { DocumentsModule } from '../../src/modules/documents/documents.module';
-import { DashboardModule } from '../../src/modules/dashboard/dashboard.module';
 import { SearchModule } from '../../src/modules/search/search.module';
 import { AuditModule } from '../../src/modules/audit/audit.module';
 import { User, SystemRole, ProfessionalRole } from '../../src/modules/users/entities/user.entity';
@@ -26,23 +24,15 @@ import {
   ProjectRole,
 } from '../../src/modules/projects/entities/project-member.entity';
 import { AuditLog } from '../../src/modules/audit/entities/audit-log.entity';
-import {
-  Requirement,
-  RequirementStatus,
-  Priority,
-} from '../../src/modules/requirements/entities/requirement.entity';
-import { RequirementRevision } from '../../src/modules/requirements/entities/requirement-revision.entity';
 import { Decision, DecisionStatus } from '../../src/modules/decisions/entities/decision.entity';
 import { DecisionRevision } from '../../src/modules/decisions/entities/decision-revision.entity';
 import { Task, TaskStatus } from '../../src/modules/tasks/entities/task.entity';
-import { Meeting } from '../../src/modules/meetings/entities/meeting.entity';
-import { MeetingAttendee } from '../../src/modules/meetings/entities/meeting-attendee.entity';
 import { Document, ProcessingStatus } from '../../src/modules/documents/entities/document.entity';
 import { DocumentRevision } from '../../src/modules/documents/entities/document-revision.entity';
 import { STORAGE_DRIVER } from '../../src/modules/storage/storage.interface';
 import { PasswordService } from '../../src/modules/auth/services/password.service';
 
-describe('Workspace Integration API - Dashboard & Search (E2E)', () => {
+describe('Workspace search API (E2E)', () => {
   let app: INestApplication;
   let passwordService: PasswordService;
 
@@ -51,11 +41,8 @@ describe('Workspace Integration API - Dashboard & Search (E2E)', () => {
   const projects: Project[] = [];
   const projectMembers: ProjectMember[] = [];
   const auditLogs: AuditLog[] = [];
-  const requirements: Requirement[] = [];
   const decisions: Decision[] = [];
   const tasks: Task[] = [];
-  const meetings: Meeting[] = [];
-  const meetingAttendees: MeetingAttendee[] = [];
   const documents: Document[] = [];
 
   // ── Mock repositories ─────────────────────────────────────────────
@@ -263,32 +250,6 @@ describe('Workspace Integration API - Dashboard & Search (E2E)', () => {
     }),
   };
 
-  const mockRequirementRepository = {
-    find: jest.fn(async (opts?: FindManyOptions<Requirement>) => {
-      const where = opts?.where as { projectId?: string };
-      return requirements.filter(
-        (r) => (!where?.projectId || r.projectId === where.projectId) && !r.deletedAt,
-      );
-    }),
-    createQueryBuilder: jest.fn(() => {
-      let filterStatus: string | undefined;
-      const builder: MockE2EQueryBuilder<Requirement> = {
-        leftJoinAndSelect: jest.fn(() => builder),
-        where: jest.fn(() => builder),
-        andWhere: jest.fn((_clause: string, params?: Record<string, unknown>) => {
-          if (params?.status) filterStatus = String(params.status);
-          return builder;
-        }),
-        getMany: jest.fn(async () => {
-          return requirements
-            .filter((r) => !r.deletedAt)
-            .filter((r) => !filterStatus || r.status === filterStatus);
-        }),
-      };
-      return builder;
-    }),
-  };
-
   const mockDecisionRepository = {
     createQueryBuilder: jest.fn(() => {
       let filterStatus: string | undefined;
@@ -304,18 +265,6 @@ describe('Workspace Integration API - Dashboard & Search (E2E)', () => {
             .filter((d) => !d.deletedAt)
             .filter((d) => !filterStatus || d.status === filterStatus);
         }),
-      };
-      return builder;
-    }),
-  };
-
-  const mockMeetingRepository = {
-    createQueryBuilder: jest.fn(() => {
-      const builder: MockE2EQueryBuilder<Meeting> = {
-        leftJoinAndSelect: jest.fn(() => builder),
-        where: jest.fn(() => builder),
-        andWhere: jest.fn(() => builder),
-        getMany: jest.fn(async () => meetings.filter((m) => !m.deletedAt)),
       };
       return builder;
     }),
@@ -378,9 +327,7 @@ describe('Workspace Integration API - Dashboard & Search (E2E)', () => {
       if (entity === ProjectMember) return mockProjectMemberRepository;
       if (entity === AuditLog) return mockAuditLogRepository;
       if (entity === Task) return mockTaskRepository;
-      if (entity === Requirement) return mockRequirementRepository;
       if (entity === Decision) return mockDecisionRepository;
-      if (entity === Meeting) return mockMeetingRepository;
       if (entity === Document) return mockDocumentRepository;
       return genericMockRepo;
     }),
@@ -416,12 +363,9 @@ describe('Workspace Integration API - Dashboard & Search (E2E)', () => {
         AuthModule,
         UsersModule,
         ProjectsModule,
-        RequirementsModule,
         DecisionsModule,
         TasksModule,
-        MeetingsModule,
         DocumentsModule,
-        DashboardModule,
         SearchModule,
         AuditModule,
       ],
@@ -436,20 +380,12 @@ describe('Workspace Integration API - Dashboard & Search (E2E)', () => {
       .useValue(mockProjectMemberRepository)
       .overrideProvider(getRepositoryToken(AuditLog))
       .useValue(mockAuditLogRepository)
-      .overrideProvider(getRepositoryToken(Requirement))
-      .useValue(mockRequirementRepository)
-      .overrideProvider(getRepositoryToken(RequirementRevision))
-      .useValue({ save: jest.fn(), find: jest.fn() })
       .overrideProvider(getRepositoryToken(Decision))
       .useValue(mockDecisionRepository)
       .overrideProvider(getRepositoryToken(DecisionRevision))
       .useValue({ save: jest.fn(), find: jest.fn() })
       .overrideProvider(getRepositoryToken(Task))
       .useValue(mockTaskRepository)
-      .overrideProvider(getRepositoryToken(Meeting))
-      .useValue(mockMeetingRepository)
-      .overrideProvider(getRepositoryToken(MeetingAttendee))
-      .useValue({ save: jest.fn(), find: jest.fn() })
       .overrideProvider(getRepositoryToken(Document))
       .useValue(mockDocumentRepository)
       .overrideProvider(getRepositoryToken(DocumentRevision))
@@ -490,11 +426,8 @@ describe('Workspace Integration API - Dashboard & Search (E2E)', () => {
     projects.length = 0;
     projectMembers.length = 0;
     auditLogs.length = 0;
-    requirements.length = 0;
     decisions.length = 0;
     tasks.length = 0;
-    meetings.length = 0;
-    meetingAttendees.length = 0;
     documents.length = 0;
 
     const hashedPassword = await passwordService.hash('Password123!');
@@ -590,45 +523,6 @@ describe('Workspace Integration API - Dashboard & Search (E2E)', () => {
       joinedAt: new Date(),
       removedAt: null,
     });
-
-    // Seed data in Project 1
-    // Requirements
-    requirements.push(
-      {
-        id: randomUUID(),
-        projectId: project1.id,
-        number: 1,
-        title: 'Authentication Module',
-        description: 'Session cookie handling',
-        acceptanceCriteria: 'Works on modern browsers',
-        status: RequirementStatus.APPROVED,
-        priority: Priority.HIGH,
-        sourceMeetingId: null,
-        createdBy: ownerUser.id,
-        updatedBy: ownerUser.id,
-        version: 1,
-        deletedAt: null,
-        createdAt: new Date(),
-        updatedAt: new Date('2026-09-15T12:00:00Z'),
-      },
-      {
-        id: randomUUID(),
-        projectId: project1.id,
-        number: 2,
-        title: 'Document Upload',
-        description: 'PDF uploads',
-        acceptanceCriteria: '20MB limit',
-        status: RequirementStatus.IN_PROGRESS,
-        priority: Priority.MEDIUM,
-        sourceMeetingId: null,
-        createdBy: ownerUser.id,
-        updatedBy: ownerUser.id,
-        version: 1,
-        deletedAt: null,
-        createdAt: new Date(),
-        updatedAt: new Date('2026-09-15T11:00:00Z'),
-      },
-    );
 
     // Decisions
     decisions.push({
@@ -751,26 +645,6 @@ describe('Workspace Integration API - Dashboard & Search (E2E)', () => {
       },
     );
 
-    // Meetings
-    meetings.push({
-      id: randomUUID(),
-      projectId: project1.id,
-      title: 'Weekly Standup',
-      startsAt: new Date('2026-09-15T09:00:00Z'),
-      endsAt: new Date('2026-09-15T09:30:00Z'),
-      agenda: 'Sync on progress',
-      notes: 'Good progress made',
-      transcriptText: 'All good',
-      transcriptVersion: 1,
-      summary: 'Standup completed',
-      createdBy: ownerUser.id,
-      updatedBy: ownerUser.id,
-      version: 1,
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date('2026-09-15T09:30:00Z'),
-    });
-
     // Documents
     documents.push({
       id: randomUUID(),
@@ -820,110 +694,17 @@ describe('Workspace Integration API - Dashboard & Search (E2E)', () => {
     );
   });
 
-  // ── Dashboard Tests ───────────────────────────────────────────────
-
-  describe('GET /projects/:projectId/dashboard', () => {
-    it('returns 404 for non-existent project', async () => {
-      const nonExistentId = randomUUID();
-      const res = await request(app.getHttpServer())
-        .get(`/api/v1/projects/${nonExistentId}/dashboard`)
-        .set('Cookie', ownerCookie);
-
-      expect(res.status).toBe(404);
-      expect(res.body.error?.code).toBe('PROJECT_NOT_FOUND');
-    });
-
-    it('returns 404 when non-member tries to access project dashboard (access isolation)', async () => {
-      const res = await request(app.getHttpServer())
-        .get(`/api/v1/projects/${project1.id}/dashboard`)
-        .set('Cookie', nonMemberCookie);
-
-      expect(res.status).toBe(404);
-      expect(res.body.error?.code).toBe('PROJECT_NOT_FOUND');
-    });
-
-    it('returns accurate dashboard aggregates, task progress calculation, and recent activity', async () => {
-      const res = await request(app.getHttpServer())
-        .get(`/api/v1/projects/${project1.id}/dashboard`)
-        .set('Cookie', ownerCookie);
-
-      expect(res.status).toBe(200);
-      const dashboard = res.body.data;
-
-      // Project metadata
-      expect(dashboard.project.id).toBe(project1.id);
-      expect(dashboard.project.key).toBe('AIW');
-      expect(dashboard.project.name).toBe('Alpha Workspace');
-
-      // Task progress formula: 2 DONE / (2 DONE + 1 TODO + 1 IN_PROGRESS = 4 total non-cancelled) = 50%
-      expect(dashboard.taskProgress).toEqual({
-        done: 2,
-        total: 4,
-        percentage: 50,
-        label: '50%',
-      });
-
-      // Status breakdown
-      expect(dashboard.taskCountsByStatus).toEqual({
-        TODO: 1,
-        IN_PROGRESS: 1,
-        IN_REVIEW: 0,
-        DONE: 2,
-        CANCELLED: 1,
-        BLOCKED: 0,
-      });
-
-      // Overdue tasks: only task 3 (status TODO, dueDate 2020-01-01)
-      expect(dashboard.overdueTasksCount).toBe(1);
-
-      // My assigned open tasks: task 3 (TODO) and task 4 (IN_PROGRESS)
-      expect(dashboard.myAssignedTasksCount).toBe(2);
-
-      // Requirement counts
-      expect(dashboard.requirementCountsByStatus).toEqual({
-        DRAFT: 0,
-        IN_REVIEW: 0,
-        APPROVED: 1,
-        IN_PROGRESS: 1,
-        DONE: 0,
-        ARCHIVED: 0,
-      });
-
-      // Recent activity
-      expect(dashboard.recentActivity).toHaveLength(2);
-      expect(dashboard.recentActivity[0]!.action).toBe('CREATE_TASK');
-      expect(dashboard.recentActivity[0]!.actor?.displayName).toBe('Alice Owner');
-    });
-  });
-
-  // ── Activity Stream Tests ─────────────────────────────────────────
-
-  describe('GET /projects/:projectId/activity', () => {
-    it('returns paginated activity stream for permitted project member', async () => {
-      const res = await request(app.getHttpServer())
-        .get(`/api/v1/projects/${project1.id}/activity?page=1&pageSize=10`)
-        .set('Cookie', ownerCookie);
-
-      expect(res.status).toBe(200);
-      expect(res.body.data).toHaveLength(2);
-      expect(res.body.meta).toEqual({
-        page: 1,
-        pageSize: 10,
-        total: 2,
-      });
-      expect(res.body.data[0]!.action).toBe('CREATE_TASK');
-    });
-
-    it('returns 404 for non-member user requesting activity', async () => {
-      const res = await request(app.getHttpServer())
-        .get(`/api/v1/projects/${project1.id}/activity`)
-        .set('Cookie', nonMemberCookie);
-
-      expect(res.status).toBe(404);
-    });
-  });
-
   // ── Search Tests ──────────────────────────────────────────────────
+
+  it.each(['meetings', 'requirements', 'dashboard', 'activity'])(
+    'does not expose the retired %s endpoint',
+    async (feature) => {
+      await request(app.getHttpServer())
+        .get(`/api/v1/projects/${project1.id}/${feature}`)
+        .set('Cookie', ownerCookie)
+        .expect(404);
+    },
+  );
 
   describe('GET /projects/:projectId/search', () => {
     it('returns 404 for non-member user searching project knowledge base', async () => {
@@ -951,18 +732,14 @@ describe('Workspace Integration API - Dashboard & Search (E2E)', () => {
       const results = res.body.data;
       const meta = res.body.meta;
 
-      expect(meta.total).toBe(10);
+      expect(meta.total).toBe(7);
       expect(meta.countsByType).toEqual({
-        REQUIREMENT: 2,
         DECISION: 1,
         TASK: 5,
-        MEETING: 1,
         DOCUMENT: 1,
       });
 
       // Check key formats
-      const reqItem = results.find((i: { type: string }) => i.type === 'REQUIREMENT');
-      expect(reqItem.key).toMatch(/^AIW-REQ-\d+$/);
 
       const decItem = results.find((i: { type: string }) => i.type === 'DECISION');
       expect(decItem.key).toMatch(/^AIW-DEC-\d+$/);

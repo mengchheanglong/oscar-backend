@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsEnum,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -9,7 +10,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { AiMode } from '../entities/conversation.entity';
-import { KnowledgeSourceType } from '../../ingestion/entities';
+import { KnowledgeSourceType, ACTIVE_KNOWLEDGE_SOURCE_TYPES } from '../../ingestion/entities';
 
 export class PostMessageDto {
   @ApiPropertyOptional({
@@ -31,9 +32,9 @@ export class PostMessageDto {
   @IsEnum(AiMode)
   mode?: AiMode;
 
-  @ApiPropertyOptional({ enum: KnowledgeSourceType })
+  @ApiPropertyOptional({ enum: ACTIVE_KNOWLEDGE_SOURCE_TYPES })
   @IsOptional()
-  @IsEnum(KnowledgeSourceType)
+  @IsIn(ACTIVE_KNOWLEDGE_SOURCE_TYPES)
   sourceType?: KnowledgeSourceType;
 
   @ApiPropertyOptional({

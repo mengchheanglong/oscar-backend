@@ -25,7 +25,7 @@ export class ProposalResponseDto {
   @ApiProperty({ enum: ProposalType, example: ProposalType.TASK_PROPOSAL })
   proposalType!: ProposalType;
 
-  @ApiProperty({ example: 'REQUIREMENT' })
+  @ApiProperty({ example: 'DECISION' })
   sourceEntityType!: string;
 
   @ApiProperty({ example: '3fa85f64-5717-4562-b3fc-2c963f66afa6' })

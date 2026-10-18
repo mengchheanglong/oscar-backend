@@ -33,16 +33,6 @@ export class ListTasksQueryDto {
   @IsUUID()
   assigneeId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by requirement ID' })
-  @IsOptional()
-  @IsUUID()
-  requirementId?: string;
-
-  @ApiPropertyOptional({ description: 'Filter by source meeting ID' })
-  @IsOptional()
-  @IsUUID()
-  sourceMeetingId?: string;
-
   @ApiPropertyOptional({ example: 'login', maxLength: 200 })
   @IsOptional()
   @IsString()

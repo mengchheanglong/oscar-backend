@@ -1,11 +1,15 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { KnowledgeSourceStatus, KnowledgeSourceType } from '../entities/knowledge-source.entity';
+import { IsEnum, IsIn, IsOptional, IsString } from 'class-validator';
+import {
+  KnowledgeSourceStatus,
+  KnowledgeSourceType,
+  ACTIVE_KNOWLEDGE_SOURCE_TYPES,
+} from '../entities/knowledge-source.entity';
 
 export class ListKnowledgeSourcesDto {
-  @ApiPropertyOptional({ enum: KnowledgeSourceType })
+  @ApiPropertyOptional({ enum: ACTIVE_KNOWLEDGE_SOURCE_TYPES })
   @IsOptional()
-  @IsEnum(KnowledgeSourceType)
+  @IsIn(ACTIVE_KNOWLEDGE_SOURCE_TYPES)
   sourceType?: KnowledgeSourceType;
 
   @ApiPropertyOptional({ enum: KnowledgeSourceStatus })

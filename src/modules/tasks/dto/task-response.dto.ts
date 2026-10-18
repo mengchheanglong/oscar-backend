@@ -90,12 +90,6 @@ export class TaskResponseDto {
   @ApiPropertyOptional({ example: '2026-10-15', nullable: true })
   dueDate!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
-  requirementId!: string | null;
-
-  @ApiPropertyOptional({ nullable: true })
-  sourceMeetingId!: string | null;
-
   @ApiProperty()
   createdBy!: string;
 
@@ -138,8 +132,6 @@ export class TaskResponseDto {
         : null,
       blockedReason: task.blockedReason ?? null,
       dueDate: task.dueDate,
-      requirementId: task.requirementId,
-      sourceMeetingId: task.sourceMeetingId,
       createdBy: task.createdBy,
       updatedBy: task.updatedBy,
       version: task.version,

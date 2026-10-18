@@ -1,3 +1,4 @@
+import { Priority } from '../../src/common/enums/priority.enum';
 import { ConversationContextService } from '../../src/modules/ai/context/conversation-context.service';
 import { PrivateMemoryService } from '../../src/modules/ai/memory/private-memory.service';
 import 'reflect-metadata';
@@ -12,10 +13,8 @@ import { configureApp } from '../../src/common/configure-app';
 import { AuthModule } from '../../src/modules/auth/auth.module';
 import { UsersModule } from '../../src/modules/users/users.module';
 import { ProjectsModule } from '../../src/modules/projects/projects.module';
-import { RequirementsModule } from '../../src/modules/requirements/requirements.module';
 import { DecisionsModule } from '../../src/modules/decisions/decisions.module';
 import { TasksModule } from '../../src/modules/tasks/tasks.module';
-import { MeetingsModule } from '../../src/modules/meetings/meetings.module';
 import { AuditModule } from '../../src/modules/audit/audit.module';
 import { AiModule } from '../../src/modules/ai/ai.module';
 import { GitHubIntegrationModule } from '../../src/modules/integrations/github/github-integration.module';
@@ -27,16 +26,9 @@ import {
   ProjectRole,
 } from '../../src/modules/projects/entities/project-member.entity';
 import { AuditLog } from '../../src/modules/audit/entities/audit-log.entity';
-import {
-  Requirement,
-  RequirementStatus,
-  Priority,
-} from '../../src/modules/requirements/entities/requirement.entity';
-import { RequirementRevision } from '../../src/modules/requirements/entities/requirement-revision.entity';
-import { Decision } from '../../src/modules/decisions/entities/decision.entity';
+import { Decision, DecisionStatus } from '../../src/modules/decisions/entities/decision.entity';
 import { DecisionRevision } from '../../src/modules/decisions/entities/decision-revision.entity';
 import { Task } from '../../src/modules/tasks/entities/task.entity';
-import { Meeting } from '../../src/modules/meetings/entities/meeting.entity';
 import { Conversation } from '../../src/modules/ai/entities/conversation.entity';
 import { ChatMessage } from '../../src/modules/ai/entities/chat-message.entity';
 import {
@@ -69,18 +61,21 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
   let sessionViewer: { cookie: string; csrf: string };
   let projectA: Project;
   let projectB: Project;
-  let reqA: Requirement;
-  let reqB: Requirement;
+  let reqA: Decision;
+  let reqB: Decision;
 
   const users: User[] = [];
   const sessions: Session[] = [];
   const projects: Project[] = [];
   const projectMembers: ProjectMember[] = [];
   const auditLogs: AuditLog[] = [];
-  const requirements: Requirement[] = [];
-  const requirementRevisions: RequirementRevision[] = [];
+  const decisions: Decision[] = [];
+
+  const mockDecisionRevisionRepository = {
+    create: jest.fn((dto: object) => dto),
+    save: jest.fn(async (dto: object) => dto),
+  };
   const tasks: Task[] = [];
-  const meetings: Meeting[] = [];
   const conversations: Conversation[] = [];
   const chatMessages: ChatMessage[] = [];
   const proposals: AIProposal[] = [];
@@ -224,47 +219,32 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
     }),
   };
 
-  const mockRequirementRepository = {
+  const mockDecisionRepository = {
     create: jest.fn(
-      (dto: Partial<Requirement>) =>
+      (dto: Partial<Decision>) =>
         ({
           id: randomUUID(),
           createdAt: new Date(),
           updatedAt: new Date(),
           version: 1,
           ...dto,
-        }) as Requirement,
+        }) as Decision,
     ),
-    save: jest.fn(async (req: Requirement) => {
-      const idx = requirements.findIndex((r) => r.id === req.id);
-      if (idx >= 0) requirements[idx] = req;
-      else requirements.push(req);
+    save: jest.fn(async (req: Decision) => {
+      const idx = decisions.findIndex((r) => r.id === req.id);
+      if (idx >= 0) decisions[idx] = req;
+      else decisions.push(req);
       return req;
     }),
     findOne: jest.fn(async (opts: { where: { id?: string; projectId?: string } }) => {
       return (
-        requirements.find(
+        decisions.find(
           (r) =>
             (!opts.where.id || r.id === opts.where.id) &&
             (!opts.where.projectId || r.projectId === opts.where.projectId) &&
             !r.deletedAt,
         ) ?? null
       );
-    }),
-  };
-
-  const mockRequirementRevisionRepository = {
-    create: jest.fn(
-      (dto: Partial<RequirementRevision>) =>
-        ({
-          id: randomUUID(),
-          createdAt: new Date(),
-          ...dto,
-        }) as RequirementRevision,
-    ),
-    save: jest.fn(async (rev: RequirementRevision) => {
-      requirementRevisions.push(rev);
-      return rev;
     }),
   };
 
@@ -296,19 +276,6 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       );
     }),
     count: jest.fn(async () => tasks.length),
-  };
-
-  const mockMeetingRepository = {
-    findOne: jest.fn(async (opts: { where: { id?: string; projectId?: string } }) => {
-      return (
-        meetings.find(
-          (m) =>
-            (!opts.where.id || m.id === opts.where.id) &&
-            (!opts.where.projectId || m.projectId === opts.where.projectId) &&
-            !m.deletedAt,
-        ) ?? null
-      );
-    }),
   };
 
   const mockConversationRepository = {
@@ -512,12 +479,9 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       if (entity === Project) return mockProjectRepository;
       if (entity === ProjectMember) return mockProjectMemberRepository;
       if (entity === AuditLog) return mockAuditLogRepository;
-      if (entity === Requirement) return mockRequirementRepository;
-      if (entity === RequirementRevision) return mockRequirementRevisionRepository;
-      if (entity === Decision) return mockRequirementRepository;
-      if (entity === DecisionRevision) return mockRequirementRevisionRepository;
+      if (entity === Decision) return mockDecisionRepository;
+      if (entity === DecisionRevision) return mockDecisionRevisionRepository;
       if (entity === Task) return mockTaskRepository;
-      if (entity === Meeting) return mockMeetingRepository;
       if (entity === Conversation) return mockConversationRepository;
       if (entity === ChatMessage) return mockChatMessageRepository;
       if (entity === AIProposal) return mockProposalRepository;
@@ -570,11 +534,9 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
         entityClass: unknown,
         opts: { where: { id?: string; projectId?: string; userId?: string } },
       ) => {
+        if (entityClass === Decision) return mockDecisionRepository.findOne(opts);
         if (entityClass === AIProposal) {
           return proposals.find((p) => p.id === opts.where.id) ?? null;
-        }
-        if (entityClass === Requirement) {
-          return requirements.find((r) => r.id === opts.where.id) ?? null;
         }
         if (entityClass === ProjectMember) {
           return (
@@ -625,10 +587,8 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
         AuthModule,
         UsersModule,
         ProjectsModule,
-        RequirementsModule,
         DecisionsModule,
         TasksModule,
-        MeetingsModule,
         AuditModule,
         AiModule,
         GitHubIntegrationModule,
@@ -644,18 +604,12 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       .useValue(mockProjectMemberRepository)
       .overrideProvider(getRepositoryToken(AuditLog))
       .useValue(mockAuditLogRepository)
-      .overrideProvider(getRepositoryToken(Requirement))
-      .useValue(mockRequirementRepository)
-      .overrideProvider(getRepositoryToken(RequirementRevision))
-      .useValue(mockRequirementRevisionRepository)
       .overrideProvider(getRepositoryToken(Decision))
-      .useValue(mockRequirementRepository)
+      .useValue(mockDecisionRepository)
       .overrideProvider(getRepositoryToken(DecisionRevision))
-      .useValue(mockRequirementRevisionRepository)
+      .useValue(mockDecisionRevisionRepository)
       .overrideProvider(getRepositoryToken(Task))
       .useValue(mockTaskRepository)
-      .overrideProvider(getRepositoryToken(Meeting))
-      .useValue(mockMeetingRepository)
       .overrideProvider(getRepositoryToken(Conversation))
       .useValue(mockConversationRepository)
       .overrideProvider(getRepositoryToken(ChatMessage))
@@ -805,30 +759,30 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       removedAt: null,
     } as unknown as ProjectMember);
 
-    // Requirements
+    // Decisions
     reqA = {
       id: randomUUID(),
       projectId: projectA.id,
-      key: 'AIW-REQ-1',
+      key: 'AIW-DEC-1',
       title: 'Auth Setup',
-      status: RequirementStatus.APPROVED,
+      status: DecisionStatus.ACCEPTED,
       version: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
-    } as unknown as Requirement;
-    requirements.push(reqA);
+    } as unknown as Decision;
 
     reqB = {
       id: randomUUID(),
       projectId: projectB.id,
-      key: 'SEC-REQ-1',
+      key: 'SEC-DEC-1',
       title: 'Secret Defense Crypto',
-      status: RequirementStatus.APPROVED,
+      status: DecisionStatus.ACCEPTED,
       version: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
-    } as unknown as Requirement;
-    requirements.push(reqB);
+    } as unknown as Decision;
+
+    decisions.push(reqA, reqB);
 
     // Initial logins
     const loginUser = async (email: string) => {
@@ -1086,9 +1040,9 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       .send({ title: 'Hacked Conversation' });
     expect(createConv.status).toBe(404);
 
-    // 4. Generate AI tasks from Project B requirement
+    // 4. Generate AI tasks from Project B decision
     const genTasks = await request(app.getHttpServer())
-      .post(`/api/v1/projects/${projectB.id}/ai/requirements/${reqB.id}/task-proposals`)
+      .post(`/api/v1/projects/${projectB.id}/ai/decisions/${reqB.id}/task-proposals`)
       .set('Cookie', sessionA.cookie)
       .set('x-csrf-token', sessionA.csrf)
       .send({});
@@ -1134,7 +1088,7 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       projectId: projectA.id,
       userId: userA.id,
       proposalType: ProposalType.TASK_PROPOSAL,
-      sourceEntityType: 'REQUIREMENT',
+      sourceEntityType: 'DECISION',
       sourceEntityId: reqA.id,
       sourceRevision: 1,
       status: ProposalStatus.PENDING,
@@ -1208,7 +1162,7 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       projectId: projectA.id,
       userId: userA.id,
       proposalType: ProposalType.TASK_PROPOSAL,
-      sourceEntityType: 'REQUIREMENT',
+      sourceEntityType: 'DECISION',
       sourceEntityId: reqA.id,
       sourceRevision: 1,
       status: ProposalStatus.PENDING,
@@ -1255,7 +1209,7 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
       projectId: projectA.id,
       userId: userA.id,
       proposalType: ProposalType.TASK_PROPOSAL,
-      sourceEntityType: 'REQUIREMENT',
+      sourceEntityType: 'DECISION',
       sourceEntityId: reqA.id,
       sourceRevision: 1, // Created against revision 1
       status: ProposalStatus.PENDING,
@@ -1271,7 +1225,7 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
     } as unknown as AIProposal;
     proposals.push(proposal);
 
-    // Simulate requirement revision update to revision 2
+    // Simulate decision revision update to revision 2
     reqA.version = 2;
 
     const staleRes = await request(app.getHttpServer())

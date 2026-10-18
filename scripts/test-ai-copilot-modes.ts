@@ -162,8 +162,7 @@ async function run() {
           { role: 'system', content: assembled.systemPrompt },
           {
             role: 'user',
-            content:
-              'Explain how task proposals and meeting analysis should be reviewed and implemented.',
+            content: 'Explain how decision task proposals should be reviewed and implemented.',
           },
         ],
         evidence: assembled.evidenceItems,
@@ -183,8 +182,7 @@ async function run() {
           { role: 'system', content: assembled.systemPrompt },
           {
             role: 'user',
-            content:
-              'Explain how task proposals and meeting analysis should be reviewed and implemented.',
+            content: 'Explain how decision task proposals should be reviewed and implemented.',
           },
         ],
         evidence: assembled.evidenceItems,
@@ -208,10 +206,8 @@ async function run() {
   const sourceFilters: { label: string; filter?: KnowledgeSourceType; query: string }[] = [
     { label: 'All Sources (Unfiltered)', filter: undefined, query: 'proposals' },
     { label: 'Documents Only', filter: KnowledgeSourceType.DOCUMENT, query: 'SRS' },
-    { label: 'Requirements Only', filter: KnowledgeSourceType.REQUIREMENT, query: 'proposals' },
     { label: 'Decisions Only', filter: KnowledgeSourceType.DECISION, query: 'proposals' },
     { label: 'Tasks Only', filter: KnowledgeSourceType.TASK, query: 'proposals' },
-    { label: 'Meetings Only', filter: KnowledgeSourceType.MEETING, query: 'workflow' },
     { label: 'GitHub PRs Only', filter: KnowledgeSourceType.GITHUB_PR, query: 'Milestone' },
     { label: 'GitHub Codebase Only', filter: KnowledgeSourceType.GITHUB_CODE, query: 'controller' },
   ];

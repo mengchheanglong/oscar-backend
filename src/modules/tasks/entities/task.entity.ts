@@ -11,9 +11,7 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Project } from '../../projects/entities/project.entity';
-import { Requirement } from '../../requirements/entities/requirement.entity';
-import { Meeting } from '../../meetings/entities/meeting.entity';
-import { Priority } from '../../requirements/entities/requirement.entity';
+import { Priority } from '../../../common/enums/priority.enum';
 
 export enum TaskStatus {
   TODO = 'TODO',
@@ -72,16 +70,8 @@ export class Task {
   @Column({ name: 'requirement_id', type: 'uuid', nullable: true })
   requirementId!: string | null;
 
-  @ManyToOne(() => Requirement, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'requirement_id' })
-  requirement?: Requirement | null;
-
   @Column({ name: 'source_meeting_id', type: 'uuid', nullable: true })
   sourceMeetingId!: string | null;
-
-  @ManyToOne(() => Meeting, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'source_meeting_id' })
-  sourceMeeting?: Meeting | null;
 
   @Column({ name: 'created_by', type: 'uuid' })
   createdBy!: string;

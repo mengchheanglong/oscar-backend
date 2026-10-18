@@ -319,55 +319,6 @@ export class AiwMcpServer {
     );
   }
 
-  private async resolveRequirement(
-    projectId: string,
-    reqKeyOrId: string,
-  ): Promise<Record<string, unknown>> {
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (UUID_REGEX.test(reqKeyOrId)) {
-      const res = await this.request(`/projects/${projectId}/requirements/${reqKeyOrId}`);
-      return this.recordData(res);
-    }
-
-    const num = this.extractNumberFromKey(reqKeyOrId, 'REQ');
-    if (num !== null) {
-      const listRes = await this.request(`/projects/${projectId}/requirements`, {
-        query: { number: num, pageSize: 1 },
-      });
-      const items = this.listData(listRes);
-      if (items.length > 0) {
-        return items[0]!;
-      }
-    }
-
-    throw new Error(
-      `Requirement "${reqKeyOrId}" not found in project. Verify the requirement key (e.g. AIW-REQ-12) or UUID.`,
-    );
-  }
-
-  private async resolveMeeting(
-    projectId: string,
-    meetingKeyOrId: string,
-  ): Promise<Record<string, unknown>> {
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (UUID_REGEX.test(meetingKeyOrId)) {
-      const res = await this.request(`/projects/${projectId}/meetings/${meetingKeyOrId}`);
-      return this.recordData(res);
-    }
-
-    const listRes = await this.request(`/projects/${projectId}/meetings`, {
-      query: { search: meetingKeyOrId, pageSize: 5 },
-    });
-    const items = this.listData(listRes);
-    if (items.length > 0) {
-      return items[0]!;
-    }
-
-    throw new Error(
-      `Meeting "${meetingKeyOrId}" not found in project. Verify the meeting UUID or title.`,
-    );
-  }
-
   private async resolveDocument(
     projectId: string,
     docKeyOrId: string,
@@ -398,20 +349,6 @@ export class AiwMcpServer {
       content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }],
     });
     this.server.tool(
-      'generate_task_proposal',
-      'Generate editable task drafts from a requirement. Creates no tasks; review before confirmation.',
-      { ...project, requirementKeyOrId: z.string() },
-      async (args) => {
-        const projectId = await this.resolveProjectId(args.projectKeyOrId);
-        const source = await this.resolveRequirement(projectId, args.requirementKeyOrId);
-        return result(
-          await this.request(`/projects/${projectId}/ai/requirements/${source.id}/task-proposals`, {
-            method: 'POST',
-          }),
-        );
-      },
-    );
-    this.server.tool(
       'generate_decision_task_proposal',
       'Generate editable task drafts from a decision. Creates no tasks; review before confirmation.',
       { ...project, decisionKeyOrId: z.string() },
@@ -420,20 +357,6 @@ export class AiwMcpServer {
         const source = await this.resolveDecision(projectId, args.decisionKeyOrId);
         return result(
           await this.request(`/projects/${projectId}/ai/decisions/${source.id}/task-proposals`, {
-            method: 'POST',
-          }),
-        );
-      },
-    );
-    this.server.tool(
-      'generate_meeting_analysis',
-      'Generate summary, requirement, decision and action drafts from meeting notes. Creates no domain records.',
-      { ...project, meetingKeyOrId: z.string() },
-      async (args) => {
-        const projectId = await this.resolveProjectId(args.projectKeyOrId);
-        const source = await this.resolveMeeting(projectId, args.meetingKeyOrId);
-        return result(
-          await this.request(`/projects/${projectId}/ai/meetings/${source.id}/analysis-proposals`, {
             method: 'POST',
           }),
         );
@@ -486,7 +409,6 @@ export class AiwMcpServer {
         ...proposal,
         version: z.number().int().min(1),
         selectedItemIds: z.array(z.string().min(1)),
-        includeSummary: z.boolean().default(false),
         idempotencyKey: z.string().min(1).max(200),
         userConfirmed: z
           .literal(true)
@@ -494,8 +416,7 @@ export class AiwMcpServer {
       },
       async (args) => {
         const projectId = await this.resolveProjectId(args.projectKeyOrId);
-        if (!args.selectedItemIds.length && !args.includeSummary)
-          throw new Error('Select at least one item or include the meeting summary.');
+        if (!args.selectedItemIds.length) throw new Error('Select at least one task.');
         return result(
           await this.request(`/projects/${projectId}/ai/proposals/${args.proposalId}/confirm`, {
             method: 'POST',
@@ -503,7 +424,6 @@ export class AiwMcpServer {
             body: {
               version: args.version,
               selectedItemIds: args.selectedItemIds,
-              includeSummary: args.includeSummary,
             },
           }),
         );
@@ -562,46 +482,6 @@ export class AiwMcpServer {
             {
               uri: uri.href,
               text: JSON.stringify(summary, null, 2),
-              mimeType: 'application/json',
-            },
-          ],
-        };
-      },
-    );
-
-    // 3. Project dashboard health metrics & progress
-    this.server.resource(
-      'project-dashboard',
-      new ResourceTemplate('aiw://projects/{projectId}/dashboard', { list: undefined }),
-      async (uri, { projectId }) => {
-        const pId = await this.resolveProjectId(projectId as string);
-        const res = await this.request(`/projects/${pId}/dashboard`);
-        return {
-          contents: [
-            {
-              uri: uri.href,
-              text: JSON.stringify(res.data || res, null, 2),
-              mimeType: 'application/json',
-            },
-          ],
-        };
-      },
-    );
-
-    // 4. Project requirements specification
-    this.server.resource(
-      'project-requirements',
-      new ResourceTemplate('aiw://projects/{projectId}/requirements', { list: undefined }),
-      async (uri, { projectId }) => {
-        const pId = await this.resolveProjectId(projectId as string);
-        const res = await this.request(`/projects/${pId}/requirements`, {
-          query: { pageSize: 100 },
-        });
-        return {
-          contents: [
-            {
-              uri: uri.href,
-              text: JSON.stringify(res.data || res.items || [], null, 2),
               mimeType: 'application/json',
             },
           ],
@@ -707,32 +587,6 @@ export class AiwMcpServer {
       },
     );
 
-    // =========================================================================
-    // SECTION 2: DASHBOARD & WORKSPACE HEALTH
-    // =========================================================================
-
-    // 4. Get Dashboard Metrics
-    this.server.tool(
-      'get_dashboard',
-      'Get aggregated project health metrics including progress rate percentage, counts of tasks by status, overdue tasks, and recent activity.',
-      {
-        projectKeyOrId: z.string().optional().describe('Project Key or UUID.'),
-        timezone: z
-          .string()
-          .optional()
-          .describe('Display timezone (e.g. "Asia/Bangkok", defaults to Asia/Bangkok).'),
-      },
-      async (args) => {
-        const projectId = await this.resolveProjectId(args.projectKeyOrId);
-        const res = await this.request(`/projects/${projectId}/dashboard`, {
-          query: { timezone: args.timezone || 'Asia/Bangkok' },
-        });
-        return {
-          content: [{ type: 'text', text: JSON.stringify(res.data || res, null, 2) }],
-        };
-      },
-    );
-
     // 5. Get Activity Stream
     this.server.tool(
       'get_activity_stream',
@@ -765,173 +619,6 @@ export class AiwMcpServer {
             : 'No recent activity recorded.';
         return {
           content: [{ type: 'text', text: outputText }],
-        };
-      },
-    );
-
-    // =========================================================================
-    // SECTION 3: REQUIREMENTS ENGINEERING
-    // =========================================================================
-
-    // 6. List Requirements
-    this.server.tool(
-      'list_requirements',
-      'List product and engineering requirements for a project with filters by status, priority, number, or search query.',
-      {
-        projectKeyOrId: z.string().optional().describe('Project Key or UUID.'),
-        status: z
-          .enum(['DRAFT', 'IN_REVIEW', 'APPROVED', 'IN_PROGRESS', 'DONE', 'ARCHIVED'])
-          .optional()
-          .describe('Filter by requirement status.'),
-        priority: z
-          .enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'])
-          .optional()
-          .describe('Filter by requirement priority.'),
-        number: z
-          .number()
-          .optional()
-          .describe('Filter by requirement number (e.g. 12 for AIW-REQ-12).'),
-        search: z
-          .string()
-          .optional()
-          .describe('Text search across title, description, and acceptance criteria.'),
-        limit: z.number().optional().describe('Maximum requirements to return (default 50).'),
-      },
-      async (args) => {
-        const projectId = await this.resolveProjectId(args.projectKeyOrId);
-        const res = await this.request(`/projects/${projectId}/requirements`, {
-          query: {
-            status: args.status,
-            priority: args.priority,
-            number: args.number,
-            search: args.search,
-            pageSize: args.limit || 50,
-          },
-        });
-        const reqs = this.listData(res);
-        const lines = reqs.map((r) => {
-          const key = r.displayKey || `REQ-${r.number}`;
-          return `- [${key}] (${r.status} | ${r.priority}) "${r.title}"`;
-        });
-        const outputText =
-          lines.length > 0
-            ? `Found ${reqs.length} requirement(s):\n${lines.join('\n')}`
-            : 'No requirements found matching criteria.';
-        return {
-          content: [{ type: 'text', text: outputText }],
-        };
-      },
-    );
-
-    // 7. Get Requirement Details
-    this.server.tool(
-      'get_requirement',
-      'Get complete requirement specification including description, acceptance criteria, revision history, and current version by Key (e.g. "AIW-REQ-12") or UUID.',
-      {
-        requirementKeyOrId: z
-          .string()
-          .describe('Requirement Key (e.g. "AIW-REQ-12" or "12") or UUID.'),
-        projectKeyOrId: z.string().optional().describe('Project Key or UUID.'),
-      },
-      async (args) => {
-        const projectId = await this.resolveProjectId(args.projectKeyOrId);
-        const reqItem = await this.resolveRequirement(projectId, args.requirementKeyOrId);
-        return {
-          content: [{ type: 'text', text: JSON.stringify(reqItem, null, 2) }],
-        };
-      },
-    );
-
-    // 8. Create Requirement
-    this.server.tool(
-      'create_requirement',
-      'Create a new engineering or product requirement specification in the project workspace.',
-      {
-        title: z.string().min(1).max(500).describe('Requirement title'),
-        description: z
-          .string()
-          .optional()
-          .describe('Detailed description and background of the requirement'),
-        acceptanceCriteria: z
-          .string()
-          .optional()
-          .describe('Bullet points or criteria for verification and acceptance'),
-        priority: z
-          .enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'])
-          .default('MEDIUM')
-          .describe('Requirement priority'),
-        projectKeyOrId: z.string().optional().describe('Project Key or UUID.'),
-      },
-      async (args) => {
-        const projectId = await this.resolveProjectId(args.projectKeyOrId);
-        const res = await this.request(`/projects/${projectId}/requirements`, {
-          method: 'POST',
-          body: {
-            title: args.title,
-            description: args.description,
-            acceptanceCriteria: args.acceptanceCriteria,
-            priority: args.priority || 'MEDIUM',
-          },
-        });
-        const created = this.recordData(res);
-        const key = created.displayKey || `REQ-${created.number}`;
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Created requirement [${key}]: "${created.title}" with status ${created.status} and priority ${created.priority}.`,
-            },
-          ],
-        };
-      },
-    );
-
-    // 9. Update Requirement Status
-    this.server.tool(
-      'update_requirement_status',
-      'Update the status of a project requirement (e.g. move from DRAFT -> APPROVED or IN_PROGRESS -> DONE).',
-      {
-        requirementKeyOrId: z
-          .string()
-          .describe('Requirement Key (e.g. "AIW-REQ-12" or "12") or UUID.'),
-        status: z
-          .enum(['DRAFT', 'IN_REVIEW', 'APPROVED', 'IN_PROGRESS', 'DONE', 'ARCHIVED'])
-          .describe('Target status.'),
-        comment: z
-          .string()
-          .optional()
-          .describe('Summary of the changes or justification for the status update.'),
-        projectKeyOrId: z.string().optional().describe('Project Key or UUID.'),
-      },
-      async (args) => {
-        const projectId = await this.resolveProjectId(args.projectKeyOrId);
-        const reqItem = await this.resolveRequirement(projectId, args.requirementKeyOrId);
-
-        let updatedDescription = reqItem.description;
-        if (args.comment && args.comment.trim()) {
-          const dateStr = new Date().toISOString().split('T')[0];
-          updatedDescription =
-            String(reqItem.description || '').trim() +
-            `\n\n> **[${dateStr} Status Update]**: ${args.comment.trim()}`;
-        }
-
-        const res = await this.request(`/projects/${projectId}/requirements/${reqItem.id}`, {
-          method: 'PATCH',
-          body: {
-            version: reqItem.version,
-            status: args.status,
-            description: updatedDescription,
-          },
-        });
-        const updated = this.recordData(res);
-        const key = updated.displayKey || `REQ-${updated.number}`;
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Successfully updated requirement [${key}] to status ${args.status}.`,
-            },
-          ],
         };
       },
     );
@@ -1226,102 +913,6 @@ export class AiwMcpServer {
     );
 
     // =========================================================================
-    // SECTION 6: MEETINGS & SYNC DISCUSSIONS
-    // =========================================================================
-
-    // 17. List Meetings
-    this.server.tool(
-      'list_meetings',
-      'List scheduled, active, and past project meetings with status (SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED), times, and search query.',
-      {
-        projectKeyOrId: z.string().optional().describe('Project Key or UUID.'),
-        status: z
-          .enum(['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
-          .optional()
-          .describe('Filter by status.'),
-        search: z.string().optional().describe('Search across meeting title, agenda, and notes.'),
-        limit: z.number().optional().describe('Maximum number of meetings to return (default 20).'),
-      },
-      async (args) => {
-        const projectId = await this.resolveProjectId(args.projectKeyOrId);
-        const res = await this.request(`/projects/${projectId}/meetings`, {
-          query: {
-            status: args.status,
-            search: args.search,
-            pageSize: args.limit || 20,
-          },
-        });
-        const meetings = this.listData(res);
-        const lines = meetings.map((m) => {
-          const start = m.startsAt ? new Date(String(m.startsAt)).toISOString() : 'TBD';
-          return `- [${m.id}] (${m.status}) "${m.title}" — Starts: ${start}`;
-        });
-        const outputText =
-          lines.length > 0
-            ? `Found ${meetings.length} meeting(s):\n${lines.join('\n')}`
-            : 'No meetings found matching criteria.';
-        return {
-          content: [{ type: 'text', text: outputText }],
-        };
-      },
-    );
-
-    // 18. Get Meeting Details & Transcript
-    this.server.tool(
-      'get_meeting',
-      'Get full meeting details including agenda, meeting notes, action items, participants, and full transcriptText by UUID or matching title.',
-      {
-        meetingKeyOrId: z.string().describe('Meeting UUID or title to search.'),
-        projectKeyOrId: z.string().optional().describe('Project Key or UUID.'),
-      },
-      async (args) => {
-        const projectId = await this.resolveProjectId(args.projectKeyOrId);
-        const meeting = await this.resolveMeeting(projectId, args.meetingKeyOrId);
-        return {
-          content: [{ type: 'text', text: JSON.stringify(meeting, null, 2) }],
-        };
-      },
-    );
-
-    // 19. Create / Log Meeting
-    this.server.tool(
-      'create_meeting',
-      'Schedule or log a project meeting or design sync with agenda, discussion notes, and optional transcript.',
-      {
-        title: z.string().min(1).max(500).describe('Meeting title'),
-        startsAt: z.string().describe('ISO 8601 start timestamp (e.g. "2026-10-02T14:00:00.000Z")'),
-        endsAt: z.string().describe('ISO 8601 end timestamp (e.g. "2026-10-02T15:00:00.000Z")'),
-        agenda: z.string().optional().describe('Agenda items for the meeting'),
-        notes: z.string().optional().describe('Discussion notes, summary, and action items'),
-        transcriptText: z.string().optional().describe('Raw transcript or recording notes'),
-        projectKeyOrId: z.string().optional().describe('Project Key or UUID.'),
-      },
-      async (args) => {
-        const projectId = await this.resolveProjectId(args.projectKeyOrId);
-        const res = await this.request(`/projects/${projectId}/meetings`, {
-          method: 'POST',
-          body: {
-            title: args.title,
-            startsAt: args.startsAt,
-            endsAt: args.endsAt,
-            agenda: args.agenda,
-            notes: args.notes,
-            transcriptText: args.transcriptText,
-          },
-        });
-        const created = this.recordData(res);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Logged meeting [${created.id}]: "${created.title}" (scheduled from ${created.startsAt} to ${created.endsAt}).`,
-            },
-          ],
-        };
-      },
-    );
-
-    // =========================================================================
     // SECTION 7: DOCUMENTS & KNOWLEDGE BASE
     // =========================================================================
 
@@ -1385,14 +976,14 @@ export class AiwMcpServer {
     // 22. Search Workspace Knowledge Base (Multi-Entity RAG)
     this.server.tool(
       'search_workspace',
-      'Search across tasks, decisions, requirements, meetings, and documents in the project workspace using keyword, semantic, or hybrid search mode.',
+      'Search across tasks, decisions, and documents in the project workspace using keyword, semantic, or hybrid search mode.',
       {
         query: z
           .string()
           .min(1)
           .describe('Search query text, natural language question, or keywords'),
         type: z
-          .enum(['ALL', 'TASK', 'DECISION', 'REQUIREMENT', 'MEETING', 'DOCUMENT'])
+          .enum(['ALL', 'TASK', 'DECISION', 'DOCUMENT'])
           .optional()
           .describe('Filter by entity type (default ALL)'),
         mode: z

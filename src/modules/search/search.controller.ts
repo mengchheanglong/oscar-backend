@@ -22,8 +22,7 @@ export class SearchController {
 
   @Get()
   @ApiOperation({
-    summary:
-      'Search project knowledge base across requirements, decisions, tasks, meetings, and documents',
+    summary: 'Search project knowledge base across decisions, tasks, and documents',
   })
   @ApiOkResponse({
     description: 'Search results returned successfully',

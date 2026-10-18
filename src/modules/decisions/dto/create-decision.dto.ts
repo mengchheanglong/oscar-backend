@@ -20,11 +20,6 @@ export class CreateDecisionDto {
   @MaxLength(10000)
   rationale?: string;
 
-  @ApiPropertyOptional({ description: 'Link to a same-project requirement' })
-  @IsOptional()
-  @IsUUID()
-  requirementId?: string;
-
   @ApiPropertyOptional({ description: 'ID of an existing decision this supersedes' })
   @IsOptional()
   @IsUUID()

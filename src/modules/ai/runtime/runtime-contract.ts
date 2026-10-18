@@ -96,15 +96,15 @@ export const WORKSPACE_TOOLS = [
   {
     name: 'request_task_review',
     description:
-      'Request human review of one task linked to a current project requirement. This only returns a pending draft; it never creates a task.',
+      'Request human review of one task linked to a current project decision. This only returns a pending draft; it never creates a task.',
     parameters: {
       type: 'object',
       properties: {
-        requirementId: { type: 'string', format: 'uuid' },
+        decisionId: { type: 'string', format: 'uuid' },
         title: { type: 'string', maxLength: 500 },
         description: { type: 'string', maxLength: 5000 },
       },
-      required: ['requirementId', 'title'],
+      required: ['decisionId', 'title'],
       additionalProperties: false,
     },
   },

@@ -43,24 +43,6 @@ import { ProposalsService } from './proposals.service';
 export class ProposalsController {
   constructor(private readonly proposalsService: ProposalsService) {}
 
-  @Post('requirements/:requirementId/task-proposals')
-  @ApiOperation({ summary: 'Generate task proposals from a project requirement' })
-  @ApiCreatedResponse({ description: 'Task proposal draft created', type: ProposalResponseDto })
-  @ApiUnauthorizedResponse({ description: 'Authentication required' })
-  @ApiNotFoundResponse({ description: 'Requirement or project not found' })
-  async generateTaskProposal(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
-    @Param('requirementId', ParseUUIDPipe) requirementId: string,
-    @CurrentUser() user: User,
-  ): Promise<ProposalResponseDto> {
-    const proposal = await this.proposalsService.generateTaskProposal(
-      projectId,
-      user.id,
-      requirementId,
-    );
-    return ProposalResponseDto.fromEntity(proposal);
-  }
-
   @Post('decisions/:decisionId/task-proposals')
   @ApiOperation({ summary: 'Generate task proposals from an architectural decision' })
   @ApiCreatedResponse({ description: 'Task proposal draft created', type: ProposalResponseDto })
@@ -75,27 +57,6 @@ export class ProposalsController {
       projectId,
       user.id,
       decisionId,
-    );
-    return ProposalResponseDto.fromEntity(proposal);
-  }
-
-  @Post('meetings/:meetingId/analysis-proposals')
-  @ApiOperation({ summary: 'Generate meeting analysis proposal from transcript and notes' })
-  @ApiCreatedResponse({
-    description: 'Meeting analysis proposal draft created',
-    type: ProposalResponseDto,
-  })
-  @ApiUnauthorizedResponse({ description: 'Authentication required' })
-  @ApiNotFoundResponse({ description: 'Meeting or project not found' })
-  async generateMeetingAnalysis(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
-    @Param('meetingId', ParseUUIDPipe) meetingId: string,
-    @CurrentUser() user: User,
-  ): Promise<ProposalResponseDto> {
-    const proposal = await this.proposalsService.generateMeetingAnalysis(
-      projectId,
-      user.id,
-      meetingId,
     );
     return ProposalResponseDto.fromEntity(proposal);
   }

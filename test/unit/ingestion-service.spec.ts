@@ -9,7 +9,7 @@ import {
   KnowledgeSourceType,
 } from '../../src/modules/ingestion/entities';
 import { MockEmbeddingProvider } from '../../src/modules/ingestion/embedding/mock-embedding-provider';
-import { EntityExtractor } from '../../src/modules/ingestion/extractors/entity-extractor';
+
 import { OutboxService } from '../../src/modules/ingestion/outbox.service';
 import { LocalStorageService } from '../../src/modules/storage/local-storage.service';
 import { readFile } from 'node:fs/promises';
@@ -265,81 +265,6 @@ describe('IngestionService', () => {
         expect(dataSource.transaction).not.toHaveBeenCalled();
       },
     );
-  });
-
-  it('should index a requirement and activate chunks atomically', async () => {
-    sourceRepo.findOne.mockResolvedValueOnce(null);
-
-    const result = await service.syncRequirement('proj-1', {
-      requirementId: 'req-1',
-      revision: 1,
-      title: 'User Login Support',
-      description: 'System must allow users to log in with secure passwords.',
-      status: 'APPROVED',
-      priority: 'HIGH',
-    });
-
-    expect(result).toBeDefined();
-    expect(sourceRepo.save).toHaveBeenCalled();
-    expect(dataSource.transaction).toHaveBeenCalled();
-  });
-
-  it('should skip stale older revision', async () => {
-    sourceRepo.findOne.mockResolvedValueOnce({
-      id: 'source-uuid-1',
-      projectId: 'proj-1',
-      sourceType: KnowledgeSourceType.REQUIREMENT,
-      sourceId: 'req-1',
-      sourceRevision: 3, // Already at revision 3
-      title: 'Existing',
-      status: KnowledgeSourceStatus.INDEXED,
-    });
-
-    const result = await service.syncRequirement('proj-1', {
-      requirementId: 'req-1',
-      revision: 2, // Older revision 2 arrives late
-      title: 'Old Title',
-    });
-
-    expect(result).toBeDefined();
-    expect(result?.sourceRevision).toBe(3);
-    // Should not run transaction to chunk or embed older revision
-    expect(dataSource.transaction).not.toHaveBeenCalled();
-  });
-
-  it('should skip re-chunking when content hash is unchanged and source is already indexed', async () => {
-    const existing = sourceRepo.create({
-      id: 'source-uuid-1',
-      projectId: 'proj-1',
-      sourceType: KnowledgeSourceType.REQUIREMENT,
-      sourceId: 'req-1',
-      sourceRevision: 1,
-      title: 'User Login Support',
-      status: KnowledgeSourceStatus.INDEXED,
-      activeIndexVersion: 1,
-      contentHash: null,
-    });
-
-    // Compute expected hash of the requirement
-    const extractor = new EntityExtractor();
-    const doc = extractor.extractRequirement({
-      id: 'req-1',
-      title: 'User Login Support',
-    });
-    const crypto = await import('node:crypto');
-    existing.contentHash = crypto.createHash('sha256').update(doc.text).digest('hex');
-
-    sourceRepo.findOne.mockResolvedValueOnce(existing);
-
-    const result = await service.syncRequirement('proj-1', {
-      requirementId: 'req-1',
-      revision: 2,
-      title: 'User Login Support',
-    });
-
-    expect(result).toBeDefined();
-    // Re-chunking transaction was bypassed due to identical content hash
-    expect(dataSource.transaction).not.toHaveBeenCalled();
   });
 
   it('should clean up chunks when a source is deleted', async () => {

@@ -24,6 +24,11 @@ export enum KnowledgeSourceType {
   GITHUB_CODE = 'GITHUB_CODE',
 }
 
+// Legacy enum values above remain readable for preserved database records only.
+export const ACTIVE_KNOWLEDGE_SOURCE_TYPES = Object.values(KnowledgeSourceType).filter(
+  (type) => type !== KnowledgeSourceType.REQUIREMENT && type !== KnowledgeSourceType.MEETING,
+);
+
 export enum KnowledgeSourceStatus {
   QUEUED = 'QUEUED',
   PROCESSING = 'PROCESSING',

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Priority } from '../../requirements/entities/requirement.entity';
+import { Priority } from '../../../common/enums/priority.enum';
 
 export const TaskDraftItemSchema = z.object({
   itemId: z.string().min(1),

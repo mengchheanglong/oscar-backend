@@ -3,10 +3,8 @@ import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 
 export enum SearchEntityType {
-  REQUIREMENT = 'REQUIREMENT',
   DECISION = 'DECISION',
   TASK = 'TASK',
-  MEETING = 'MEETING',
   DOCUMENT = 'DOCUMENT',
   GITHUB_ISSUE = 'GITHUB_ISSUE',
   GITHUB_PR = 'GITHUB_PR',
@@ -88,7 +86,7 @@ export class SearchResultItemDto {
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d' })
   id!: string;
 
-  @ApiProperty({ enum: SearchEntityType, example: SearchEntityType.REQUIREMENT })
+  @ApiProperty({ enum: SearchEntityType, example: SearchEntityType.DOCUMENT })
   type!: SearchEntityType;
 
   @ApiPropertyOptional({ example: 'AIW-REQ-1', nullable: true })
@@ -120,17 +118,11 @@ export class SearchResultItemDto {
 }
 
 export class SearchMetaCountsDto {
-  @ApiProperty({ example: 3 })
-  REQUIREMENT!: number;
-
   @ApiProperty({ example: 2 })
   DECISION!: number;
 
   @ApiProperty({ example: 4 })
   TASK!: number;
-
-  @ApiProperty({ example: 1 })
-  MEETING!: number;
 
   @ApiProperty({ example: 2 })
   DOCUMENT!: number;

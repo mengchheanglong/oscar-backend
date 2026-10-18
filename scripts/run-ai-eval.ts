@@ -7,7 +7,7 @@ import {
 import { MockLlmProvider } from '../src/modules/ai/llm/mock-llm-provider';
 import { ContextAssembler } from '../src/modules/ai/context/context-assembler';
 import { RetrievedEvidence } from '../src/modules/ai/retrieval/retrieval.service';
-import { Priority } from '../src/modules/requirements/entities/requirement.entity';
+import { Priority } from '../src/common/enums/priority.enum';
 import { DecisionStatus } from '../src/modules/decisions/entities/decision.entity';
 
 interface EvalResult {

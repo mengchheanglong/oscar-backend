@@ -10,7 +10,6 @@ import { DataSource, IsNull, Repository, SelectQueryBuilder } from 'typeorm';
 import { Decision, DecisionStatus } from './entities/decision.entity';
 import { DecisionRevision } from './entities/decision-revision.entity';
 import { Project } from '../projects/entities/project.entity';
-import { Requirement } from '../requirements/entities/requirement.entity';
 import { ProjectRole } from '../projects/entities/project-member.entity';
 import { CreateDecisionDto } from './dto/create-decision.dto';
 import { UpdateDecisionDto } from './dto/update-decision.dto';
@@ -39,8 +38,6 @@ export class DecisionsService {
     private readonly revisionRepository: Repository<DecisionRevision>,
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
-    @InjectRepository(Requirement)
-    private readonly requirementRepository: Repository<Requirement>,
     private readonly auditService: AuditService,
     private readonly outboxService: OutboxService,
     private readonly dataSource: DataSource,
@@ -64,10 +61,6 @@ export class DecisionsService {
         message: 'Decision text cannot be empty or whitespace.',
       });
     }
-    // Validate same-project cross-references
-    if (dto.requirementId) {
-      await this.validateRequirementInProject(dto.requirementId, projectId);
-    }
     if (dto.supersedesDecisionId) {
       await this.validateDecisionInProject(dto.supersedesDecisionId, projectId);
     }
@@ -89,7 +82,6 @@ export class DecisionsService {
         status: DecisionStatus.PROPOSED,
         decidedAt: null,
         decidedBy: null,
-        requirementId: dto.requirementId ?? null,
         supersedesDecisionId: dto.supersedesDecisionId ?? null,
         sourceMeetingId: null,
         createdBy: actorId,
@@ -206,11 +198,6 @@ export class DecisionsService {
         message: 'Decision has been modified by another request. Please reload.',
       });
     }
-
-    // Validate cross-references if being changed
-    if (dto.requirementId !== undefined && dto.requirementId !== null) {
-      await this.validateRequirementInProject(dto.requirementId, projectId);
-    }
     if (dto.supersedesDecisionId !== undefined && dto.supersedesDecisionId !== null) {
       await this.validateDecisionInProject(dto.supersedesDecisionId, projectId);
       await this.checkSupersessionCycle(decisionId, dto.supersedesDecisionId);
@@ -244,9 +231,6 @@ export class DecisionsService {
         decision.decidedAt = new Date();
         decision.decidedBy = actorId;
       }
-    }
-    if (dto.requirementId !== undefined) {
-      decision.requirementId = dto.requirementId ?? null;
     }
     if (dto.supersedesDecisionId !== undefined) {
       decision.supersedesDecisionId = dto.supersedesDecisionId ?? null;
@@ -359,38 +343,6 @@ export class DecisionsService {
       });
     }
     return project.key;
-  }
-
-  // ── Private helpers ──────────────────────────────────────────────────
-
-  private async validateRequirementInProject(
-    requirementId: string,
-    projectId: string,
-  ): Promise<void> {
-    try {
-      const requirement = await this.requirementRepository.findOne({
-        where: { id: requirementId, projectId, deletedAt: IsNull() },
-        select: ['id'],
-      });
-      if (!requirement) {
-        throw new BadRequestException({
-          code: 'INVALID_REQUIREMENT',
-          message: 'Linked requirement not found in this project.',
-        });
-      }
-    } catch (err: unknown) {
-      if (err instanceof BadRequestException) throw err;
-      if (
-        (typeof err === 'object' && err !== null && 'code' in err && err.code === '22P02') ||
-        (err instanceof Error && err.message.includes('invalid input syntax for type uuid'))
-      ) {
-        throw new BadRequestException({
-          code: 'INVALID_REQUIREMENT',
-          message: 'Linked requirement not found in this project.',
-        });
-      }
-      throw err;
-    }
   }
 
   private async validateDecisionInProject(decisionId: string, projectId: string): Promise<void> {

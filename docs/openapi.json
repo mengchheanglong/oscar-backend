@@ -1983,407 +1983,6 @@
         ]
       }
     },
-    "/api/v1/projects/{projectId}/requirements": {
-      "get": {
-        "operationId": "RequirementsController_list",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "number",
-            "required": false,
-            "in": "query",
-            "description": "Filter by exact requirement number",
-            "schema": {
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "name": "status",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "DRAFT",
-                "IN_REVIEW",
-                "APPROVED",
-                "IN_PROGRESS",
-                "DONE",
-                "ARCHIVED"
-              ]
-            }
-          },
-          {
-            "name": "projectId",
-            "required": false,
-            "in": "query",
-            "description": "Filter by project ID",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "priority",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "LOW",
-                "MEDIUM",
-                "HIGH",
-                "URGENT"
-              ]
-            }
-          },
-          {
-            "name": "search",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "maxLength": 200,
-              "example": "authentication",
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "default": 1,
-              "type": "number"
-            }
-          },
-          {
-            "name": "pageSize",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "maximum": 100,
-              "default": 20,
-              "type": "number"
-            }
-          },
-          {
-            "name": "sortBy",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "default": "number",
-              "type": "string",
-              "enum": [
-                "number",
-                "title",
-                "status",
-                "priority",
-                "createdAt",
-                "updatedAt"
-              ]
-            }
-          },
-          {
-            "name": "sortOrder",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "default": "DESC",
-              "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Requirements returned"
-          },
-          "401": {
-            "description": "Authentication required"
-          },
-          "404": {
-            "description": "Project not found"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "List project requirements with filters and pagination",
-        "tags": [
-          "Requirements"
-        ]
-      },
-      "post": {
-        "operationId": "RequirementsController_create",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-csrf-token",
-            "in": "header",
-            "description": "CSRF token",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateRequirementDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Requirement created"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "Create a new requirement",
-        "tags": [
-          "Requirements"
-        ]
-      }
-    },
-    "/api/v1/projects/{projectId}/requirements/{requirementId}": {
-      "get": {
-        "operationId": "RequirementsController_getById",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "requirementId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Requirement returned"
-          },
-          "404": {
-            "description": "Requirement not found"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "Get requirement details",
-        "tags": [
-          "Requirements"
-        ]
-      },
-      "patch": {
-        "operationId": "RequirementsController_update",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "requirementId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-csrf-token",
-            "in": "header",
-            "description": "CSRF token",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateRequirementDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Requirement updated"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "Update a requirement",
-        "tags": [
-          "Requirements"
-        ]
-      },
-      "delete": {
-        "operationId": "RequirementsController_softDelete",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "requirementId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-csrf-token",
-            "in": "header",
-            "description": "CSRF token",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Requirement deleted"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "Soft-delete a requirement",
-        "tags": [
-          "Requirements"
-        ]
-      }
-    },
-    "/api/v1/projects/{projectId}/requirements/{requirementId}/revisions": {
-      "get": {
-        "operationId": "RequirementsController_listRevisions",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "requirementId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Revisions returned"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "List revision history for a requirement",
-        "tags": [
-          "Requirements"
-        ]
-      }
-    },
-    "/api/v1/projects/{projectId}/requirements/{requirementId}/tasks": {
-      "get": {
-        "operationId": "RequirementsController_listLinkedTasks",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "requirementId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Linked tasks returned"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "List tasks linked to this requirement",
-        "tags": [
-          "Requirements"
-        ]
-      }
-    },
     "/api/v1/projects/{projectId}/decisions": {
       "get": {
         "operationId": "DecisionsController_list",
@@ -2791,24 +2390,6 @@
             }
           },
           {
-            "name": "requirementId",
-            "required": false,
-            "in": "query",
-            "description": "Filter by requirement ID",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sourceMeetingId",
-            "required": false,
-            "in": "query",
-            "description": "Filter by source meeting ID",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "search",
             "required": false,
             "in": "query",
@@ -3084,301 +2665,6 @@
         "summary": "Soft-delete a task",
         "tags": [
           "Tasks"
-        ]
-      }
-    },
-    "/api/v1/projects/{projectId}/meetings": {
-      "get": {
-        "operationId": "MeetingsController_list",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "search",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "maxLength": 200,
-              "example": "planning",
-              "type": "string"
-            }
-          },
-          {
-            "name": "from",
-            "required": false,
-            "in": "query",
-            "description": "Filter meetings starting after this time",
-            "schema": {
-              "example": "2026-09-01T00:00:00.000Z",
-              "type": "string"
-            }
-          },
-          {
-            "name": "to",
-            "required": false,
-            "in": "query",
-            "description": "Filter meetings starting before this time",
-            "schema": {
-              "example": "2026-09-30T23:59:59.000Z",
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "default": 1,
-              "type": "number"
-            }
-          },
-          {
-            "name": "pageSize",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "maximum": 100,
-              "default": 20,
-              "type": "number"
-            }
-          },
-          {
-            "name": "sortBy",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "default": "startsAt",
-              "type": "string",
-              "enum": [
-                "startsAt",
-                "title",
-                "createdAt"
-              ]
-            }
-          },
-          {
-            "name": "sortOrder",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "default": "DESC",
-              "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Meetings returned"
-          },
-          "401": {
-            "description": "Authentication required"
-          },
-          "404": {
-            "description": "Project not found"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "List project meetings with filters and pagination",
-        "tags": [
-          "Meetings"
-        ]
-      },
-      "post": {
-        "operationId": "MeetingsController_create",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-csrf-token",
-            "in": "header",
-            "description": "CSRF token",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateMeetingDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Meeting created"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "Create a new meeting",
-        "tags": [
-          "Meetings"
-        ]
-      }
-    },
-    "/api/v1/projects/{projectId}/meetings/{meetingId}": {
-      "get": {
-        "operationId": "MeetingsController_getById",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "meetingId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Meeting returned"
-          },
-          "404": {
-            "description": "Meeting not found"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "Get meeting details",
-        "tags": [
-          "Meetings"
-        ]
-      },
-      "patch": {
-        "operationId": "MeetingsController_update",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "meetingId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-csrf-token",
-            "in": "header",
-            "description": "CSRF token",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateMeetingDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Meeting updated"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "Update a meeting",
-        "tags": [
-          "Meetings"
-        ]
-      },
-      "delete": {
-        "operationId": "MeetingsController_softDelete",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "meetingId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-csrf-token",
-            "in": "header",
-            "description": "CSRF token",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Meeting deleted"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "Soft-delete a meeting",
-        "tags": [
-          "Meetings"
         ]
       }
     },
@@ -3883,107 +3169,6 @@
         ]
       }
     },
-    "/api/v1/projects/{projectId}/dashboard": {
-      "get": {
-        "operationId": "DashboardController_getDashboard",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "timezone",
-            "required": false,
-            "in": "query",
-            "description": "Display timezone (defaults to Asia/Bangkok)",
-            "schema": {
-              "example": "Asia/Bangkok",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Dashboard metrics returned successfully"
-          },
-          "401": {
-            "description": "Authentication required"
-          },
-          "404": {
-            "description": "Project not found or inaccessible"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "Get aggregated project dashboard metrics and recent activity",
-        "tags": [
-          "Dashboard"
-        ]
-      }
-    },
-    "/api/v1/projects/{projectId}/activity": {
-      "get": {
-        "operationId": "DashboardController_getActivity",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "description": "Page number (1-based)",
-            "schema": {
-              "default": 1,
-              "type": "number"
-            }
-          },
-          {
-            "name": "pageSize",
-            "required": false,
-            "in": "query",
-            "description": "Items per page",
-            "schema": {
-              "maximum": 100,
-              "default": 20,
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Activity stream returned successfully"
-          },
-          "401": {
-            "description": "Authentication required"
-          },
-          "404": {
-            "description": "Project not found or inaccessible"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "Get paginated project activity stream",
-        "tags": [
-          "Dashboard"
-        ]
-      }
-    },
     "/api/v1/projects/{projectId}/search": {
       "get": {
         "operationId": "SearchController_search",
@@ -4014,10 +3199,8 @@
             "schema": {
               "type": "string",
               "enum": [
-                "REQUIREMENT",
                 "DECISION",
                 "TASK",
-                "MEETING",
                 "DOCUMENT",
                 "GITHUB_ISSUE",
                 "GITHUB_PR",
@@ -4125,7 +3308,7 @@
             "cookie": []
           }
         ],
-        "summary": "Search project knowledge base across requirements, decisions, tasks, meetings, and documents",
+        "summary": "Search project knowledge base across decisions, tasks, and documents",
         "tags": [
           "Search"
         ]
@@ -4152,10 +3335,8 @@
               "enum": [
                 "DOCUMENT",
                 "LOCAL_FILE",
-                "REQUIREMENT",
                 "DECISION",
                 "TASK",
-                "MEETING",
                 "GITHUB_ISSUE",
                 "GITHUB_PR",
                 "GITHUB_CODE"
@@ -5951,85 +5132,6 @@
           "targetUserId"
         ]
       },
-      "CreateRequirementDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "example": "User authentication flow",
-            "minLength": 1,
-            "maxLength": 500
-          },
-          "description": {
-            "type": "string",
-            "example": "Implement OAuth2 based authentication"
-          },
-          "acceptanceCriteria": {
-            "type": "string",
-            "example": "Users can log in with email and password"
-          },
-          "priority": {
-            "type": "string",
-            "enum": [
-              "LOW",
-              "MEDIUM",
-              "HIGH",
-              "URGENT"
-            ],
-            "default": "MEDIUM"
-          }
-        },
-        "required": [
-          "title"
-        ]
-      },
-      "UpdateRequirementDto": {
-        "type": "object",
-        "properties": {
-          "version": {
-            "type": "number",
-            "example": 1,
-            "description": "Current version for optimistic locking"
-          },
-          "title": {
-            "type": "string",
-            "example": "Updated authentication flow",
-            "minLength": 1,
-            "maxLength": 500
-          },
-          "description": {
-            "type": "string",
-            "example": "Updated description"
-          },
-          "acceptanceCriteria": {
-            "type": "string",
-            "example": "Updated acceptance criteria"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "DRAFT",
-              "IN_REVIEW",
-              "APPROVED",
-              "IN_PROGRESS",
-              "DONE",
-              "ARCHIVED"
-            ]
-          },
-          "priority": {
-            "type": "string",
-            "enum": [
-              "LOW",
-              "MEDIUM",
-              "HIGH",
-              "URGENT"
-            ]
-          }
-        },
-        "required": [
-          "version"
-        ]
-      },
       "CreateDecisionDto": {
         "type": "object",
         "properties": {
@@ -6046,10 +5148,6 @@
           "rationale": {
             "type": "string",
             "example": "PostgreSQL supports pgvector for embeddings"
-          },
-          "requirementId": {
-            "type": "string",
-            "description": "Link to a same-project requirement"
           },
           "supersedesDecisionId": {
             "type": "string",
@@ -6090,10 +5188,6 @@
               "ACCEPTED",
               "SUPERSEDED"
             ]
-          },
-          "requirementId": {
-            "type": "string",
-            "description": "Link to a same-project requirement"
           },
           "supersedesDecisionId": {
             "type": "string",
@@ -6243,14 +5337,6 @@
             "example": "2026-10-15",
             "nullable": true
           },
-          "requirementId": {
-            "type": "object",
-            "nullable": true
-          },
-          "sourceMeetingId": {
-            "type": "object",
-            "nullable": true
-          },
           "createdBy": {
             "type": "string"
           },
@@ -6329,14 +5415,6 @@
             "example": "2026-10-15",
             "description": "Due date in YYYY-MM-DD format"
           },
-          "requirementId": {
-            "type": "string",
-            "description": "UUID of linked requirement in same project"
-          },
-          "sourceMeetingId": {
-            "type": "string",
-            "description": "UUID of source meeting in same project"
-          },
           "blockedReason": {
             "type": "string",
             "example": "Waiting on Phase 2 scope decision",
@@ -6397,118 +5475,11 @@
             "description": "Due date in YYYY-MM-DD format",
             "nullable": true
           },
-          "requirementId": {
-            "type": "object",
-            "description": "UUID of linked requirement in same project",
-            "nullable": true
-          },
-          "sourceMeetingId": {
-            "type": "object",
-            "description": "UUID of source meeting in same project",
-            "nullable": true
-          },
           "blockedReason": {
             "type": "object",
             "example": "Waiting on Phase 2 scope decision",
             "description": "Reason why the task is blocked",
             "nullable": true
-          }
-        },
-        "required": [
-          "version"
-        ]
-      },
-      "CreateMeetingDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "example": "Sprint Planning",
-            "minLength": 1,
-            "maxLength": 500
-          },
-          "startsAt": {
-            "type": "string",
-            "example": "2026-09-15T09:00:00.000Z"
-          },
-          "endsAt": {
-            "type": "string",
-            "example": "2026-09-15T10:00:00.000Z"
-          },
-          "agenda": {
-            "type": "string",
-            "example": "Review backlog and estimate tasks"
-          },
-          "notes": {
-            "type": "string",
-            "example": "Discussed architecture and timelines"
-          },
-          "transcriptText": {
-            "type": "string",
-            "example": "Speaker 1: Hello everyone..."
-          },
-          "attendeeUserIds": {
-            "description": "List of project member user IDs attending",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "title",
-          "startsAt",
-          "endsAt"
-        ]
-      },
-      "UpdateMeetingDto": {
-        "type": "object",
-        "properties": {
-          "version": {
-            "type": "number",
-            "example": 1,
-            "description": "Current version for optimistic locking"
-          },
-          "title": {
-            "type": "string",
-            "example": "Updated Sprint Planning",
-            "minLength": 1,
-            "maxLength": 500
-          },
-          "startsAt": {
-            "type": "string",
-            "example": "2026-09-15T09:30:00.000Z"
-          },
-          "endsAt": {
-            "type": "string",
-            "example": "2026-09-15T10:30:00.000Z"
-          },
-          "agenda": {
-            "type": "object",
-            "example": "Updated agenda",
-            "nullable": true
-          },
-          "notes": {
-            "type": "object",
-            "example": "Updated notes",
-            "nullable": true
-          },
-          "transcriptText": {
-            "type": "object",
-            "example": "Updated transcript...",
-            "nullable": true
-          },
-          "summary": {
-            "type": "object",
-            "example": "Approved summary of the meeting",
-            "nullable": true
-          },
-          "attendeeUserIds": {
-            "description": "Updated list of project member user IDs attending",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           }
         },
         "required": [
@@ -6715,16 +5686,14 @@
           "type": {
             "type": "string",
             "enum": [
-              "REQUIREMENT",
               "DECISION",
               "TASK",
-              "MEETING",
               "DOCUMENT",
               "GITHUB_ISSUE",
               "GITHUB_PR",
               "GITHUB_CODE"
             ],
-            "example": "REQUIREMENT"
+            "example": "DOCUMENT"
           },
           "key": {
             "type": "object",
@@ -6774,10 +5743,6 @@
       "SearchMetaCountsDto": {
         "type": "object",
         "properties": {
-          "REQUIREMENT": {
-            "type": "number",
-            "example": 3
-          },
           "DECISION": {
             "type": "number",
             "example": 2
@@ -6785,10 +5750,6 @@
           "TASK": {
             "type": "number",
             "example": 4
-          },
-          "MEETING": {
-            "type": "number",
-            "example": 1
           },
           "DOCUMENT": {
             "type": "number",
@@ -6808,10 +5769,8 @@
           }
         },
         "required": [
-          "REQUIREMENT",
           "DECISION",
           "TASK",
-          "MEETING",
           "DOCUMENT"
         ]
       },
@@ -7120,10 +6079,8 @@
             "enum": [
               "DOCUMENT",
               "LOCAL_FILE",
-              "REQUIREMENT",
               "DECISION",
               "TASK",
-              "MEETING",
               "GITHUB_ISSUE",
               "GITHUB_PR",
               "GITHUB_CODE"

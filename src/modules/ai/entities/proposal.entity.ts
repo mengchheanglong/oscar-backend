@@ -15,7 +15,6 @@ import { ProposalCommit } from './proposal-commit.entity';
 
 export enum ProposalType {
   TASK_PROPOSAL = 'TASK_PROPOSAL',
-  MEETING_ANALYSIS = 'MEETING_ANALYSIS',
 }
 
 export enum ProposalStatus {

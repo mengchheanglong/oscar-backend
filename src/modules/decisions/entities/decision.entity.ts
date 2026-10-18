@@ -12,7 +12,6 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Project } from '../../projects/entities/project.entity';
-import { Requirement } from '../../requirements/entities/requirement.entity';
 import { DecisionRevision } from './decision-revision.entity';
 
 export enum DecisionStatus {
@@ -61,10 +60,6 @@ export class Decision {
 
   @Column({ name: 'requirement_id', type: 'uuid', nullable: true })
   requirementId!: string | null;
-
-  @ManyToOne(() => Requirement, { nullable: true })
-  @JoinColumn({ name: 'requirement_id' })
-  requirement?: Requirement | null;
 
   @Column({ name: 'source_meeting_id', type: 'uuid', nullable: true })
   sourceMeetingId!: string | null;

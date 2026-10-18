@@ -56,19 +56,6 @@ export class UpdateTaskDto {
   dueDate?: string | null;
 
   @ApiPropertyOptional({
-    description: 'UUID of linked requirement in same project',
-    nullable: true,
-  })
-  @IsOptional()
-  @IsUUID()
-  requirementId?: string | null;
-
-  @ApiPropertyOptional({ description: 'UUID of source meeting in same project', nullable: true })
-  @IsOptional()
-  @IsUUID()
-  sourceMeetingId?: string | null;
-
-  @ApiPropertyOptional({
     example: 'Waiting on Phase 2 scope decision',
     description: 'Reason why the task is blocked',
     nullable: true,

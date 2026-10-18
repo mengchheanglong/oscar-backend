@@ -36,7 +36,7 @@ import {
   ProjectMember,
   ProjectRole,
 } from '../../src/modules/projects/entities/project-member.entity';
-import { Requirement } from '../../src/modules/requirements/entities/requirement.entity';
+import { Decision } from '../../src/modules/decisions/entities/decision.entity';
 import { AIProposal, ProposalStatus } from '../../src/modules/ai/entities/proposal.entity';
 import { AuditService } from '../../src/modules/audit/audit.service';
 import { AuditLog } from '../../src/modules/audit/entities/audit-log.entity';
@@ -47,7 +47,7 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
   let user: User;
   let other: User;
   let project: Project;
-  let requirement: Requirement;
+  let decision: Decision;
   const runtime: AgentRuntime = { available: () => true, execute: jest.fn() };
   const execute = runtime.execute as jest.Mock;
   let retrieval: RetrievalService;
@@ -88,12 +88,13 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
       { projectId: project.id, userId: user.id, accessRole: ProjectRole.OWNER },
       { projectId: project.id, userId: other.id, accessRole: ProjectRole.VIEWER },
     ]);
-    const requirements = db.getRepository(Requirement);
-    requirement = await requirements.save(
-      requirements.create({
+    const decisions = db.getRepository(Decision);
+    decision = await decisions.save(
+      decisions.create({
         projectId: project.id,
         number: 1,
-        title: 'Synthetic pricing requirement',
+        title: 'Synthetic pricing decision',
+        decisionText: 'Use the synthetic pricing scenario.',
         createdBy: user.id,
         updatedBy: user.id,
       }),
@@ -444,7 +445,7 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
       });
       expect(calc.operatingProfit).toBe(50);
       const draft = await callbacks.tool('request_task_review', {
-        requirementId: requirement.id,
+        decisionId: decision.id,
         title: 'Review pricing',
       });
       expect(draft.reviewRequired).toBe(true);
@@ -461,7 +462,7 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
     const proposal = await db.getRepository(AIProposal).findOneByOrFail({ id: done.proposalId! });
     expect(proposal).toMatchObject({
       status: ProposalStatus.PENDING,
-      sourceEntityId: requirement.id,
+      sourceEntityId: decision.id,
       userId: user.id,
     });
     expect(retrieval.retrieve).toHaveBeenCalledWith(
@@ -498,7 +499,7 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
     });
     execute.mockImplementation(async (_input, callbacks) => {
       await callbacks.tool('request_task_review', {
-        requirementId: requirement.id,
+        decisionId: decision.id,
         title: 'Cancelled draft',
       });
       staged();
@@ -641,15 +642,15 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
   it('does not save an artifact or proposal when its source changes during execution', async () => {
     execute.mockImplementation(async (_input, callbacks) => {
       const foreign = await callbacks.tool('request_task_review', {
-        requirementId: randomUUID(),
+        decisionId: randomUUID(),
         title: 'Wrong source',
       });
       expect(foreign.error).toBeDefined();
       await callbacks.tool('request_task_review', {
-        requirementId: requirement.id,
+        decisionId: decision.id,
         title: 'Stale draft',
       });
-      await db.getRepository(Requirement).increment({ id: requirement.id }, 'version', 1);
+      await db.getRepository(Decision).increment({ id: decision.id }, 'version', 1);
       return '# Outdated report';
     });
     const r = await service.create(project.id, user.id, {

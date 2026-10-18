@@ -381,7 +381,7 @@ export class AiService implements OnModuleInit {
       >(
         `SELECT project_id, source_type, COUNT(*)::text as count
          FROM knowledge_sources
-         WHERE project_id = ANY($1::uuid[]) AND deleted_at IS NULL AND status = 'INDEXED'
+         WHERE source_type NOT IN ('REQUIREMENT', 'MEETING') AND project_id = ANY($1::uuid[]) AND deleted_at IS NULL AND status = 'INDEXED'
          GROUP BY project_id, source_type`,
         [projectIds],
       );
@@ -398,9 +398,7 @@ export class AiService implements OnModuleInit {
         const pCounts = counts.filter((c) => c.project_id === p.id);
         const pDocs = docs.filter((d) => d.project_id === p.id).map((d) => d.title);
         const domainCounts = pCounts
-          .filter((c) =>
-            ['TASK', 'REQUIREMENT', 'DECISION', 'MEETING', 'DOCUMENT'].includes(c.source_type),
-          )
+          .filter((c) => ['TASK', 'DECISION', 'DOCUMENT'].includes(c.source_type))
           .map((c) => `${c.count} ${c.source_type.toLowerCase()}s`)
           .join(', ');
         const docStr =

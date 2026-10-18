@@ -30,26 +30,6 @@ describe('TextExtractors', () => {
   describe('EntityExtractor', () => {
     const extractor = new EntityExtractor();
 
-    it('should extract structured requirement into searchable document', () => {
-      const doc = extractor.extractRequirement({
-        id: '11111111-1111-1111-1111-111111111111',
-        title: 'Authentication MFA',
-        type: 'FUNCTIONAL',
-        priority: 'HIGH',
-        status: 'APPROVED',
-        description: 'Support TOTP multi-factor authentication.',
-        acceptanceCriteria: 'User can enter 6-digit code.',
-        rationale: 'Security compliance requirement.',
-      });
-
-      expect(doc.text).toContain('Authentication MFA');
-      expect(doc.text).toContain('Support TOTP multi-factor authentication.');
-      expect(doc.text).toContain('User can enter 6-digit code.');
-      expect(doc.metadata.sourceType).toBe('REQUIREMENT');
-      expect(doc.metadata.sourceId).toBe('11111111-1111-1111-1111-111111111111');
-      expect(doc.sections.length).toBeGreaterThan(0);
-    });
-
     it('should extract structured decision into searchable document', () => {
       const doc = extractor.extractDecision({
         id: '22222222-2222-2222-2222-222222222222',
@@ -80,24 +60,6 @@ describe('TextExtractors', () => {
       expect(doc.text).toContain('Implement vector embeddings pipeline');
       expect(doc.text).toContain('Store embeddings in pgvector table knowledge_chunks.');
       expect(doc.metadata.sourceType).toBe('TASK');
-    });
-
-    it('should extract structured meeting into searchable document', () => {
-      const doc = extractor.extractMeeting({
-        id: '44444444-4444-4444-4444-444444444444',
-        title: 'Sprint Planning Meeting',
-        status: 'COMPLETED',
-        scheduledAt: '2026-09-16T10:00:00Z',
-        agenda: 'Review sprint deliverables',
-        notes: 'Team agreed to proceed with Milestone P2-01.',
-        actionItems: [{ title: 'Write vector migration' }, { title: 'Implement chunker' }],
-      });
-
-      expect(doc.text).toContain('Sprint Planning Meeting');
-      expect(doc.text).toContain('Review sprint deliverables');
-      expect(doc.text).toContain('Team agreed to proceed with Milestone P2-01.');
-      expect(doc.text).toContain('Write vector migration');
-      expect(doc.metadata.sourceType).toBe('MEETING');
     });
   });
 });

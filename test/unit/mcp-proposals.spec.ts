@@ -24,22 +24,33 @@ describe('MCP reviewed proposal workflow', () => {
     jest.restoreAllMocks();
   });
 
-  it('resolves a requirement key before generating an unconfirmed draft', async () => {
+  it('does not advertise retired features as tools or resources', async () => {
+    const { tools } = await client.listTools();
+    expect(tools.some((tool) => /meeting|requirement|dashboard/.test(tool.name))).toBe(false);
+    const { resourceTemplates } = await client.listResourceTemplates();
+    expect(
+      resourceTemplates.some((resource) =>
+        /meeting|requirement|dashboard/.test(resource.uriTemplate),
+      ),
+    ).toBe(false);
+  });
+
+  it('resolves a decision key before generating an unconfirmed draft', async () => {
     const mock = jest.spyOn(global, 'fetch').mockImplementation(async (url, options) => {
       const parsed = new URL(String(url));
-      if (parsed.pathname.endsWith('/requirements')) {
+      if (parsed.pathname.endsWith('/decisions')) {
         expect(parsed.searchParams.get('number')).toBe('1');
-        return new Response(JSON.stringify({ data: [{ id: 'req-uuid', number: 1 }] }));
+        return new Response(JSON.stringify({ data: [{ id: 'dec-uuid', number: 1 }] }));
       }
-      expect(parsed.pathname).toContain('/ai/requirements/req-uuid/task-proposals');
+      expect(parsed.pathname).toContain('/ai/decisions/dec-uuid/task-proposals');
       expect(options?.method).toBe('POST');
       return new Response(
         JSON.stringify({ id: proposalId, status: 'PENDING', resultRecordIds: [] }),
       );
     });
     const result = await client.callTool({
-      name: 'generate_task_proposal',
-      arguments: { requirementKeyOrId: 'AIW-REQ-1' },
+      name: 'generate_decision_task_proposal',
+      arguments: { decisionKeyOrId: 'AIW-DEC-1' },
     });
     expect(result.isError).not.toBe(true);
     expect(mock).toHaveBeenCalledTimes(2);
@@ -54,8 +65,7 @@ describe('MCP reviewed proposal workflow', () => {
       arguments: {
         proposalId,
         version: 2,
-        selectedItemIds: [],
-        includeSummary: true,
+        selectedItemIds: ['task-1'],
         idempotencyKey: 'retry-key',
         userConfirmed: true,
       },
@@ -64,8 +74,7 @@ describe('MCP reviewed proposal workflow', () => {
     expect(options.headers).toMatchObject({ 'Idempotency-Key': 'retry-key' });
     expect(JSON.parse(options.body as string)).toEqual({
       version: 2,
-      selectedItemIds: [],
-      includeSummary: true,
+      selectedItemIds: ['task-1'],
     });
   });
 

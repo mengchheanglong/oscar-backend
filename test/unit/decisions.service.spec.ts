@@ -11,7 +11,6 @@ import { DecisionsService } from '../../src/modules/decisions/decisions.service'
 import { Decision, DecisionStatus } from '../../src/modules/decisions/entities/decision.entity';
 import { DecisionRevision } from '../../src/modules/decisions/entities/decision-revision.entity';
 import { Project } from '../../src/modules/projects/entities/project.entity';
-import { Requirement } from '../../src/modules/requirements/entities/requirement.entity';
 import { ProjectRole } from '../../src/modules/projects/entities/project-member.entity';
 import { AuditService } from '../../src/modules/audit/audit.service';
 import { OutboxService } from '../../src/modules/ingestion/outbox.service';
@@ -21,7 +20,6 @@ const ACTOR_ID = '22222222-2222-2222-2222-222222222222';
 const OTHER_USER = '33333333-3333-3333-3333-333333333333';
 const DEC_ID = '44444444-4444-4444-4444-444444444444';
 const DEC_ID_2 = '55555555-5555-5555-5555-555555555555';
-const REQ_ID = '66666666-6666-6666-6666-666666666666';
 
 function makeDecision(overrides: Partial<Decision> = {}): Decision {
   const now = new Date();
@@ -68,10 +66,6 @@ describe('DecisionsService', () => {
     findOne: jest.fn(),
   };
 
-  const mockRequirementRepo = {
-    findOne: jest.fn(),
-  };
-
   const mockAuditService = {
     record: jest.fn().mockResolvedValue(undefined),
   };
@@ -101,7 +95,6 @@ describe('DecisionsService', () => {
         { provide: getRepositoryToken(Decision), useValue: mockDecisionRepo },
         { provide: getRepositoryToken(DecisionRevision), useValue: mockRevisionRepo },
         { provide: getRepositoryToken(Project), useValue: mockProjectRepo },
-        { provide: getRepositoryToken(Requirement), useValue: mockRequirementRepo },
         { provide: AuditService, useValue: mockAuditService },
         { provide: OutboxService, useValue: mockOutboxService },
         { provide: DataSource, useValue: mockDataSource },
@@ -128,18 +121,6 @@ describe('DecisionsService', () => {
       expect(mockAuditService.record).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'DECISION_CREATED' }),
       );
-    });
-
-    it('should validate same-project requirement link', async () => {
-      mockRequirementRepo.findOne.mockResolvedValue(null);
-
-      await expect(
-        service.create(PROJECT_ID, ACTOR_ID, {
-          title: 'Dec',
-          decisionText: 'Text',
-          requirementId: REQ_ID,
-        }),
-      ).rejects.toThrow(BadRequestException);
     });
 
     it('should validate same-project supersedes link', async () => {

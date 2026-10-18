@@ -1,5 +1,10 @@
 # Continuum — Backend
 
+Current scope: Meetings, Requirements, and Dashboard functionality have been
+retired. See [feature retirement](docs/FEATURE_RETIREMENT.md) for removed API/MCP
+contracts, preserved data, and verification. This supersedes the inherited
+foundation-era feature inventory below.
+
 For host development and the full Docker app, see
 [Running Continuum locally](docs/DOCKER_LOCAL.md). The Docker app profile includes
 the sibling frontend repository and uses ports 3002 (web) and 3001 (API).

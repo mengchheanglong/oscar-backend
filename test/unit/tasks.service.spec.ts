@@ -14,8 +14,6 @@ import {
   ProjectMember,
   ProjectRole,
 } from '../../src/modules/projects/entities/project-member.entity';
-import { Requirement } from '../../src/modules/requirements/entities/requirement.entity';
-import { Meeting } from '../../src/modules/meetings/entities/meeting.entity';
 import { AuditService } from '../../src/modules/audit/audit.service';
 import { OutboxService } from '../../src/modules/ingestion/outbox.service';
 import { AIProposal, ProposalStatus } from '../../src/modules/ai/entities/proposal.entity';
@@ -25,8 +23,6 @@ const ACTOR_ID = '22222222-2222-2222-2222-222222222222';
 const ASSIGNEE_ID = '33333333-3333-3333-3333-333333333333';
 const OTHER_USER = '44444444-4444-4444-4444-444444444444';
 const TASK_ID = '55555555-5555-5555-5555-555555555555';
-const REQ_ID = '66666666-6666-6666-6666-666666666666';
-const MEETING_ID = '77777777-7777-7777-7777-777777777777';
 
 function makeTask(overrides: Partial<Task> = {}): Task {
   const now = new Date();
@@ -71,14 +67,6 @@ describe('TasksService', () => {
     findOne: jest.fn(),
   };
 
-  const mockRequirementRepo = {
-    findOne: jest.fn(),
-  };
-
-  const mockMeetingRepo = {
-    findOne: jest.fn(),
-  };
-
   const mockAuditService = {
     record: jest.fn().mockResolvedValue(undefined),
   };
@@ -109,8 +97,6 @@ describe('TasksService', () => {
         { provide: getRepositoryToken(Task), useValue: mockTaskRepo },
         { provide: getRepositoryToken(Project), useValue: mockProjectRepo },
         { provide: getRepositoryToken(ProjectMember), useValue: mockMemberRepo },
-        { provide: getRepositoryToken(Requirement), useValue: mockRequirementRepo },
-        { provide: getRepositoryToken(Meeting), useValue: mockMeetingRepo },
         { provide: AuditService, useValue: mockAuditService },
         { provide: OutboxService, useValue: mockOutboxService },
         { provide: DataSource, useValue: mockDataSource },
@@ -124,8 +110,8 @@ describe('TasksService', () => {
     it('loads only confirmed records in the requested project and omits private draft text', async () => {
       const findOne = jest.fn().mockResolvedValue({
         id: 'proposal-id',
-        sourceEntityType: 'REQUIREMENT',
-        sourceEntityId: REQ_ID,
+        sourceEntityType: 'DECISION',
+        sourceEntityId: TASK_ID,
         sourceRevision: 2,
         draftJson: {
           type: 'CREATE_TASKS',
@@ -146,8 +132,8 @@ describe('TasksService', () => {
       );
       expect(result).toEqual({
         proposalId: 'proposal-id',
-        sourceEntityType: 'REQUIREMENT',
-        sourceEntityId: REQ_ID,
+        sourceEntityType: 'DECISION',
+        sourceEntityId: TASK_ID,
         sourceRevision: 2,
         sourceReferences: [],
       });
@@ -185,28 +171,6 @@ describe('TasksService', () => {
         service.create(PROJECT_ID, ACTOR_ID, {
           title: 'New Task',
           assigneeId: ASSIGNEE_ID,
-        }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should validate requirement belongs to same project', async () => {
-      mockRequirementRepo.findOne.mockResolvedValue(null);
-
-      await expect(
-        service.create(PROJECT_ID, ACTOR_ID, {
-          title: 'New Task',
-          requirementId: REQ_ID,
-        }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should validate meeting belongs to same project', async () => {
-      mockMeetingRepo.findOne.mockResolvedValue(null);
-
-      await expect(
-        service.create(PROJECT_ID, ACTOR_ID, {
-          title: 'New Task',
-          sourceMeetingId: MEETING_ID,
         }),
       ).rejects.toThrow(BadRequestException);
     });
@@ -304,16 +268,6 @@ describe('TasksService', () => {
       await expect(
         service.softDelete(PROJECT_ID, TASK_ID, ACTOR_ID, ProjectRole.CONTRIBUTOR),
       ).rejects.toThrow(ForbiddenException);
-    });
-  });
-
-  describe('listForRequirement', () => {
-    it('should return tasks for requirement', async () => {
-      const tasks = [makeTask({ requirementId: REQ_ID })];
-      mockTaskRepo.find.mockResolvedValue(tasks);
-
-      const result = await service.listForRequirement(PROJECT_ID, REQ_ID);
-      expect(result).toEqual(tasks);
     });
   });
 

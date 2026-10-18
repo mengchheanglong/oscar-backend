@@ -85,14 +85,14 @@ async function verify() {
     ingestionService.setEmbeddingProvider(new MockEmbeddingProvider(1536));
     ingestionService.onModuleInit();
 
-    // 5. Emit a requirement updated outbox event
+    // 5. Emit a task updated outbox event
     const testEntityId = '00000000-0000-0000-0000-' + Date.now().toString(16).padStart(12, '0');
-    console.log(`[Step 5] Emitting REQUIREMENT_UPDATED outbox event for entity ${testEntityId}...`);
+    console.log(`[Step 5] Emitting TASK_UPDATED outbox event for entity ${testEntityId}...`);
     await outboxService.emit({
       projectId: project.id,
-      eventType: 'REQUIREMENT_UPDATED',
+      eventType: 'TASK_UPDATED',
       payload: {
-        requirementId: testEntityId,
+        taskId: testEntityId,
         revision: 1,
         title: 'Realtime Bi-directional Synchronization',
         type: 'FUNCTIONAL',
@@ -101,7 +101,7 @@ async function verify() {
         description:
           'The platform must ensure all domain entity updates trigger transactional outbox events that sync into pgvector within 5 seconds under standard load.',
         acceptanceCriteria:
-          'Given an updated requirement, when saved, then pgvector chunks are indexed and searchable via cosine distance.',
+          'Given an updated task, when saved, then pgvector chunks are indexed and searchable via cosine distance.',
         rationale: 'Required for contextual semantic retrieval in AI copilots.',
       },
       dedupeKey: `req:${testEntityId}:1:test`,

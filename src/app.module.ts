@@ -10,13 +10,10 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { ProjectsModule } from './modules/projects/projects.module';
-import { RequirementsModule } from './modules/requirements/requirements.module';
 import { DecisionsModule } from './modules/decisions/decisions.module';
 import { TasksModule } from './modules/tasks/tasks.module';
-import { MeetingsModule } from './modules/meetings/meetings.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { DocumentsModule } from './modules/documents/documents.module';
-import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { SearchModule } from './modules/search/search.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { OutboxModule } from './modules/ingestion/outbox.module';
@@ -52,13 +49,10 @@ import { GitHubIntegrationModule } from './modules/integrations/github/github-in
     AuthModule,
     AuditModule,
     ProjectsModule,
-    RequirementsModule,
     DecisionsModule,
     TasksModule,
-    MeetingsModule,
     StorageModule,
     DocumentsModule,
-    DashboardModule,
     SearchModule,
     OutboxModule,
     IngestionModule,

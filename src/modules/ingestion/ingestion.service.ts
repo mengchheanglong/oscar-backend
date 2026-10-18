@@ -44,18 +44,6 @@ export interface DocumentPayload {
   originalFilename?: string;
 }
 
-export interface RequirementPayload {
-  requirementId: string;
-  revision?: number;
-  title: string;
-  type?: string;
-  priority?: string;
-  status?: string;
-  description?: string | null;
-  acceptanceCriteria?: string | null;
-  rationale?: string | null;
-}
-
 export interface DecisionPayload {
   decisionId: string;
   revision?: number;
@@ -75,17 +63,6 @@ export interface TaskPayload {
   status?: string;
   priority?: string;
   dueDate?: string | Date | null;
-}
-
-export interface MeetingPayload {
-  meetingId: string;
-  revision?: number;
-  title: string;
-  status?: string;
-  scheduledAt?: string | Date | null;
-  agenda?: string | null;
-  notes?: string | null;
-  actionItems?: unknown[] | null;
 }
 
 export interface GitHubIssuePayload {
@@ -210,18 +187,6 @@ export class IngestionService implements OnModuleInit {
         );
         break;
 
-      case 'REQUIREMENT_CREATED':
-      case 'REQUIREMENT_UPDATED':
-        await this.syncRequirement(projectId, payload as unknown as RequirementPayload);
-        break;
-      case 'REQUIREMENT_DELETED':
-        await this.deleteSource(
-          projectId,
-          KnowledgeSourceType.REQUIREMENT,
-          (payload as unknown as { requirementId: string }).requirementId,
-        );
-        break;
-
       case 'DECISION_CREATED':
       case 'DECISION_UPDATED':
         await this.syncDecision(projectId, payload as unknown as DecisionPayload);
@@ -243,18 +208,6 @@ export class IngestionService implements OnModuleInit {
           projectId,
           KnowledgeSourceType.TASK,
           (payload as unknown as { taskId: string }).taskId,
-        );
-        break;
-
-      case 'MEETING_CREATED':
-      case 'MEETING_UPDATED':
-        await this.syncMeeting(projectId, payload as unknown as MeetingPayload);
-        break;
-      case 'MEETING_DELETED':
-        await this.deleteSource(
-          projectId,
-          KnowledgeSourceType.MEETING,
-          (payload as unknown as { meetingId: string }).meetingId,
         );
         break;
 
@@ -411,31 +364,6 @@ export class IngestionService implements OnModuleInit {
     );
   }
 
-  async syncRequirement(
-    projectId: string,
-    payload: RequirementPayload,
-  ): Promise<KnowledgeSource | null> {
-    const extractedDoc = this.entityExtractor.extractRequirement({
-      id: payload.requirementId,
-      title: payload.title,
-      type: payload.type,
-      priority: payload.priority,
-      status: payload.status,
-      description: payload.description,
-      acceptanceCriteria: payload.acceptanceCriteria,
-      rationale: payload.rationale,
-    });
-
-    return this.processKnowledgeSource({
-      projectId,
-      sourceType: KnowledgeSourceType.REQUIREMENT,
-      sourceId: payload.requirementId,
-      sourceRevision: payload.revision ?? 1,
-      title: payload.title,
-      extractedDoc,
-    });
-  }
-
   async syncDecision(projectId: string, payload: DecisionPayload): Promise<KnowledgeSource | null> {
     const extractedDoc = this.entityExtractor.extractDecision({
       id: payload.decisionId,
@@ -471,27 +399,6 @@ export class IngestionService implements OnModuleInit {
       projectId,
       sourceType: KnowledgeSourceType.TASK,
       sourceId: payload.taskId,
-      sourceRevision: payload.revision ?? 1,
-      title: payload.title,
-      extractedDoc,
-    });
-  }
-
-  async syncMeeting(projectId: string, payload: MeetingPayload): Promise<KnowledgeSource | null> {
-    const extractedDoc = this.entityExtractor.extractMeeting({
-      id: payload.meetingId,
-      title: payload.title,
-      status: payload.status,
-      scheduledAt: payload.scheduledAt,
-      agenda: payload.agenda,
-      notes: payload.notes,
-      actionItems: payload.actionItems,
-    });
-
-    return this.processKnowledgeSource({
-      projectId,
-      sourceType: KnowledgeSourceType.MEETING,
-      sourceId: payload.meetingId,
       sourceRevision: payload.revision ?? 1,
       title: payload.title,
       extractedDoc,
@@ -758,6 +665,7 @@ export class IngestionService implements OnModuleInit {
     const qb = this.sourceRepo
       .createQueryBuilder('source')
       .where('source.project_id = :projectId', { projectId })
+      .andWhere("source.source_type NOT IN ('REQUIREMENT', 'MEETING')")
       .andWhere('source.deleted_at IS NULL')
       .andWhere('(source.owner_id IS NULL OR source.owner_id = :actorId)', {
         actorId: actorId ?? null,
@@ -824,7 +732,11 @@ export class IngestionService implements OnModuleInit {
       where: { id: sourceId, projectId, deletedAt: IsNull() },
     });
 
-    if (!source || (source.ownerId && source.ownerId !== actorId)) {
+    if (
+      !source ||
+      [KnowledgeSourceType.REQUIREMENT, KnowledgeSourceType.MEETING].includes(source.sourceType) ||
+      (source.ownerId && source.ownerId !== actorId)
+    ) {
       throw new NotFoundException(`Knowledge source ${sourceId} not found in project ${projectId}`);
     }
 
@@ -848,7 +760,11 @@ export class IngestionService implements OnModuleInit {
       where: { id: sourceId, projectId, deletedAt: IsNull() },
     });
 
-    if (!source || (source.ownerId && source.ownerId !== actorId)) {
+    if (
+      !source ||
+      [KnowledgeSourceType.REQUIREMENT, KnowledgeSourceType.MEETING].includes(source.sourceType) ||
+      (source.ownerId && source.ownerId !== actorId)
+    ) {
       throw new NotFoundException(`Knowledge source ${sourceId} not found in project ${projectId}`);
     }
 

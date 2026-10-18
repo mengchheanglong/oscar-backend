@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class ConfirmProposalDto {
   @ApiProperty({ description: 'Current proposal version for optimistic locking', example: 1 })
@@ -17,12 +17,4 @@ export class ConfirmProposalDto {
   @IsString({ each: true })
   @IsOptional()
   selectedItemIds?: string[];
-
-  @ApiPropertyOptional({
-    description: 'Whether to apply the extracted meeting summary (applicable for MEETING_ANALYSIS)',
-    default: true,
-  })
-  @IsBoolean()
-  @IsOptional()
-  includeSummary?: boolean;
 }

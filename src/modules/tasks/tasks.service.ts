@@ -12,8 +12,6 @@ import { TaskProposalPayloadSchema } from '../ai/dto/task-proposal.dto';
 import { Task, TaskStatus, Priority } from './entities/task.entity';
 import { Project } from '../projects/entities/project.entity';
 import { ProjectMember, ProjectRole } from '../projects/entities/project-member.entity';
-import { Requirement } from '../requirements/entities/requirement.entity';
-import { Meeting } from '../meetings/entities/meeting.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { ListTasksQueryDto } from './dto/list-tasks-query.dto';
@@ -39,10 +37,6 @@ export class TasksService {
     private readonly projectRepository: Repository<Project>,
     @InjectRepository(ProjectMember)
     private readonly memberRepository: Repository<ProjectMember>,
-    @InjectRepository(Requirement)
-    private readonly requirementRepository: Repository<Requirement>,
-    @InjectRepository(Meeting)
-    private readonly meetingRepository: Repository<Meeting>,
     private readonly auditService: AuditService,
     private readonly outboxService: OutboxService,
     private readonly dataSource: DataSource,
@@ -63,12 +57,6 @@ export class TasksService {
     if (dto.assigneeId) {
       await this.validateAssigneeInProject(dto.assigneeId, projectId);
     }
-    if (dto.requirementId) {
-      await this.validateRequirementInProject(dto.requirementId, projectId);
-    }
-    if (dto.sourceMeetingId) {
-      await this.validateMeetingInProject(dto.sourceMeetingId, projectId);
-    }
 
     return this.dataSource.transaction(async (manager) => {
       const result: { max: number | null }[] = await manager.query(
@@ -87,8 +75,6 @@ export class TasksService {
         blockedReason: dto.blockedReason ? dto.blockedReason.trim() : null,
         assigneeId: dto.assigneeId ?? null,
         dueDate: dto.dueDate ?? null,
-        requirementId: dto.requirementId ?? null,
-        sourceMeetingId: dto.sourceMeetingId ?? null,
         createdBy: actorId,
         updatedBy: actorId,
         version: 1,
@@ -165,14 +151,6 @@ export class TasksService {
     }
     if (query.assigneeId) {
       qb.andWhere('task.assigneeId = :assigneeId', { assigneeId: query.assigneeId });
-    }
-    if (query.requirementId) {
-      qb.andWhere('task.requirementId = :requirementId', { requirementId: query.requirementId });
-    }
-    if (query.sourceMeetingId) {
-      qb.andWhere('task.sourceMeetingId = :sourceMeetingId', {
-        sourceMeetingId: query.sourceMeetingId,
-      });
     }
     if (query.search) {
       qb.andWhere(
@@ -309,12 +287,6 @@ export class TasksService {
     if (dto.assigneeId !== undefined && dto.assigneeId !== null) {
       await this.validateAssigneeInProject(dto.assigneeId, projectId);
     }
-    if (dto.requirementId !== undefined && dto.requirementId !== null) {
-      await this.validateRequirementInProject(dto.requirementId, projectId);
-    }
-    if (dto.sourceMeetingId !== undefined && dto.sourceMeetingId !== null) {
-      await this.validateMeetingInProject(dto.sourceMeetingId, projectId);
-    }
 
     const previousAssigneeId = task.assigneeId;
     const previousStatus = task.status;
@@ -340,7 +312,6 @@ export class TasksService {
     }
     if (dto.assigneeId !== undefined) task.assigneeId = dto.assigneeId;
     if (dto.dueDate !== undefined) task.dueDate = dto.dueDate;
-    if (dto.requirementId !== undefined) task.requirementId = dto.requirementId;
     task.updatedBy = actorId;
 
     const saved = await this.taskRepository.save(task);
@@ -437,13 +408,6 @@ export class TasksService {
     });
   }
 
-  async listForRequirement(projectId: string, requirementId: string): Promise<Task[]> {
-    return this.taskRepository.find({
-      where: { projectId, requirementId, deletedAt: IsNull() },
-      order: { number: 'ASC' },
-    });
-  }
-
   async getProjectKey(projectId: string): Promise<string> {
     const project = await this.projectRepository.findOne({
       where: { id: projectId },
@@ -478,63 +442,6 @@ export class TasksService {
         throw new BadRequestException({
           code: 'INVALID_ASSIGNEE',
           message: 'Assignee must be an active member of this project.',
-        });
-      }
-      throw err;
-    }
-  }
-
-  private async validateRequirementInProject(
-    requirementId: string,
-    projectId: string,
-  ): Promise<void> {
-    try {
-      const requirement = await this.requirementRepository.findOne({
-        where: { id: requirementId, projectId, deletedAt: IsNull() },
-        select: ['id'],
-      });
-      if (!requirement) {
-        throw new BadRequestException({
-          code: 'INVALID_REQUIREMENT',
-          message: 'Linked requirement not found in this project.',
-        });
-      }
-    } catch (err: unknown) {
-      if (err instanceof BadRequestException) throw err;
-      if (
-        (typeof err === 'object' && err !== null && 'code' in err && err.code === '22P02') ||
-        (err instanceof Error && err.message.includes('invalid input syntax for type uuid'))
-      ) {
-        throw new BadRequestException({
-          code: 'INVALID_REQUIREMENT',
-          message: 'Linked requirement not found in this project.',
-        });
-      }
-      throw err;
-    }
-  }
-
-  private async validateMeetingInProject(meetingId: string, projectId: string): Promise<void> {
-    try {
-      const meeting = await this.meetingRepository.findOne({
-        where: { id: meetingId, projectId, deletedAt: IsNull() },
-        select: ['id'],
-      });
-      if (!meeting) {
-        throw new BadRequestException({
-          code: 'INVALID_MEETING',
-          message: 'Linked meeting not found in this project.',
-        });
-      }
-    } catch (err: unknown) {
-      if (err instanceof BadRequestException) throw err;
-      if (
-        (typeof err === 'object' && err !== null && 'code' in err && err.code === '22P02') ||
-        (err instanceof Error && err.message.includes('invalid input syntax for type uuid'))
-      ) {
-        throw new BadRequestException({
-          code: 'INVALID_MEETING',
-          message: 'Linked meeting not found in this project.',
         });
       }
       throw err;

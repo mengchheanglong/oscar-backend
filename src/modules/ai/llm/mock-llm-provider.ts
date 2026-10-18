@@ -7,8 +7,7 @@ import {
   LlmProvider,
 } from './llm-provider.interface';
 import { CitationItem } from '../entities/chat-message.entity';
-import { Priority } from '../../requirements/entities/requirement.entity';
-import { DecisionStatus } from '../../decisions/entities/decision.entity';
+import { Priority } from '../../../common/enums/priority.enum';
 
 const STOP_WORDS = new Set([
   'what',
@@ -235,71 +234,8 @@ export class MockLlmProvider implements LlmProvider {
     const { systemPrompt, userPrompt } = params;
     const promptTokens = Math.max(1, Math.ceil((systemPrompt.length + userPrompt.length) / 4));
 
-    // Check if this is a Meeting Analysis request
-    if (
-      systemPrompt.includes('MEETING_ANALYSIS') ||
-      userPrompt.includes('MEETING_ANALYSIS') ||
-      userPrompt.includes('meeting')
-    ) {
-      // Extract meeting title or topic if possible
-      const topicMatch = userPrompt.match(/Meeting:\s*([^\n]+)/i);
-      const topic = topicMatch ? topicMatch[1]!.trim() : 'Project Planning';
-
-      const analysis = {
-        type: 'MEETING_ANALYSIS',
-        summary: `The team reviewed the current state of ${topic}, discussed technical decisions, identified new requirements, and assigned action items.`,
-        decisions: [
-          {
-            itemId: 'dec-item-1',
-            title: `Adopt recommended architecture for ${topic}`,
-            decisionText: `The team agreed to proceed with standard modular architecture for ${topic}.`,
-            rationale: 'Reduces implementation complexity and aligns with team standards.',
-            status: DecisionStatus.ACCEPTED,
-          },
-        ],
-        requirements: [
-          {
-            itemId: 'req-item-1',
-            title: `Implement core capabilities for ${topic}`,
-            userStory: `As a team member, I need reliable ${topic} features so that project goals are achieved.`,
-            acceptanceCriteria: '1. All required endpoints respond correctly.\n2. Tests pass 100%.',
-            priority: Priority.HIGH,
-          },
-        ],
-        actionItems: [
-          {
-            itemId: 'act-item-1',
-            title: `Prepare implementation plan for ${topic}`,
-            description: `Draft detailed technical plan and verify dependencies for ${topic}.`,
-            priority: Priority.HIGH,
-            suggestedAssigneeEmail: null,
-            dueDate: null,
-          },
-          {
-            itemId: 'act-item-2',
-            title: `Implement and verify automated tests for ${topic}`,
-            description: `Add unit and integration tests covering ${topic}.`,
-            priority: Priority.MEDIUM,
-            suggestedAssigneeEmail: null,
-            dueDate: null,
-          },
-        ],
-      };
-
-      const rawJson = JSON.stringify(analysis, null, 2);
-      return {
-        data: analysis as unknown as T,
-        rawJson,
-        modelName: 'mock-llm',
-        promptTokens,
-        completionTokens: Math.max(1, Math.ceil(rawJson.length / 4)),
-      };
-    }
-
-    // Default: Task Proposal generation (e.g. from requirement or decision)
-    const reqTitleMatch = userPrompt.match(
-      /(?:Requirement|Decision|Architectural Decision):\s*([^\n]+)/i,
-    );
+    // Default: Task Proposal generation (e.g. from a decision)
+    const reqTitleMatch = userPrompt.match(/(?:Decision|Architectural Decision):\s*([^\n]+)/i);
     const reqTitle = reqTitleMatch ? reqTitleMatch[1]!.trim() : 'Feature Implementation';
 
     const taskProposal = {

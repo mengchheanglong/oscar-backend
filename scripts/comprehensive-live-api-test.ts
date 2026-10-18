@@ -137,9 +137,7 @@ async function main() {
   let adminCsrf = '';
   let aiwProjectId = '';
   let createdTaskId = '';
-  let createdReqId = '';
   let createdDecisionId = '';
-  let createdMeetingId = '';
 
   // 1. AUTHENTICATION & SESSION
   console.log('\n--- 1. Authentication & Session ---');
@@ -277,18 +275,6 @@ async function main() {
 
   // 3. DASHBOARD
   console.log('\n--- 3. Dashboard ---');
-  await runTest('Dashboard', 'Get project dashboard with Asia/Bangkok timezone', async () => {
-    const res = await request('GET', `/projects/${aiwProjectId}/dashboard?timezone=Asia/Bangkok`, {
-      cookies: aliceCookies,
-    });
-    assert(res.status === 200, `Expected 200 but got ${res.status}`);
-    const data = res.body.data;
-    assert(data.taskProgress !== undefined, 'Missing taskProgress');
-    assert(data.taskCountsByStatus !== undefined, 'Missing taskCountsByStatus');
-    assert(data.requirementCountsByStatus !== undefined, 'Missing requirementCountsByStatus');
-    assert(typeof data.overdueTasksCount === 'number', 'Missing overdueTasksCount');
-    assert(Array.isArray(data.recentActivity), 'Missing recentActivity');
-  });
 
   // 4. TASKS (KANBAN & LIST)
   console.log('\n--- 4. Tasks ---');
@@ -395,57 +381,6 @@ async function main() {
 
   // 5. REQUIREMENTS
   console.log('\n--- 5. Requirements ---');
-  await runTest('Requirements', 'List requirements for AIW', async () => {
-    const res = await request('GET', `/projects/${aiwProjectId}/requirements`, {
-      cookies: aliceCookies,
-    });
-    assert(res.status === 200, `Expected 200 but got ${res.status}`);
-    assert(Array.isArray(res.body.data), 'Expected array');
-  });
-
-  await runTest('Requirements', 'Create requirement with DRAFT status', async () => {
-    const res = await request('POST', `/projects/${aiwProjectId}/requirements`, {
-      cookies: aliceCookies,
-      headers: { 'x-csrf-token': aliceCsrf },
-      body: {
-        title: 'Comprehensive Verification Requirement',
-        description: 'Detailed acceptance criteria for end to end edge cases',
-        priority: 'HIGH',
-      },
-    });
-    assert(res.status === 201, `Expected 201 but got ${res.status}`);
-    createdReqId = res.body.data.id;
-  });
-
-  await runTest(
-    'Requirements',
-    'Update status through lifecycle: DRAFT -> IN_REVIEW -> APPROVED',
-    async () => {
-      let res = await request('PATCH', `/projects/${aiwProjectId}/requirements/${createdReqId}`, {
-        cookies: aliceCookies,
-        headers: { 'x-csrf-token': aliceCsrf },
-        body: { status: 'IN_REVIEW', version: 1 },
-      });
-      assert(res.status === 200, `Expected 200 for IN_REVIEW but got ${res.status}`);
-
-      res = await request('PATCH', `/projects/${aiwProjectId}/requirements/${createdReqId}`, {
-        cookies: aliceCookies,
-        headers: { 'x-csrf-token': aliceCsrf },
-        body: { status: 'APPROVED', version: 2 },
-      });
-      assert(res.status === 200, `Expected 200 for APPROVED but got ${res.status}`);
-    },
-  );
-
-  await runTest('Requirements', 'Fetch requirement revision history', async () => {
-    const res = await request(
-      'GET',
-      `/projects/${aiwProjectId}/requirements/${createdReqId}/revisions`,
-      { cookies: aliceCookies },
-    );
-    assert(res.status === 200, `Expected 200 but got ${res.status}`);
-    assert(Array.isArray(res.body.data), 'Expected revisions array');
-  });
 
   // 6. DECISIONS (ADRs)
   console.log('\n--- 6. Decisions ---');
@@ -457,7 +392,7 @@ async function main() {
     assert(Array.isArray(res.body.data), 'Expected array');
   });
 
-  await runTest('Decisions', 'Create decision linked to requirement', async () => {
+  await runTest('Decisions', 'Create decision', async () => {
     const res = await request('POST', `/projects/${aiwProjectId}/decisions`, {
       cookies: aliceCookies,
       headers: { 'x-csrf-token': aliceCsrf },
@@ -465,7 +400,6 @@ async function main() {
         title: 'Adopt Playwright and Jest for Full Quality Suite',
         decisionText: 'Use Playwright for Chromium and Jest for e2e',
         rationale: 'Zero regression safety net across all layers',
-        requirementId: createdReqId,
       },
     });
     assert(res.status === 201, `Expected 201 but got ${res.status}`);
@@ -484,46 +418,6 @@ async function main() {
 
   // 7. MEETINGS
   console.log('\n--- 7. Meetings ---');
-  await runTest('Meetings', 'List meetings for AIW', async () => {
-    const res = await request('GET', `/projects/${aiwProjectId}/meetings`, {
-      cookies: aliceCookies,
-    });
-    assert(res.status === 200, `Expected 200 but got ${res.status}`);
-    assert(Array.isArray(res.body.data), 'Expected array');
-  });
-
-  await runTest('Meetings', 'Schedule a meeting with valid times', async () => {
-    const now = new Date();
-    const startsAt = new Date(now.getTime() + 3600000).toISOString();
-    const endsAt = new Date(now.getTime() + 7200000).toISOString();
-
-    const res = await request('POST', `/projects/${aiwProjectId}/meetings`, {
-      cookies: aliceCookies,
-      headers: { 'x-csrf-token': aliceCsrf },
-      body: {
-        title: 'Sprint Retrospective & Edge Case Review',
-        startsAt,
-        endsAt,
-        agenda: 'Review system stability and test results',
-      },
-    });
-    assert(res.status === 201, `Expected 201 but got ${res.status}`);
-    createdMeetingId = res.body.data.id;
-  });
-
-  await runTest('Meetings', 'Reject meeting with endsAt <= startsAt', async () => {
-    const now = new Date();
-    const res = await request('POST', `/projects/${aiwProjectId}/meetings`, {
-      cookies: aliceCookies,
-      headers: { 'x-csrf-token': aliceCsrf },
-      body: {
-        title: 'Time Paradox Meeting',
-        startsAt: new Date(now.getTime() + 7200000).toISOString(),
-        endsAt: new Date(now.getTime() + 3600000).toISOString(),
-      },
-    });
-    assert(res.status === 400, `Expected 400 for bad meeting duration but got ${res.status}`);
-  });
 
   // 8. DOCUMENTS
   console.log('\n--- 8. Documents ---');
@@ -595,22 +489,6 @@ async function main() {
 
   await runTest(
     'Edge Cases',
-    'Empty or whitespace requirement title is rejected on update',
-    async () => {
-      const res = await request('PATCH', `/projects/${aiwProjectId}/requirements/${createdReqId}`, {
-        cookies: aliceCookies,
-        headers: { 'x-csrf-token': aliceCsrf },
-        body: { version: 3, title: '     ' },
-      });
-      assert(
-        res.status === 400,
-        `Expected 400 for whitespace requirement title update but got ${res.status}`,
-      );
-    },
-  );
-
-  await runTest(
-    'Edge Cases',
     'Empty or whitespace decision title/text is rejected on update',
     async () => {
       const res = await request(
@@ -631,41 +509,6 @@ async function main() {
 
   await runTest(
     'Edge Cases',
-    'Empty or whitespace meeting title is rejected on create and update',
-    async () => {
-      const now = new Date();
-      const createRes = await request('POST', `/projects/${aiwProjectId}/meetings`, {
-        cookies: aliceCookies,
-        headers: { 'x-csrf-token': aliceCsrf },
-        body: {
-          title: '     ',
-          startsAt: now.toISOString(),
-          endsAt: new Date(now.getTime() + 3600000).toISOString(),
-        },
-      });
-      assert(
-        createRes.status === 400,
-        `Expected 400 for whitespace meeting create but got ${createRes.status}`,
-      );
-
-      const updateRes = await request(
-        'PATCH',
-        `/projects/${aiwProjectId}/meetings/${createdMeetingId}`,
-        {
-          cookies: aliceCookies,
-          headers: { 'x-csrf-token': aliceCsrf },
-          body: { version: 1, title: '     ' },
-        },
-      );
-      assert(
-        updateRes.status === 400,
-        `Expected 400 for whitespace meeting update but got ${updateRes.status}`,
-      );
-    },
-  );
-
-  await runTest(
-    'Edge Cases',
     'Empty or whitespace project name is rejected on update',
     async () => {
       const res = await request('PATCH', `/projects/${aiwProjectId}`, {
@@ -677,34 +520,6 @@ async function main() {
         res.status === 400,
         `Expected 400 for whitespace project name update but got ${res.status}`,
       );
-    },
-  );
-
-  await runTest('Edge Cases', 'Invalid UUID attendee in meeting is rejected with 400', async () => {
-    const now = new Date();
-    const res = await request('POST', `/projects/${aiwProjectId}/meetings`, {
-      cookies: aliceCookies,
-      headers: { 'x-csrf-token': aliceCsrf },
-      body: {
-        title: 'Bad Attendee Meeting',
-        startsAt: now.toISOString(),
-        endsAt: new Date(now.getTime() + 3600000).toISOString(),
-        attendeeUserIds: ['not-a-valid-uuid'],
-      },
-    });
-    assert(res.status === 400, `Expected 400 for invalid attendee UUID but got ${res.status}`);
-  });
-
-  await runTest(
-    'Edge Cases',
-    'Requirement update with stale version triggers optimistic concurrency conflict (409)',
-    async () => {
-      const res = await request('PATCH', `/projects/${aiwProjectId}/requirements/${createdReqId}`, {
-        cookies: aliceCookies,
-        headers: { 'x-csrf-token': aliceCsrf },
-        body: { version: 1, title: 'Conflicting Stale Version Edit' },
-      });
-      assert(res.status === 409, `Expected 409 Conflict for stale version but got ${res.status}`);
     },
   );
 
@@ -750,20 +565,8 @@ async function main() {
       headers: { 'x-csrf-token': aliceCsrf },
     });
   }
-  if (createdReqId) {
-    await request('DELETE', `/projects/${aiwProjectId}/requirements/${createdReqId}`, {
-      cookies: aliceCookies,
-      headers: { 'x-csrf-token': aliceCsrf },
-    });
-  }
   if (createdDecisionId) {
     await request('DELETE', `/projects/${aiwProjectId}/decisions/${createdDecisionId}`, {
-      cookies: aliceCookies,
-      headers: { 'x-csrf-token': aliceCsrf },
-    });
-  }
-  if (createdMeetingId) {
-    await request('DELETE', `/projects/${aiwProjectId}/meetings/${createdMeetingId}`, {
       cookies: aliceCookies,
       headers: { 'x-csrf-token': aliceCsrf },
     });

@@ -158,7 +158,7 @@ export class DeepSeekLlmProvider implements LlmProvider {
         throw new ServiceUnavailableException({
           code: 'AI_OUTPUT_TRUNCATED',
           message:
-            'AI output exceeded its limit. Retry with shorter meeting notes or fewer requested items.',
+            'AI output exceeded its limit. Retry with shorter input or fewer requested items.',
         });
       }
       const rawJson = resData.choices?.[0]?.message?.content || '{}';

@@ -2,10 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Project } from '../projects/entities/project.entity';
-import { Requirement } from '../requirements/entities/requirement.entity';
 import { Decision } from '../decisions/entities/decision.entity';
 import { Task } from '../tasks/entities/task.entity';
-import { Meeting } from '../meetings/entities/meeting.entity';
 import { Document } from '../documents/entities/document.entity';
 import {
   SearchEntityType,
@@ -22,14 +20,10 @@ export class SearchService {
   constructor(
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
-    @InjectRepository(Requirement)
-    private readonly requirementRepository: Repository<Requirement>,
     @InjectRepository(Decision)
     private readonly decisionRepository: Repository<Decision>,
     @InjectRepository(Task)
     private readonly taskRepository: Repository<Task>,
-    @InjectRepository(Meeting)
-    private readonly meetingRepository: Repository<Meeting>,
     @InjectRepository(Document)
     private readonly documentRepository: Repository<Document>,
     private readonly retrievalService: RetrievalService,
@@ -56,19 +50,12 @@ export class SearchService {
     }
 
     const countsByType: SearchMetaCountsDto = {
-      REQUIREMENT: 0,
       DECISION: 0,
       TASK: 0,
-      MEETING: 0,
       DOCUMENT: 0,
     };
 
     const searchPromises: Promise<SearchResultItemDto[]>[] = [];
-
-    // 1. Requirements
-    if (!selectedType || selectedType === SearchEntityType.REQUIREMENT) {
-      searchPromises.push(this.searchRequirements(projectId, projectKey, q, term, query));
-    }
 
     // 2. Decisions
     if (!selectedType || selectedType === SearchEntityType.DECISION) {
@@ -78,11 +65,6 @@ export class SearchService {
     // 3. Tasks
     if (!selectedType || selectedType === SearchEntityType.TASK) {
       searchPromises.push(this.searchTasks(projectId, projectKey, q, term, query));
-    }
-
-    // 4. Meetings
-    if (!selectedType || selectedType === SearchEntityType.MEETING) {
-      searchPromises.push(this.searchMeetings(projectId, projectKey, q, term, query));
     }
 
     // 5. Documents
@@ -118,49 +100,6 @@ export class SearchService {
         countsByType,
       },
     };
-  }
-
-  private async searchRequirements(
-    projectId: string,
-    projectKey: string,
-    q: string,
-    term: string,
-    query: SearchQueryDto,
-  ): Promise<SearchResultItemDto[]> {
-    const qb = this.requirementRepository
-      .createQueryBuilder('req')
-      .where('req.project_id = :projectId', { projectId })
-      .andWhere('req.deleted_at IS NULL')
-      .andWhere(
-        "(to_tsvector('english', coalesce(req.title, '') || ' ' || coalesce(req.description, '')) @@ plainto_tsquery('english', :q) OR req.title ILIKE :term OR req.description ILIKE :term OR req.acceptance_criteria ILIKE :term)",
-        { q, term },
-      );
-
-    if (query.status) {
-      qb.andWhere('req.status = :status', { status: query.status });
-    }
-    if (query.startDate) {
-      qb.andWhere('req.updated_at >= :startDate', { startDate: query.startDate });
-    }
-    if (query.endDate) {
-      qb.andWhere('req.updated_at <= :endDate', { endDate: query.endDate });
-    }
-
-    const items = await qb.getMany();
-    return items.map((item) => ({
-      id: item.id,
-      type: SearchEntityType.REQUIREMENT,
-      key: `${projectKey}-REQ-${item.number}`,
-      title: item.title,
-      snippet: this.createSnippet(item.description || item.acceptanceCriteria),
-      status: item.status,
-      priority: item.priority,
-      updatedAt: item.updatedAt,
-      metadata: {
-        acceptanceCriteria: item.acceptanceCriteria,
-        sourceMeetingId: item.sourceMeetingId,
-      },
-    }));
   }
 
   private async searchDecisions(
@@ -252,48 +191,6 @@ export class SearchService {
         dueDate: item.dueDate,
         assigneeId: item.assigneeId,
         assigneeName: item.assignee?.displayName ?? null,
-        requirementId: item.requirementId,
-      },
-    }));
-  }
-
-  private async searchMeetings(
-    projectId: string,
-    projectKey: string,
-    q: string,
-    term: string,
-    query: SearchQueryDto,
-  ): Promise<SearchResultItemDto[]> {
-    const qb = this.meetingRepository
-      .createQueryBuilder('mtg')
-      .where('mtg.project_id = :projectId', { projectId })
-      .andWhere('mtg.deleted_at IS NULL')
-      .andWhere(
-        "(to_tsvector('english', coalesce(mtg.title, '') || ' ' || coalesce(mtg.notes, '') || ' ' || coalesce(mtg.agenda, '')) @@ plainto_tsquery('english', :q) OR mtg.title ILIKE :term OR mtg.notes ILIKE :term OR mtg.agenda ILIKE :term OR mtg.summary ILIKE :term)",
-        { q, term },
-      );
-
-    if (query.startDate) {
-      qb.andWhere('mtg.starts_at >= :startDate', { startDate: query.startDate });
-    }
-    if (query.endDate) {
-      qb.andWhere('mtg.ends_at <= :endDate', { endDate: query.endDate });
-    }
-
-    const items = await qb.getMany();
-    return items.map((item) => ({
-      id: item.id,
-      type: SearchEntityType.MEETING,
-      key: null,
-      title: item.title,
-      snippet: this.createSnippet(item.summary || item.notes || item.agenda),
-      status: null,
-      priority: null,
-      updatedAt: item.updatedAt,
-      metadata: {
-        startsAt: item.startsAt,
-        endsAt: item.endsAt,
-        transcriptVersion: item.transcriptVersion,
       },
     }));
   }
@@ -357,23 +254,19 @@ export class SearchService {
     query: SearchQueryDto,
   ): Promise<SearchResponseDto> {
     const countsByType: SearchMetaCountsDto = {
-      REQUIREMENT: 0,
       DECISION: 0,
       TASK: 0,
-      MEETING: 0,
       DOCUMENT: 0,
       GITHUB_ISSUE: 0,
       GITHUB_PR: 0,
       GITHUB_CODE: 0,
     };
 
-    const typeMap: Record<KnowledgeSourceType, SearchEntityType> = {
+    const typeMap: Partial<Record<KnowledgeSourceType, SearchEntityType>> = {
       [KnowledgeSourceType.DOCUMENT]: SearchEntityType.DOCUMENT,
       [KnowledgeSourceType.LOCAL_FILE]: SearchEntityType.DOCUMENT,
-      [KnowledgeSourceType.REQUIREMENT]: SearchEntityType.REQUIREMENT,
       [KnowledgeSourceType.DECISION]: SearchEntityType.DECISION,
       [KnowledgeSourceType.TASK]: SearchEntityType.TASK,
-      [KnowledgeSourceType.MEETING]: SearchEntityType.MEETING,
       [KnowledgeSourceType.GITHUB_ISSUE]: SearchEntityType.GITHUB_ISSUE,
       [KnowledgeSourceType.GITHUB_PR]: SearchEntityType.GITHUB_PR,
       [KnowledgeSourceType.GITHUB_CODE]: SearchEntityType.GITHUB_CODE,
@@ -381,10 +274,8 @@ export class SearchService {
 
     const reverseTypeMap: Record<SearchEntityType, KnowledgeSourceType> = {
       [SearchEntityType.DOCUMENT]: KnowledgeSourceType.DOCUMENT,
-      [SearchEntityType.REQUIREMENT]: KnowledgeSourceType.REQUIREMENT,
       [SearchEntityType.DECISION]: KnowledgeSourceType.DECISION,
       [SearchEntityType.TASK]: KnowledgeSourceType.TASK,
-      [SearchEntityType.MEETING]: KnowledgeSourceType.MEETING,
       [SearchEntityType.GITHUB_ISSUE]: KnowledgeSourceType.GITHUB_ISSUE,
       [SearchEntityType.GITHUB_PR]: KnowledgeSourceType.GITHUB_PR,
       [SearchEntityType.GITHUB_CODE]: KnowledgeSourceType.GITHUB_CODE,
@@ -405,7 +296,8 @@ export class SearchService {
     const items: SearchResultItemDto[] = [];
 
     for (const e of evidence) {
-      const entityType = typeMap[e.sourceType] || SearchEntityType.DOCUMENT;
+      const entityType = typeMap[e.sourceType];
+      if (!entityType) continue;
       countsByType[entityType]++;
 
       if (seenSources.has(e.sourceId)) continue;

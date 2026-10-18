@@ -59,6 +59,11 @@ export class RetrievalService {
   async retrieve(params: RetrieveParams): Promise<RetrievedEvidence[]> {
     const { actorId, projectId, projectIds, query, filters, limit = 8, mode = 'hybrid' } = params;
 
+    if (
+      filters?.sourceType &&
+      [KnowledgeSourceType.REQUIREMENT, KnowledgeSourceType.MEETING].includes(filters.sourceType)
+    )
+      return [];
     if (!query || !query.trim()) {
       return [];
     }
@@ -135,6 +140,7 @@ export class RetrievalService {
       LEFT JOIN projects p ON p.id = s.project_id
       WHERE s.project_id = ANY($2::uuid[])
         AND s.status = 'INDEXED'
+        AND s.source_type NOT IN ('REQUIREMENT', 'MEETING')
         AND s.deleted_at IS NULL
         AND c.index_version = s.active_index_version
         AND c.embedding IS NOT NULL
@@ -198,11 +204,8 @@ export class RetrievalService {
     if (/\b(doc|docs|document|documents)\b/i.test(lower))
       typePreference = KnowledgeSourceType.DOCUMENT;
     else if (/\b(task|tasks)\b/i.test(lower)) typePreference = KnowledgeSourceType.TASK;
-    else if (/\b(requirement|requirements|req|reqs)\b/i.test(lower))
-      typePreference = KnowledgeSourceType.REQUIREMENT;
     else if (/\b(decision|decisions|adr|adrs)\b/i.test(lower))
       typePreference = KnowledgeSourceType.DECISION;
-    else if (/\b(meeting|meetings)\b/i.test(lower)) typePreference = KnowledgeSourceType.MEETING;
 
     const rawWords = lower
       .replace(/[^a-z0-9\s_-]/g, ' ')
@@ -281,7 +284,7 @@ export class RetrievalService {
             END
           + CASE 
               WHEN $3::varchar IS NOT NULL AND s.source_type = $3 THEN 8.0
-              WHEN s.source_type IN ('TASK', 'REQUIREMENT', 'DECISION', 'MEETING', 'DOCUMENT') THEN 4.0 
+              WHEN s.source_type IN ('TASK', 'DECISION', 'DOCUMENT') THEN 4.0
               ELSE 0.1 
             END
           + CASE 
@@ -297,6 +300,7 @@ export class RetrievalService {
       WHERE s.project_id = ANY($2::uuid[])
         AND (s.owner_id IS NULL OR (s.owner_id = $8::uuid AND EXISTS (SELECT 1 FROM project_members pm JOIN users u ON u.id = pm.user_id WHERE pm.project_id = s.project_id AND pm.user_id = s.owner_id AND pm.removed_at IS NULL AND u.is_active = true)))
         AND s.status = 'INDEXED'
+        AND s.source_type NOT IN ('REQUIREMENT', 'MEETING')
         AND s.deleted_at IS NULL
         AND c.index_version = s.active_index_version
         AND (
@@ -324,7 +328,7 @@ export class RetrievalService {
 
     if (raw.length === 0) {
       // Partitioned Fallback: when user query is conversational or keyword match is empty,
-      // retrieve recent active tasks, requirements, decisions, meetings, and documents across all target workspaces.
+      // retrieve recent active tasks, decisions, and documents across all target workspaces.
       const fallbackRaw: RawChunkQueryResult[] = await this.dataSource.query(
         `
         SELECT 
@@ -347,9 +351,7 @@ export class RetrievalService {
                  ROW_NUMBER() OVER(PARTITION BY s.project_id ORDER BY 
                    CASE 
                      WHEN s.source_type = 'TASK' THEN 1
-                     WHEN s.source_type = 'REQUIREMENT' THEN 2
                      WHEN s.source_type = 'DECISION' THEN 3
-                     WHEN s.source_type = 'MEETING' THEN 4
                      WHEN s.source_type = 'DOCUMENT' THEN 5
                      ELSE 6
                    END ASC,
@@ -360,11 +362,12 @@ export class RetrievalService {
           WHERE s.project_id = ANY($1::uuid[])
             AND (s.owner_id IS NULL OR (s.owner_id = $4::uuid AND EXISTS (SELECT 1 FROM project_members pm JOIN users u ON u.id = pm.user_id WHERE pm.project_id = s.project_id AND pm.user_id = s.owner_id AND pm.removed_at IS NULL AND u.is_active = true)))
             AND s.status = 'INDEXED'
+            AND s.source_type NOT IN ('REQUIREMENT', 'MEETING')
             AND s.deleted_at IS NULL
             AND c.index_version = s.active_index_version
             AND c.chunk_index = 0
             AND ($3::varchar IS NULL OR s.source_type = $3)
-            AND s.source_type IN ('TASK', 'REQUIREMENT', 'DECISION', 'MEETING', 'DOCUMENT', 'LOCAL_FILE')
+            AND s.source_type IN ('TASK', 'DECISION', 'DOCUMENT', 'LOCAL_FILE')
         ) ranked
         LEFT JOIN projects p ON p.id = ranked.project_id
         WHERE ranked.rn <= 4

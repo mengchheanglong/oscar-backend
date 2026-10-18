@@ -1,5 +1,9 @@
 # AI Project Workspace: Implementation Guide
 
+> Continuum scope update (2026-10-18): Meetings, Requirements, and Dashboard are
+> retired. The historical baseline below remains for reference. Current behavior
+> and compatibility rules are recorded in [feature retirement](docs/FEATURE_RETIREMENT.md).
+
 Version: 2.2 | Updated: 2026-10-09 | Status: Original Phase 1/2 baseline delivered; Hermes enabled locally with live API acceptance passed; production runtime packaging/deployment pending.
 
 ## 1. Purpose and how to use this document
@@ -1762,3 +1766,10 @@ Provider generation was not exercised. No remote push or hosted deployment.
 - Enabled `noUnusedLocals`. Import reachability from application/bootstrap, migrations, scripts, and tests found no remaining disconnected source files. Preserved standalone operational scripts, database migrations, uploads, and machine-local configuration.
 - Verification: lint, typecheck, build, full formatting check, 355 unit tests, 156 HTTP tests, and 80 PostgreSQL integration tests passed. Integration tests used only the dedicated `_test` database on port 55433. No schema/API contract changes or provider requests were made. Frontend cleanup and its verification are recorded in that repository's `docs/CODE_CLEANUP.md`.
 - The AIW accepted-decision lookup returned no records. No assigned task ID was supplied. Changes remain local on develop; no push or deployment. The next AI capability milestone remains scoped private-history search/read tools for Hermes.
+
+### 2026-10-18 — Retire inherited features from Continuum
+
+- Removed Meetings, Requirements, and Dashboard modules and their HTTP/MCP surfaces. Removed associated frontend pages, filters, request/linkage controls, ingestion handlers, and obsolete AI workflows. Consolidated duplicate project screens into current Settings and the project side panel, preserving project membership management in Settings. Compatibility redirects remain for old dashboard/users/project URLs where applicable.
+- Decision-based reviewed task proposals remain. Hermes now requests task review against a decision, with project/revision validation. Retired pending proposals cannot be edited or confirmed. Existing legacy tables, historical migrations, source records, and old chat text are preserved; retired sources are excluded from retrieval and active source APIs. No migration or user-record rewrite was performed. See `docs/FEATURE_RETIREMENT.md` for contract changes and rollout.
+- Verified backend lint/typecheck/build/formatting, OpenAPI regeneration, 310 unit tests, 126 HTTP tests, and 82 PostgreSQL integration tests. Frontend lint/typecheck/build and 19 regression tests passed. Database tests used only the isolated `_test` database on 55433; the new retirement fixture required a longer setup timeout, after which the complete suite passed.
+- Local production-build browser checks covered sidebar navigation/settings, legacy project links, project access controls, Decisions, and Global search. Temporary synthetic QA records/session files were removed. Local UI/API remain available on 3002/3001 against the isolated develop database. No provider requests, pushes, main changes, or hosted deployment. AIW returned no accepted decisions; no assigned task ID was supplied.

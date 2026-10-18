@@ -6,8 +6,6 @@ import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectMember } from '../projects/entities/project-member.entity';
 import { Project } from '../projects/entities/project.entity';
-import { Requirement } from '../requirements/entities/requirement.entity';
-import { Meeting } from '../meetings/entities/meeting.entity';
 import { Task } from '../tasks/entities/task.entity';
 import { Decision } from '../decisions/entities/decision.entity';
 import { IngestionModule } from '../ingestion/ingestion.module';
@@ -54,8 +52,6 @@ import {
       ProposalCommit,
       Project,
       ProjectMember,
-      Requirement,
-      Meeting,
       Task,
       Decision,
       User,

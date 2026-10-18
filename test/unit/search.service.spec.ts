@@ -5,10 +5,8 @@ import { SearchEntityType } from '../../src/modules/search/dto/search.dto';
 describe('SearchService (Unit)', () => {
   let service: SearchService;
   let mockProjectRepo: { findOneBy: jest.Mock };
-  let mockReqRepo: { createQueryBuilder: jest.Mock };
   let mockDecRepo: { createQueryBuilder: jest.Mock };
   let mockTaskRepo: { createQueryBuilder: jest.Mock };
-  let mockMtgRepo: { createQueryBuilder: jest.Mock };
   let mockDocRepo: { createQueryBuilder: jest.Mock };
 
   const mockProjectId = '11111111-1111-1111-1111-111111111111';
@@ -33,24 +31,6 @@ describe('SearchService (Unit)', () => {
         getMany: jest.fn(async () => items),
       };
       return qb;
-    };
-
-    mockReqRepo = {
-      createQueryBuilder: jest.fn().mockReturnValue(
-        createMockQb([
-          {
-            id: 'req-1',
-            number: 1,
-            title: 'Authentication Module',
-            description: 'Secure session handling',
-            acceptanceCriteria: 'Works on all browsers',
-            status: 'APPROVED',
-            priority: 'HIGH',
-            updatedAt: new Date('2026-09-15T12:00:00Z'),
-            sourceMeetingId: null,
-          },
-        ]),
-      ),
     };
 
     mockDecRepo = {
@@ -92,24 +72,6 @@ describe('SearchService (Unit)', () => {
       ),
     };
 
-    mockMtgRepo = {
-      createQueryBuilder: jest.fn().mockReturnValue(
-        createMockQb([
-          {
-            id: 'mtg-1',
-            title: 'Architecture Review',
-            agenda: 'Review backend design',
-            notes: 'Agreed on search specifications',
-            summary: 'Review complete',
-            startsAt: new Date('2026-09-14T10:00:00Z'),
-            endsAt: new Date('2026-09-14T11:00:00Z'),
-            transcriptVersion: 1,
-            updatedAt: new Date('2026-09-14T12:00:00Z'),
-          },
-        ]),
-      ),
-    };
-
     mockDocRepo = {
       createQueryBuilder: jest.fn().mockReturnValue(
         createMockQb([
@@ -132,17 +94,11 @@ describe('SearchService (Unit)', () => {
       mockProjectRepo as unknown as import('typeorm').Repository<
         import('../../src/modules/projects/entities/project.entity').Project
       >,
-      mockReqRepo as unknown as import('typeorm').Repository<
-        import('../../src/modules/requirements/entities/requirement.entity').Requirement
-      >,
       mockDecRepo as unknown as import('typeorm').Repository<
         import('../../src/modules/decisions/entities/decision.entity').Decision
       >,
       mockTaskRepo as unknown as import('typeorm').Repository<
         import('../../src/modules/tasks/entities/task.entity').Task
-      >,
-      mockMtgRepo as unknown as import('typeorm').Repository<
-        import('../../src/modules/meetings/entities/meeting.entity').Meeting
       >,
       mockDocRepo as unknown as import('typeorm').Repository<
         import('../../src/modules/documents/entities/document.entity').Document
@@ -159,7 +115,7 @@ describe('SearchService (Unit)', () => {
     await expect(service.search(mockProjectId, { q: 'auth' })).rejects.toThrow(NotFoundException);
   });
 
-  it('searches across all 5 entities when type is omitted and returns formatted results', async () => {
+  it('searches across all 3 active entities when type is omitted and returns formatted results', async () => {
     mockProjectRepo.findOneBy.mockResolvedValue({
       id: mockProjectId,
       key: 'AIW',
@@ -167,13 +123,11 @@ describe('SearchService (Unit)', () => {
 
     const result = await service.search(mockProjectId, { q: 'search' });
 
-    expect(result.data).toHaveLength(5);
-    expect(result.meta.total).toBe(5);
+    expect(result.data).toHaveLength(3);
+    expect(result.meta.total).toBe(3);
     expect(result.meta.countsByType).toEqual({
-      REQUIREMENT: 1,
       DECISION: 1,
       TASK: 1,
-      MEETING: 1,
       DOCUMENT: 1,
     });
 
@@ -182,9 +136,6 @@ describe('SearchService (Unit)', () => {
     expect(result.data[0]!.key).toBe('AIW-TSK-1');
     expect(result.data[0]!.type).toBe(SearchEntityType.TASK);
     expect(result.data[0]!.metadata?.assigneeName).toBe('Alice');
-
-    const reqItem = result.data.find((item) => item.type === SearchEntityType.REQUIREMENT);
-    expect(reqItem?.key).toBe('AIW-REQ-1');
 
     const decItem = result.data.find((item) => item.type === SearchEntityType.DECISION);
     expect(decItem?.key).toBe('AIW-DEC-1');
@@ -198,15 +149,15 @@ describe('SearchService (Unit)', () => {
 
     const result = await service.search(mockProjectId, {
       q: 'auth',
-      type: SearchEntityType.REQUIREMENT,
+      type: SearchEntityType.DOCUMENT,
     });
 
-    expect(mockReqRepo.createQueryBuilder).toHaveBeenCalled();
+    expect(mockDocRepo.createQueryBuilder).toHaveBeenCalled();
     expect(mockTaskRepo.createQueryBuilder).not.toHaveBeenCalled();
     expect(mockDecRepo.createQueryBuilder).not.toHaveBeenCalled();
     expect(result.data).toHaveLength(1);
-    expect(result.data[0]!.type).toBe(SearchEntityType.REQUIREMENT);
-    expect(result.meta.countsByType.REQUIREMENT).toBe(1);
+    expect(result.data[0]!.type).toBe(SearchEntityType.DOCUMENT);
+    expect(result.meta.countsByType.DOCUMENT).toBe(1);
     expect(result.meta.countsByType.TASK).toBe(0);
   });
 });
