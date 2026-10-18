@@ -318,6 +318,8 @@ describe('Workspace search API (E2E)', () => {
   };
 
   const mockDataSource = {
+    // Indexed body/private-folder matching is covered with the real PostgreSQL suite.
+    query: jest.fn().mockResolvedValue([]),
     entityMetadatas: [] as unknown[],
     options: { type: 'postgres' },
     getRepository: jest.fn((entity: unknown) => {
@@ -723,6 +725,16 @@ describe('Workspace search API (E2E)', () => {
       expect(res.status).toBe(400);
     });
 
+    it.each(['q=%20%20', 'q=search&startDate=not-a-date', 'q=search&endDate=not-a-date'])(
+      'rejects invalid search input (%s) before querying storage',
+      async (query) => {
+        await request(app.getHttpServer())
+          .get(`/api/v1/projects/${project1.id}/search?${query}`)
+          .set('Cookie', ownerCookie)
+          .expect(400);
+      },
+    );
+
     it('returns unified multi-entity results with project-local keys and countsByType', async () => {
       const res = await request(app.getHttpServer())
         .get(`/api/v1/projects/${project1.id}/search?q=architecture`)
@@ -737,6 +749,9 @@ describe('Workspace search API (E2E)', () => {
         DECISION: 1,
         TASK: 5,
         DOCUMENT: 1,
+        GITHUB_ISSUE: 0,
+        GITHUB_PR: 0,
+        GITHUB_CODE: 0,
       });
 
       // Check key formats

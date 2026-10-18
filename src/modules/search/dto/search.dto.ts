@@ -1,6 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export enum SearchEntityType {
   DECISION = 'DECISION',
@@ -13,8 +24,10 @@ export enum SearchEntityType {
 
 export class SearchQueryDto {
   @ApiProperty({ description: 'Search keyword', example: 'database architecture' })
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
   @IsNotEmpty()
   @IsString()
+  @MaxLength(1000)
   q!: string;
 
   @ApiPropertyOptional({
@@ -55,7 +68,7 @@ export class SearchQueryDto {
     example: '2026-09-01T00:00:00.000Z',
   })
   @IsOptional()
-  @IsString()
+  @IsDateString()
   startDate?: string;
 
   @ApiPropertyOptional({
@@ -63,7 +76,7 @@ export class SearchQueryDto {
     example: '2026-09-30T23:59:59.999Z',
   })
   @IsOptional()
-  @IsString()
+  @IsDateString()
   endDate?: string;
 
   @ApiPropertyOptional({ description: 'Page number (1-based)', default: 1 })

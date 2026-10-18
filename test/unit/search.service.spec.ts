@@ -106,13 +106,16 @@ describe('SearchService (Unit)', () => {
       {
         retrieve: jest.fn().mockResolvedValue([]),
       } as unknown as import('../../src/modules/ai/retrieval/retrieval.service').RetrievalService,
+      { query: jest.fn().mockResolvedValue([]) } as unknown as import('typeorm').DataSource,
     );
   });
 
   it('throws NotFoundException when project does not exist', async () => {
     mockProjectRepo.findOneBy.mockResolvedValue(null);
 
-    await expect(service.search(mockProjectId, { q: 'auth' })).rejects.toThrow(NotFoundException);
+    await expect(service.search(mockProjectId, { q: 'auth' }, 'actor')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('searches across all 3 active entities when type is omitted and returns formatted results', async () => {
@@ -121,7 +124,7 @@ describe('SearchService (Unit)', () => {
       key: 'AIW',
     });
 
-    const result = await service.search(mockProjectId, { q: 'search' });
+    const result = await service.search(mockProjectId, { q: 'search' }, 'actor');
 
     expect(result.data).toHaveLength(3);
     expect(result.meta.total).toBe(3);
@@ -129,6 +132,9 @@ describe('SearchService (Unit)', () => {
       DECISION: 1,
       TASK: 1,
       DOCUMENT: 1,
+      GITHUB_ISSUE: 0,
+      GITHUB_PR: 0,
+      GITHUB_CODE: 0,
     });
 
     // Verify ordering: newest updatedAt first (task-1 at 13:00, req-1 at 12:00, etc.)
@@ -147,10 +153,14 @@ describe('SearchService (Unit)', () => {
       key: 'AIW',
     });
 
-    const result = await service.search(mockProjectId, {
-      q: 'auth',
-      type: SearchEntityType.DOCUMENT,
-    });
+    const result = await service.search(
+      mockProjectId,
+      {
+        q: 'auth',
+        type: SearchEntityType.DOCUMENT,
+      },
+      'actor',
+    );
 
     expect(mockDocRepo.createQueryBuilder).toHaveBeenCalled();
     expect(mockTaskRepo.createQueryBuilder).not.toHaveBeenCalled();

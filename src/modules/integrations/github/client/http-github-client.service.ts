@@ -19,7 +19,7 @@ export class HttpGitHubClientService implements IGitHubClient {
   private buildHeaders(accessToken?: string): Record<string, string> {
     const headers: Record<string, string> = {
       Accept: 'application/vnd.github.v3+json',
-      'User-Agent': 'AI-Workspace-Backend',
+      'User-Agent': 'Continuum-Backend',
     };
     if (accessToken) {
       headers.Authorization = `Bearer ${accessToken}`;
@@ -37,11 +37,11 @@ export class HttpGitHubClientService implements IGitHubClient {
     const res = await fetch(`${this.baseUrl}/repos/${owner}/${repo}`, {
       method: 'GET',
       headers,
+      signal: AbortSignal.timeout(20_000),
     });
 
     if (!res.ok) {
-      const errorText = await res.text().catch(() => '');
-      this.logger.warn(`GitHub repository verification failed: ${res.status} ${errorText}`);
+      this.logger.warn(`GitHub repository verification failed: ${res.status}`);
       throw new Error(`GitHub repository ${owner}/${repo} returned HTTP ${res.status}`);
     }
 
@@ -73,11 +73,11 @@ export class HttpGitHubClientService implements IGitHubClient {
     const res = await fetch(url, {
       method: 'GET',
       headers,
+      signal: AbortSignal.timeout(20_000),
     });
 
     if (!res.ok) {
-      const errorText = await res.text().catch(() => '');
-      this.logger.error(`Failed to fetch issues from ${owner}/${repo}: ${res.status} ${errorText}`);
+      this.logger.error(`Failed to fetch issues from ${owner}/${repo}: ${res.status}`);
       throw new Error(`GitHub issues API returned HTTP ${res.status}`);
     }
 
@@ -106,6 +106,7 @@ export class HttpGitHubClientService implements IGitHubClient {
     const res = await fetch(url, {
       method: 'GET',
       headers,
+      signal: AbortSignal.timeout(20_000),
     });
 
     if (!res.ok) {
@@ -146,11 +147,11 @@ export class HttpGitHubClientService implements IGitHubClient {
     const res = await fetch(url, {
       method: 'GET',
       headers,
+      signal: AbortSignal.timeout(20_000),
     });
 
     if (!res.ok) {
-      const errorText = await res.text().catch(() => '');
-      this.logger.error(`Failed to fetch PRs from ${owner}/${repo}: ${res.status} ${errorText}`);
+      this.logger.error(`Failed to fetch PRs from ${owner}/${repo}: ${res.status}`);
       throw new Error(`GitHub pulls API returned HTTP ${res.status}`);
     }
 
@@ -176,13 +177,11 @@ export class HttpGitHubClientService implements IGitHubClient {
     const res = await fetch(url, {
       method: 'GET',
       headers,
+      signal: AbortSignal.timeout(20_000),
     });
 
     if (!res.ok) {
-      const errorText = await res.text().catch(() => '');
-      this.logger.error(
-        `Failed to fetch repo tree from ${owner}/${repo}: ${res.status} ${errorText}`,
-      );
+      this.logger.error(`Failed to fetch repo tree from ${owner}/${repo}: ${res.status}`);
       throw new Error(`GitHub Git Trees API returned HTTP ${res.status}`);
     }
 
@@ -199,7 +198,7 @@ export class HttpGitHubClientService implements IGitHubClient {
       const next = pending.pop()!;
       const treeResponse = await fetch(
         `${this.baseUrl}/repos/${owner}/${repo}/git/trees/${next.sha}`,
-        { headers },
+        { headers, signal: AbortSignal.timeout(20_000) },
       );
       if (!treeResponse.ok) throw new Error(`GitHub tree API returned HTTP ${treeResponse.status}`);
       const tree = (await treeResponse.json()) as {
@@ -230,6 +229,7 @@ export class HttpGitHubClientService implements IGitHubClient {
     const res = await fetch(url, {
       method: 'GET',
       headers,
+      signal: AbortSignal.timeout(20_000),
     });
 
     if (!res.ok) {

@@ -1141,6 +1141,19 @@ describe('AI Security, RBAC & Cross-Project Isolation (E2E)', () => {
 
     expect(createConvNoCsrf.status).toBe(403);
     expect(createConvNoCsrf.body.error?.code).toBe('CSRF_INVALID');
+    for (const path of ['connect', 'sync', 'sync-code']) {
+      const response = await request(app.getHttpServer())
+        .post(`/api/v1/projects/${projectA.id}/integrations/github/${path}`)
+        .set('Cookie', sessionA.cookie)
+        .send({});
+      expect(response.status).toBe(403);
+      expect(response.body.error?.code).toBe('CSRF_INVALID');
+    }
+    const disconnect = await request(app.getHttpServer())
+      .delete(`/api/v1/projects/${projectA.id}/integrations/github`)
+      .set('Cookie', sessionA.cookie);
+    expect(disconnect.status).toBe(403);
+    expect(disconnect.body.error?.code).toBe('CSRF_INVALID');
   });
 
   // ── Scenario 4: Disabled Account & Revoked Session ──

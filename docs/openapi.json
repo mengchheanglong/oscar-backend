@@ -1163,6 +1163,111 @@
         ]
       }
     },
+    "/api/v1/auth/api-keys": {
+      "post": {
+        "operationId": "ApiKeysController_create",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "API Key created. Raw token is returned only once."
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Create a new Personal Access Token for coding agents (MCP)",
+        "tags": [
+          "API Keys & MCP"
+        ]
+      },
+      "get": {
+        "operationId": "ApiKeysController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of active API keys"
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List active Personal Access Tokens for the current user",
+        "tags": [
+          "API Keys & MCP"
+        ]
+      }
+    },
+    "/api/v1/auth/api-keys/{id}": {
+      "delete": {
+        "operationId": "ApiKeysController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API Key revoked successfully"
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Revoke a Personal Access Token",
+        "tags": [
+          "API Keys & MCP"
+        ]
+      }
+    },
     "/api/v1/users": {
       "get": {
         "operationId": "UsersController_findAll",
@@ -2668,6 +2773,147 @@
         ]
       }
     },
+    "/api/v1/tasks": {
+      "get": {
+        "operationId": "UserTasksController_listUserTasks",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "TODO",
+                "IN_PROGRESS",
+                "IN_REVIEW",
+                "DONE",
+                "CANCELLED",
+                "BLOCKED"
+              ]
+            }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "number",
+            "required": false,
+            "in": "query",
+            "description": "Filter by task number (e.g. 38 for AIW-TSK-38)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "priority",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "LOW",
+                "MEDIUM",
+                "HIGH",
+                "URGENT"
+              ]
+            }
+          },
+          {
+            "name": "assigneeId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by assignee user ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 200,
+              "example": "login",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "number",
+              "type": "string",
+              "enum": [
+                "number",
+                "title",
+                "status",
+                "priority",
+                "dueDate",
+                "createdAt",
+                "updatedAt"
+              ]
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "DESC",
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tasks returned"
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List tasks across all active projects for the current user",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
     "/api/v1/projects/{projectId}/documents": {
       "get": {
         "operationId": "DocumentsController_list",
@@ -3164,6 +3410,137 @@
           }
         ],
         "summary": "List all previous and current revisions for a document",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/api/v1/documents": {
+      "get": {
+        "operationId": "UserDocumentsController_listUserDocuments",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 200,
+              "example": "architecture",
+              "type": "string"
+            }
+          },
+          {
+            "name": "mimeType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "application/pdf",
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "f87a8f89-8d7b-4029-9fa9-6f9ec67bc9e3",
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdBy",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "f87a8f89-8d7b-4029-9fa9-6f9ec67bc9e3",
+              "type": "string"
+            }
+          },
+          {
+            "name": "fileType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "pdf",
+              "type": "string"
+            }
+          },
+          {
+            "name": "processingStatus",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "COMPLETED",
+                "FAILED",
+                "UNSUPPORTED"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "createdAt",
+              "type": "string",
+              "enum": [
+                "createdAt",
+                "title",
+                "sizeBytes",
+                "revision"
+              ]
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "DESC",
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Documents returned"
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List documents across all active projects for the current user",
         "tags": [
           "Documents"
         ]
@@ -3912,6 +4289,342 @@
         ]
       }
     },
+    "/api/v1/projects/{projectId}/ai/decisions/{decisionId}/task-proposals": {
+      "post": {
+        "operationId": "ProposalsController_generateDecisionTaskProposal",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Task proposal draft created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Decision or project not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Generate task proposals from an architectural decision",
+        "tags": [
+          "AI Proposals"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai/proposals": {
+      "get": {
+        "operationId": "ProposalsController_listProposals",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "PENDING",
+                "CONFIRMED",
+                "REJECTED",
+                "EXPIRED"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Proposals returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProposalResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List own proposals in project",
+        "tags": [
+          "AI Proposals"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai/proposals/{id}": {
+      "get": {
+        "operationId": "ProposalsController_getProposal",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Proposal details returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Proposal not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get proposal draft details",
+        "tags": [
+          "AI Proposals"
+        ]
+      },
+      "patch": {
+        "operationId": "ProposalsController_updateProposal",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProposalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Proposal updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Proposal not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Update proposal draft items before confirmation",
+        "tags": [
+          "AI Proposals"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai/proposals/{id}/reject": {
+      "post": {
+        "operationId": "ProposalsController_rejectProposal",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Proposal rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Proposal not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Reject proposal without creating domain records",
+        "tags": [
+          "AI Proposals"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai/proposals/{id}/confirm": {
+      "post": {
+        "operationId": "ProposalsController_confirmProposal",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique client operation key preventing duplicate confirmation",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmProposalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Proposal confirmed and domain records created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "proposal": {
+                      "$ref": "#/components/schemas/ProposalResponseDto"
+                    },
+                    "resultRecordIds": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ResultRecordDto"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Proposal not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Confirm proposal and transactionally create domain records",
+        "tags": [
+          "AI Proposals"
+        ]
+      }
+    },
     "/api/v1/projects/{projectId}/ai/memories": {
       "get": {
         "operationId": "CopilotMemoryController_list",
@@ -4293,6 +5006,546 @@
           "Agent Runs"
         ]
       }
+    },
+    "/api/v1/projects/{projectId}/integrations/github": {
+      "get": {
+        "operationId": "GitHubIntegrationController_getConnection",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "connectionId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GitHubConnectionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get current GitHub connection for project",
+        "tags": [
+          "GitHub Integration"
+        ]
+      },
+      "delete": {
+        "operationId": "GitHubIntegrationController_disconnect",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "connectionId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Disconnected successfully"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Disconnect primary repository",
+        "tags": [
+          "GitHub Integration"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/integrations/github/connections": {
+      "get": {
+        "operationId": "GitHubIntegrationController_listConnections",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GitHubConnectionResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List all connected repositories for project",
+        "tags": [
+          "GitHub Integration"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/integrations/github/connections/{connectionId}": {
+      "get": {
+        "operationId": "GitHubIntegrationController_getConnectionById",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "connectionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GitHubConnectionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get specific connected repository by ID",
+        "tags": [
+          "GitHub Integration"
+        ]
+      },
+      "delete": {
+        "operationId": "GitHubIntegrationController_disconnectConnection",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "connectionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Disconnected successfully"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Disconnect specific repository",
+        "tags": [
+          "GitHub Integration"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/integrations/github/connect": {
+      "post": {
+        "operationId": "GitHubIntegrationController_connect",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectGitHubDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GitHubConnectionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Connect repository and trigger initial sync",
+        "tags": [
+          "GitHub Integration"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/integrations/github/sync": {
+      "post": {
+        "operationId": "GitHubIntegrationController_sync",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncGitHubResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Manually trigger issues and pull requests sync from GitHub",
+        "tags": [
+          "GitHub Integration"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/integrations/github/connections/{connectionId}/sync": {
+      "post": {
+        "operationId": "GitHubIntegrationController_syncSpecificConnection",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "connectionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncGitHubResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Manually trigger sync for a specific connected repository",
+        "tags": [
+          "GitHub Integration"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/integrations/github/sync-code": {
+      "post": {
+        "operationId": "GitHubIntegrationController_syncCode",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncCodebaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncCodebaseResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Index repository source code and docs into vector memory",
+        "tags": [
+          "GitHub Integration"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/integrations/github/connections/{connectionId}/sync-code": {
+      "post": {
+        "operationId": "GitHubIntegrationController_syncCodeForConnection",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "connectionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncCodebaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncCodebaseResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Index source code and docs for specific repository",
+        "tags": [
+          "GitHub Integration"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/integrations/github/issues": {
+      "get": {
+        "operationId": "GitHubIntegrationController_listIssues",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GitHubIssueResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List synced GitHub issues for project",
+        "tags": [
+          "GitHub Integration"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/integrations/github/pull-requests": {
+      "get": {
+        "operationId": "GitHubIntegrationController_listPullRequests",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GitHubPullRequestResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List synced GitHub pull requests for project",
+        "tags": [
+          "GitHub Integration"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/integrations/github/files": {
+      "get": {
+        "operationId": "GitHubIntegrationController_listFiles",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GitHubRepoFileResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List indexed GitHub codebase files for project",
+        "tags": [
+          "GitHub Integration"
+        ]
+      }
     }
   },
   "info": {
@@ -4304,6 +5557,13 @@
   "tags": [],
   "servers": [],
   "components": {
+    "securitySchemes": {
+      "cookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "aiws_session"
+      }
+    },
     "schemas": {
       "UploadedFolderSettingsResponse": {
         "type": "object",
@@ -4862,6 +6122,27 @@
             ]
           }
         }
+      },
+      "CreateApiKeyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "A recognizable name for this token (e.g. \"Claude Code CLI\", \"Cursor IDE\")",
+            "example": "Claude Code CLI",
+            "maxLength": 100
+          },
+          "expiresInDays": {
+            "type": "number",
+            "description": "Token validity in days. If omitted, the token will not expire until revoked.",
+            "example": 90,
+            "minimum": 1,
+            "maximum": 365
+          }
+        },
+        "required": [
+          "name"
+        ]
       },
       "CreateUserDto": {
         "type": "object",
@@ -6096,6 +7377,167 @@
           "content"
         ]
       },
+      "ResultRecordDto": {
+        "type": "object",
+        "properties": {
+          "entityType": {
+            "type": "string",
+            "example": "TASK"
+          },
+          "id": {
+            "type": "string",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "key": {
+            "type": "string",
+            "example": "AIW-TASK-4"
+          }
+        },
+        "required": [
+          "entityType",
+          "id"
+        ]
+      },
+      "ProposalResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "projectId": {
+            "type": "string",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "userId": {
+            "type": "string",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "proposalType": {
+            "type": "string",
+            "enum": [
+              "TASK_PROPOSAL"
+            ],
+            "example": "TASK_PROPOSAL"
+          },
+          "sourceEntityType": {
+            "type": "string",
+            "example": "DECISION"
+          },
+          "sourceEntityId": {
+            "type": "string",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "sourceRevision": {
+            "type": "number",
+            "example": 1
+          },
+          "draftJson": {
+            "type": "object",
+            "description": "Validated proposal draft. Task drafts may contain server-owned sourceReferences (document ID, title, revision, chunk ID and page/section locator), preserved during editing."
+          },
+          "version": {
+            "type": "number",
+            "example": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "REJECTED",
+              "EXPIRED"
+            ],
+            "example": "PENDING"
+          },
+          "expiresAt": {
+            "type": "string",
+            "example": "2026-09-18T12:00:00.000Z"
+          },
+          "confirmedBy": {
+            "type": "object",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "nullable": true
+          },
+          "confirmedAt": {
+            "type": "object",
+            "example": "2026-09-17T12:30:00.000Z",
+            "nullable": true
+          },
+          "resultRecordIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResultRecordDto"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-09-17T12:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-09-17T12:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "userId",
+          "proposalType",
+          "sourceEntityType",
+          "sourceEntityId",
+          "sourceRevision",
+          "draftJson",
+          "version",
+          "status",
+          "expiresAt",
+          "resultRecordIds",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateProposalDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number",
+            "description": "Current proposal version for optimistic locking",
+            "example": 1
+          },
+          "draftJson": {
+            "type": "object",
+            "description": "Updated draft JSON payload"
+          }
+        },
+        "required": [
+          "version",
+          "draftJson"
+        ]
+      },
+      "ConfirmProposalDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number",
+            "description": "Current proposal version for optimistic locking",
+            "example": 1
+          },
+          "selectedItemIds": {
+            "description": "Array of draft itemIds to confirm. If omitted, all draft items are confirmed. An empty array selects no items.",
+            "example": [
+              "draft-item-1",
+              "draft-item-2"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "version"
+        ]
+      },
       "CopilotMemoryResponseDto": {
         "type": "object",
         "properties": {
@@ -6338,6 +7780,38 @@
           "prompt",
           "idempotencyKey"
         ]
+      },
+      "GitHubConnectionResponseDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ConnectGitHubDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "SyncGitHubResponseDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "SyncCodebaseDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "SyncCodebaseResponseDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "GitHubIssueResponseDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "GitHubPullRequestResponseDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "GitHubRepoFileResponseDto": {
+        "type": "object",
+        "properties": {}
       }
     }
   }

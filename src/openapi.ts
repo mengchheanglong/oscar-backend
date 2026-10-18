@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
-export function createOpenApiDocument(app: INestApplication) {
+export function createOpenApiDocument(app: INestApplication, sessionCookieName = 'aiws_session') {
   return SwaggerModule.createDocument(
     app,
     new DocumentBuilder()
@@ -10,6 +10,7 @@ export function createOpenApiDocument(app: INestApplication) {
         'Continuum project work, files, search, conversations, memory, and agent APIs.',
       )
       .setVersion('0.1.0')
+      .addCookieAuth(sessionCookieName)
       .build(),
   );
 }

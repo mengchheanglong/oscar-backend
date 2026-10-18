@@ -146,7 +146,7 @@ export class RetrievalService {
         AND c.embedding IS NOT NULL
         AND (s.owner_id IS NULL OR (s.owner_id = $6::uuid AND EXISTS (SELECT 1 FROM project_members pm JOIN users u ON u.id = pm.user_id WHERE pm.project_id = s.project_id AND pm.user_id = s.owner_id AND pm.removed_at IS NULL AND u.is_active = true)))
         AND c.embedding_model = $5
-        AND ($3::varchar IS NULL OR s.source_type = $3)
+        AND ($3::varchar IS NULL OR s.source_type = $3 OR ($3 = 'DOCUMENT' AND s.source_type = 'LOCAL_FILE'))
       ORDER BY c.embedding <=> $1::vector ASC
       LIMIT $4;
       `,
@@ -303,6 +303,7 @@ export class RetrievalService {
         AND s.source_type NOT IN ('REQUIREMENT', 'MEETING')
         AND s.deleted_at IS NULL
         AND c.index_version = s.active_index_version
+        AND ($9::varchar IS NULL OR s.source_type = $9 OR ($9 = 'DOCUMENT' AND s.source_type = 'LOCAL_FILE'))
         AND (
           (q.ptq != ''::tsquery AND (to_tsvector('english', s.title) || c.search_vector) @@ q.ptq)
           OR (q.exp_tq IS NOT NULL AND (to_tsvector('english', s.title) || c.search_vector) @@ q.exp_tq)
@@ -323,6 +324,7 @@ export class RetrievalService {
         analysis.expandedTsQuery,
         analysis.topicPatterns.length > 0 ? analysis.topicPatterns : null,
         actorId || null,
+        sourceType ?? null,
       ],
     );
 
@@ -366,7 +368,7 @@ export class RetrievalService {
             AND s.deleted_at IS NULL
             AND c.index_version = s.active_index_version
             AND c.chunk_index = 0
-            AND ($3::varchar IS NULL OR s.source_type = $3)
+            AND ($3::varchar IS NULL OR s.source_type = $3 OR ($3 = 'DOCUMENT' AND s.source_type = 'LOCAL_FILE'))
             AND s.source_type IN ('TASK', 'DECISION', 'DOCUMENT', 'LOCAL_FILE')
         ) ranked
         LEFT JOIN projects p ON p.id = ranked.project_id

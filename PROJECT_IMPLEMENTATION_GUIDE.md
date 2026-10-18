@@ -1773,3 +1773,35 @@ Provider generation was not exercised. No remote push or hosted deployment.
 - Decision-based reviewed task proposals remain. Hermes now requests task review against a decision, with project/revision validation. Retired pending proposals cannot be edited or confirmed. Existing legacy tables, historical migrations, source records, and old chat text are preserved; retired sources are excluded from retrieval and active source APIs. No migration or user-record rewrite was performed. See `docs/FEATURE_RETIREMENT.md` for contract changes and rollout.
 - Verified backend lint/typecheck/build/formatting, OpenAPI regeneration, 310 unit tests, 126 HTTP tests, and 82 PostgreSQL integration tests. Frontend lint/typecheck/build and 19 regression tests passed. Database tests used only the isolated `_test` database on 55433; the new retirement fixture required a longer setup timeout, after which the complete suite passed.
 - Local production-build browser checks covered sidebar navigation/settings, legacy project links, project access controls, Decisions, and Global search. Temporary synthetic QA records/session files were removed. Local UI/API remain available on 3002/3001 against the isolated develop database. No provider requests, pushes, main changes, or hosted deployment. AIW returned no accepted decisions; no assigned task ID was supplied.
+
+### 2026-10-18 - Full feature QA checkpoint (in progress)
+
+- Automated checks: lint, typecheck, build, format check, 312 unit tests, 129 HTTP
+  tests, and 87 real PostgreSQL tests passed. PostgreSQL checks used only the
+  dedicated test database on port 55433; development checks used the isolated
+  local database on port 55432. No database reset or deployment access was used.
+- Corrected global search to find indexed document bodies and owned private
+  folder files, retain source paths/URLs, deduplicate chunks, and apply status,
+  date, assignee and type filters consistently. Private folder results remain
+  restricted to their owner; keyword misses do not use chat's fallback.
+- Restored missing API key, aggregate, proposal and GitHub controllers in the
+  offline OpenAPI generator. Its 82 paths now match the live API; local references
+  and the configured session-cookie security scheme are checked by regression.
+- GitHub mutations now require CSRF for browser sessions. External GitHub requests
+  have a 20-second timeout and do not log raw provider error bodies.
+- Live synthetic checks passed for task/decision operations and stale versions,
+  project roles/archive/restore, PDF/DOCX/TXT extraction and revisions/downloads,
+  private folder access, invitations/acceptance/cancellation, password change,
+  real DeepSeek project/all-project answers and idempotent retry, private memory
+  recall, MCP stdio discovery/read/token revocation, public GitHub sync/code
+  indexing, and a successful Hermes research run. These are individual acceptance
+  checks, not a claim that every UI flow is verified.
+- Frontend fixes: guest drafts survive first-project creation, generated decision
+  task proposals open the review UI, and search opens private folder previews and
+  GitHub source links correctly. Fake password-email/remember-me controls and the
+  obsolete browser session-reset key were removed; recovery and data controls
+  describe the implemented behavior.
+- Both Docker images build, and API/frontend readiness succeeds directly and
+  through the frontend proxy. Manual production-build navigation/settings checks
+  and failure/recovery coverage are still in progress. Synthetic fixtures remain
+  isolated for the rest of this audit and must be cleaned up before completion.

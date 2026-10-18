@@ -12,11 +12,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { RequireProjectRole } from '../../../common/decorators/project-role.decorator';
 import { ProjectPolicyGuard } from '../../../common/guards/project-policy.guard';
 import { SessionAuthGuard } from '../../../common/guards/session-auth.guard';
+import { CsrfGuard } from '../../../common/guards/csrf.guard';
 import { ProjectRole } from '../../projects/entities/project-member.entity';
 import { ConnectGitHubDto } from './dto/connect-github.dto';
 import {
@@ -33,8 +34,9 @@ import { ListGitHubFilesQueryDto } from './dto/list-github-files-query.dto';
 import { GitHubIntegrationService } from './github-integration.service';
 
 @ApiTags('GitHub Integration')
+@ApiCookieAuth()
 @Controller('projects/:projectId/integrations/github')
-@UseGuards(SessionAuthGuard, ProjectPolicyGuard)
+@UseGuards(SessionAuthGuard, CsrfGuard, ProjectPolicyGuard)
 export class GitHubIntegrationController {
   constructor(private readonly githubService: GitHubIntegrationService) {}
 

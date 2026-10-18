@@ -12,6 +12,8 @@ import { SearchQueryDto, SearchResponseDto } from './dto/search.dto';
 import { SessionAuthGuard } from '../../common/guards/session-auth.guard';
 import { CsrfGuard } from '../../common/guards/csrf.guard';
 import { ProjectPolicyGuard } from '../../common/guards/project-policy.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 @ApiTags('Search')
 @ApiCookieAuth()
@@ -33,7 +35,8 @@ export class SearchController {
   async search(
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Query() query: SearchQueryDto,
+    @CurrentUser() user: User,
   ): Promise<SearchResponseDto> {
-    return this.searchService.search(projectId, query);
+    return this.searchService.search(projectId, query, user.id);
   }
 }

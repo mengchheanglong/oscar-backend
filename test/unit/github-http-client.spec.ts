@@ -35,6 +35,22 @@ describe('GitHub complete source traversal', () => {
       new HttpGitHubClientService().fetchFileContent('owner', 'repo', 'src/app.ts'),
     ).rejects.toBeInstanceOf(GitHubRateLimitError);
   });
+  it('bounds every external request with a timeout signal', async () => {
+    const timeout = jest.spyOn(AbortSignal, 'timeout');
+    const mock = jest
+      .spyOn(global, 'fetch')
+      .mockImplementation(
+        async () =>
+          new Response(JSON.stringify({ tree: [], id: 1, name: 'repo', full_name: 'owner/repo' })),
+      );
+    const client = new HttpGitHubClientService();
+    await client.verifyRepository('owner', 'repo');
+    await client.fetchRepositoryTree('owner', 'repo');
+    expect(timeout).toHaveBeenCalledWith(20_000);
+    expect(mock.mock.calls.every(([, options]) => options?.signal instanceof AbortSignal)).toBe(
+      true,
+    );
+  });
   it('reports inaccessible files rather than treating them as successful coverage', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValue(new Response('', { status: 404 }));
     await expect(

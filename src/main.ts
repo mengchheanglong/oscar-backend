@@ -9,6 +9,7 @@ import { AppModule } from './app.module';
 import { configureApp } from './common/configure-app';
 import { Environment } from './config/environment';
 import { createOpenApiDocument } from './openapi';
+import { SessionService } from './modules/auth/services/session.service';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
@@ -19,7 +20,11 @@ async function bootstrap(): Promise<void> {
   app.enableShutdownHooks();
   const config = app.get(ConfigService<Environment, true>);
   if (config.get('SWAGGER_ENABLED', { infer: true })) {
-    SwaggerModule.setup('api/docs', app, createOpenApiDocument(app));
+    SwaggerModule.setup(
+      'api/docs',
+      app,
+      createOpenApiDocument(app, app.get(SessionService).getCookieName()),
+    );
   }
   const port = config.get('PORT', { infer: true });
   const host =

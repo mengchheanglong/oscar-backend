@@ -49,28 +49,43 @@ import { Project } from '../src/modules/projects/entities/project.entity';
 import { createOpenApiDocument } from '../src/openapi';
 import { AgentRunsController } from '../src/modules/ai/agent-runs.controller';
 import { AgentRunsService } from '../src/modules/ai/agent-runs.service';
+import { ApiKeysController } from '../src/modules/auth/api-keys.controller';
+import { ApiKeyService } from '../src/modules/auth/services/api-key.service';
+import { UserTasksController } from '../src/modules/tasks/user-tasks.controller';
+import { UserDocumentsController } from '../src/modules/documents/user-documents.controller';
+import { ProposalsController } from '../src/modules/ai/proposals.controller';
+import { ProposalsService } from '../src/modules/ai/proposals.service';
+import { GitHubIntegrationController } from '../src/modules/integrations/github/github-integration.controller';
+import { GitHubIntegrationService } from '../src/modules/integrations/github/github-integration.service';
+
+export const OPENAPI_CONTROLLERS = [
+  UploadedFoldersController,
+  LocalFoldersController,
+  HealthController,
+  AuthController,
+  ApiKeysController,
+  UsersController,
+  WorkspaceController,
+  ProjectsController,
+  ProjectMembersController,
+  DecisionsController,
+  TasksController,
+  UserTasksController,
+  DocumentsController,
+  UserDocumentsController,
+  SearchController,
+  IngestionController,
+  AiController,
+  ProposalsController,
+  CopilotMemoryController,
+  AgentRunsController,
+  GitHubIntegrationController,
+];
 
 // Offline metadata-only app: no database connection, .env, provider call, or listening socket.
 // Register new public controllers here as the API grows, and test path coverage.
 @Module({
-  controllers: [
-    UploadedFoldersController,
-    LocalFoldersController,
-    HealthController,
-    AuthController,
-    UsersController,
-    WorkspaceController,
-    ProjectsController,
-    ProjectMembersController,
-    DecisionsController,
-    TasksController,
-    DocumentsController,
-    SearchController,
-    IngestionController,
-    AiController,
-    CopilotMemoryController,
-    AgentRunsController,
-  ],
+  controllers: OPENAPI_CONTROLLERS,
   providers: [
     { provide: UploadedFoldersService, useValue: {} },
     { provide: LocalFoldersService, useValue: {} },
@@ -78,6 +93,7 @@ import { AgentRunsService } from '../src/modules/ai/agent-runs.service';
     { provide: NativeFolderPickerService, useValue: {} },
     { provide: HealthService, useValue: {} },
     { provide: AuthService, useValue: {} },
+    { provide: ApiKeyService, useValue: {} },
     {
       provide: SessionService,
       useValue: {
@@ -98,6 +114,8 @@ import { AgentRunsService } from '../src/modules/ai/agent-runs.service';
     { provide: AiService, useValue: {} },
     { provide: CopilotMemoryService, useValue: {} },
     { provide: AgentRunsService, useValue: {} },
+    { provide: ProposalsService, useValue: {} },
+    { provide: GitHubIntegrationService, useValue: {} },
     { provide: STORAGE_DRIVER, useValue: {} },
     { provide: getRepositoryToken(ProjectMember), useValue: {} },
     { provide: getRepositoryToken(Decision), useValue: {} },
@@ -111,19 +129,25 @@ import { AgentRunsService } from '../src/modules/ai/agent-runs.service';
 })
 class OpenApiModule {}
 
-async function generate(): Promise<void> {
+export async function generateOpenApiDocument() {
   const app = await NestFactory.create(OpenApiModule, { logger: false });
   try {
     app.setGlobalPrefix('api/v1');
     const document = createOpenApiDocument(app);
-    await mkdir('docs', { recursive: true });
-    await writeFile('docs/openapi.json', `${JSON.stringify(document, null, 2)}\n`);
+    return document;
   } finally {
     await app.close();
   }
 }
 
-void generate().catch(() => {
-  process.stderr.write('OpenAPI generation failed.\n');
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  void generateOpenApiDocument()
+    .then(async (document) => {
+      await mkdir('docs', { recursive: true });
+      await writeFile('docs/openapi.json', `${JSON.stringify(document, null, 2)}\n`);
+    })
+    .catch(() => {
+      process.stderr.write('OpenAPI generation failed.\n');
+      process.exitCode = 1;
+    });
+}
