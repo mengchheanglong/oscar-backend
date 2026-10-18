@@ -23,6 +23,9 @@ export class ChatMessageResponseDto {
   @ApiProperty({ example: 'What are the key decisions made regarding the database architecture?' })
   content!: string;
 
+  @ApiPropertyOptional({ type: String, format: 'uuid', nullable: true })
+  clientRequestId!: string | null;
+
   @ApiProperty({ enum: MessageStatus, example: MessageStatus.COMPLETED })
   status!: MessageStatus;
 
@@ -73,6 +76,7 @@ export class ChatMessageResponseDto {
       role: message.role,
       mode: message.mode,
       content: message.content,
+      clientRequestId: message.clientRequestId ?? null,
       status: message.status,
       contextExcluded: message.contextExcluded ?? false,
       citations: message.citations || [],

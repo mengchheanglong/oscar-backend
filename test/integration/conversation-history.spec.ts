@@ -18,6 +18,7 @@ import {
   syntheticHistoryEmbedder,
 } from '../fixtures/history-recall-evaluation';
 import { LlmProvider } from '../../src/modules/ai/llm/llm-provider.interface';
+import { AiService } from '../../src/modules/ai/ai.service';
 import { AiMode, Conversation } from '../../src/modules/ai/entities/conversation.entity';
 import { ChatMessage, MessageRole } from '../../src/modules/ai/entities/chat-message.entity';
 import { User } from '../../src/modules/users/entities/user.entity';
@@ -115,6 +116,64 @@ describe('Conversation history recall and privacy with PostgreSQL', () => {
     db
       .getRepository(ChatMessage)
       .save({ conversationId: s.conversationId, role, content, mode: AiMode.WORKSPACE });
+
+  it('recovers the same durable chat turn after generation failure and lost delivery', async () => {
+    let calls = 0;
+    const generateAnswer = async () => {
+      calls++;
+      if (calls === 1) throw new Error('Synthetic provider outage');
+      return {
+        content: 'Recovered synthetic answer.',
+        citations: [],
+        modelName: 'scripted',
+        promptTokens: 1,
+        completionTokens: 1,
+      };
+    };
+    const service = new AiService(
+      db.getRepository(Conversation),
+      db.getRepository(ChatMessage),
+      db.getRepository(Project),
+      db.getRepository(ProjectMember),
+      db.getRepository(User),
+      { retrieve: async () => [] } as unknown as ConstructorParameters<typeof AiService>[5],
+      new (await import('../../src/modules/ai/context/context-assembler')).ContextAssembler(),
+      { generateAnswer } as unknown as LlmProvider,
+      {} as ConstructorParameters<typeof AiService>[8],
+      { select: async () => [] } as unknown as ConstructorParameters<typeof AiService>[9],
+      context,
+    );
+    const conversation = await service.createConversation(project.id, user.id, {
+      defaultMode: AiMode.WORKSPACE,
+    });
+    const dto = {
+      content: 'Synthetic request recovery check.',
+      mode: AiMode.WORKSPACE,
+      clientRequestId: randomUUID(),
+    };
+    const failed = await service.postMessage(project.id, user.id, conversation.id, dto);
+    expect(failed.assistantMessage.status).toBe('FAILED');
+    const recovered = await service.postMessage(project.id, user.id, conversation.id, dto);
+    const deliveredAgain = await service.postMessage(project.id, user.id, conversation.id, dto);
+    expect(recovered.assistantMessage.status).toBe('COMPLETED');
+    expect(recovered.assistantMessage.id).toBe(failed.assistantMessage.id);
+    expect(deliveredAgain.assistantMessage.id).toBe(recovered.assistantMessage.id);
+    expect(calls).toBe(2);
+    expect(await db.getRepository(ChatMessage).countBy({ conversationId: conversation.id })).toBe(
+      2,
+    );
+    await expect(
+      db.getRepository(ChatMessage).save(
+        db.getRepository(ChatMessage).create({
+          conversationId: conversation.id,
+          role: MessageRole.USER,
+          mode: AiMode.WORKSPACE,
+          clientRequestId: dto.clientRequestId,
+          content: 'Duplicate',
+        }),
+      ),
+    ).rejects.toMatchObject({ code: '23505' });
+  });
 
   it('persists project guidance and chat metadata while keeping chat ownership scoped', async () => {
     await db

@@ -1,9 +1,25 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 import { AiMode } from '../entities/conversation.entity';
 import { KnowledgeSourceType } from '../../ingestion/entities';
 
 export class PostMessageDto {
+  @ApiPropertyOptional({
+    description:
+      'Stable UUID for this send and its retries. Reusing it with different content is rejected.',
+  })
+  @IsOptional()
+  @IsUUID()
+  clientRequestId?: string;
+
   @ApiProperty({ example: 'What are the key decisions made regarding the database architecture?' })
   @IsString()
   @IsNotEmpty()

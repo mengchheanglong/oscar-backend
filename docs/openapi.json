@@ -4660,7 +4660,7 @@
             "description": "Conversation not found"
           },
           "409": {
-            "description": "Conversation is busy or its context changed."
+            "description": "Conversation is busy, context changed, a request UUID was reused with different input, or an unfinished turn is too old to retry."
           },
           "413": {
             "description": "Required context or unsummarized history exceeds safe bounds."
@@ -6896,6 +6896,11 @@
             "type": "string",
             "example": "What are the key decisions made regarding the database architecture?"
           },
+          "clientRequestId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -7090,6 +7095,10 @@
       "PostMessageDto": {
         "type": "object",
         "properties": {
+          "clientRequestId": {
+            "type": "string",
+            "description": "Stable UUID for this send and its retries. Reusing it with different content is rejected."
+          },
           "content": {
             "type": "string",
             "example": "What are the key decisions made regarding the database architecture?"

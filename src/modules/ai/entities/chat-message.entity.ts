@@ -38,6 +38,9 @@ export interface CitationItem {
 
 @Entity('ai_messages')
 @Index('idx_ai_messages_conv', ['conversationId', 'createdAt'])
+@Index('idx_ai_messages_request_role', ['conversationId', 'clientRequestId', 'role'], {
+  unique: true,
+})
 export class ChatMessage {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -59,6 +62,16 @@ export class ChatMessage {
 
   @Column({ type: 'text' })
   content!: string;
+
+  @Column({ name: 'client_request_id', type: 'uuid', nullable: true })
+  clientRequestId!: string | null;
+
+  @Column({ name: 'request_fingerprint', type: 'varchar', length: 64, nullable: true })
+  requestFingerprint!: string | null;
+
+  // Assigned by the existing database sequence; use it for stable turn ordering.
+  @Column({ name: 'context_seq', type: 'bigint', select: false, insert: false, update: false })
+  contextSequence!: string;
 
   @Column({ type: 'varchar', length: 50, default: MessageStatus.COMPLETED })
   status!: MessageStatus;

@@ -198,6 +198,103 @@ describe('AiService', () => {
   });
 
   describe('postMessage', () => {
+    describe('durable request recovery', () => {
+      const requestId = 'a329389a-cc68-40f6-8a85-51101f78ed46';
+      const request = {
+        content: 'Synthetic reliability question',
+        mode: AiMode.WORKSPACE,
+        clientRequestId: requestId,
+      };
+      let saved: ChatMessage[];
+      beforeEach(() => {
+        saved = [];
+        mockConversationRepo.findOne.mockResolvedValue({
+          id: 'conv-1',
+          projectId: mockProjectId,
+          userId: mockUserId,
+          title: 'QA',
+          defaultMode: AiMode.WORKSPACE,
+        });
+        mockMessageRepo.create.mockImplementation((dto) => ({
+          id: dto.id || `message-${saved.length}`,
+          createdAt: new Date(),
+          ...dto,
+        }));
+        mockMessageRepo.save.mockImplementation(async (message) => {
+          saved = [...saved.filter((item) => item.id !== message.id), { ...message }];
+          return message;
+        });
+        mockMessageRepo.find.mockImplementation(async (options) =>
+          options?.where?.clientRequestId
+            ? saved.filter((message) => message.clientRequestId === options.where.clientRequestId)
+            : [],
+        );
+        mockMessageRepo.findOne.mockImplementation(async () =>
+          [...saved].reverse().find((message) => message.role === 'user'),
+        );
+        mockLlmProvider.generateAnswer.mockResolvedValue({
+          content: 'Synthetic answer',
+          citations: [],
+          modelName: 'test',
+          promptTokens: 1,
+          completionTokens: 1,
+        });
+      });
+      it('replays a saved response after delivery is lost without another provider call or message', async () => {
+        const first = await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
+        const retry = await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
+        expect(retry).toEqual(first);
+        expect(saved).toHaveLength(2);
+        expect(mockLlmProvider.generateAnswer).toHaveBeenCalledTimes(1);
+      });
+      it('resumes retrieval failure without duplicating the user turn', async () => {
+        mockRetrievalService.retrieve.mockRejectedValueOnce(new Error('Synthetic outage'));
+        await expect(
+          service.postMessage(mockProjectId, mockUserId, 'conv-1', request),
+        ).rejects.toThrow();
+        expect(saved).toHaveLength(1);
+        await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
+        expect(saved).toHaveLength(2);
+        expect(saved.filter((message) => message.role === 'user')).toHaveLength(1);
+      });
+      it('retries a failed answer in place, preserving the saved user and assistant IDs', async () => {
+        mockLlmProvider.generateAnswer.mockRejectedValueOnce(
+          new Error('Synthetic provider failure'),
+        );
+        const failed = await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
+        expect(failed.assistantMessage.status).toBe('FAILED');
+        const retry = await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
+        expect(retry.userMessage.id).toBe(failed.userMessage.id);
+        expect(retry.assistantMessage.id).toBe(failed.assistantMessage.id);
+        expect(retry.assistantMessage.status).toBe('COMPLETED');
+        expect(saved).toHaveLength(2);
+      });
+      it('rejects reuse with changed content and does not expose a foreign conversation', async () => {
+        await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
+        await expect(
+          service.postMessage(mockProjectId, mockUserId, 'conv-1', {
+            ...request,
+            content: 'Different question',
+          }),
+        ).rejects.toMatchObject({ response: { code: 'CHAT_REQUEST_CONFLICT' } });
+        mockConversationRepo.findOne.mockResolvedValue(null);
+        await expect(
+          service.postMessage(mockProjectId, 'foreign-user', 'conv-1', request),
+        ).rejects.toThrow(NotFoundException);
+        expect(mockLlmProvider.generateAnswer).toHaveBeenCalledTimes(1);
+      });
+      it('rejects stale unfinished turns after a newer user message', async () => {
+        mockRetrievalService.retrieve.mockRejectedValueOnce(new Error('Synthetic outage'));
+        await expect(
+          service.postMessage(mockProjectId, mockUserId, 'conv-1', request),
+        ).rejects.toThrow();
+        saved.push({ ...saved[0]!, id: 'newer-user', clientRequestId: null });
+        await expect(
+          service.postMessage(mockProjectId, mockUserId, 'conv-1', request),
+        ).rejects.toMatchObject({ response: { code: 'CHAT_RETRY_STALE' } });
+        expect(mockLlmProvider.generateAnswer).not.toHaveBeenCalled();
+      });
+    });
     it('uses durable all-project scope on later turns even when a client omits or sends false', async () => {
       const conv = {
         id: 'conv-1',
@@ -336,7 +433,7 @@ describe('AiService', () => {
         citations: [
           {
             chunkId: 'chunk-valid-1',
-            sourceId: 'src-1',
+            sourceId: 'forged-source-id',
             sourceType: KnowledgeSourceType.REQUIREMENT,
             title: 'PostgreSQL Vector Search',
             revision: 1,
@@ -372,6 +469,7 @@ describe('AiService', () => {
       expect(assistantMessage.citations).toHaveLength(1);
       expect(assistantMessage.citations[0]!.chunkId).toBe('chunk-valid-1');
       expect(assistantMessage.citations[0]!.evidenceNumber).toBe(2);
+      expect(assistantMessage.citations[0]!.sourceId).toBe('src-1');
     });
 
     it('handles LLM generation failure gracefully with FAILED message status', async () => {

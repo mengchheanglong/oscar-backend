@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Inject,
   Injectable,
   Logger,
@@ -6,6 +7,7 @@ import {
   OnModuleInit,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
 import { ProjectMember } from '../projects/entities/project-member.entity';
@@ -175,16 +177,59 @@ export class AiService implements OnModuleInit {
 
     const mode = dto.mode || conversation.defaultMode || AiMode.PM;
 
-    // Persist user message
-    const userMessage = this.messageRepo.create({
-      conversationId: conversation.id,
-      role: MessageRole.USER,
-      mode,
-      content: dto.content,
-      status: MessageStatus.COMPLETED,
-      citations: [],
-    });
-    await this.messageRepo.save(userMessage);
+    const requestFingerprint = dto.clientRequestId
+      ? createHash('sha256')
+          .update(
+            JSON.stringify([
+              dto.content,
+              mode,
+              dto.sourceType ?? null,
+              dto.includeAllWorkspaces ?? null,
+            ]),
+          )
+          .digest('hex')
+      : null;
+    const savedTurn = dto.clientRequestId
+      ? await this.messageRepo.find({
+          where: { conversationId, clientRequestId: dto.clientRequestId },
+        })
+      : [];
+    const savedUser = savedTurn.find((message) => message.role === MessageRole.USER);
+    const savedAnswer = savedTurn.find((message) => message.role === MessageRole.ASSISTANT);
+    if (savedUser && savedUser.requestFingerprint !== requestFingerprint)
+      throw new ConflictException({
+        code: 'CHAT_REQUEST_CONFLICT',
+        message: 'This request identifier was already used for another message.',
+      });
+    if (savedUser && savedAnswer?.status === MessageStatus.COMPLETED)
+      return { userMessage: savedUser, assistantMessage: savedAnswer };
+    if (savedUser) {
+      const latestUser = await this.messageRepo.findOne({
+        where: { conversationId, role: MessageRole.USER },
+        order: { contextSequence: 'DESC' },
+      });
+      if (latestUser?.id !== savedUser.id || savedUser.contextExcluded)
+        throw new ConflictException({
+          code: 'CHAT_RETRY_STALE',
+          message:
+            'This turn can no longer be retried. Reload the conversation and send a new message.',
+        });
+    }
+
+    // A lost response or failed generation resumes the same saved user turn.
+    const userMessage =
+      savedUser ??
+      this.messageRepo.create({
+        conversationId: conversation.id,
+        role: MessageRole.USER,
+        mode,
+        content: dto.content,
+        status: MessageStatus.COMPLETED,
+        citations: [],
+        clientRequestId: dto.clientRequestId ?? null,
+        requestFingerprint,
+      });
+    if (!savedUser) await this.messageRepo.save(userMessage);
 
     // Update conversation title if default, and bump updatedAt
     if (conversation.title === 'New Conversation' || !conversation.title) {
@@ -269,12 +314,14 @@ export class AiService implements OnModuleInit {
     } catch {
       this.logger.error('AI_GENERATION_FAILED');
       const failedMessage = this.messageRepo.create({
+        ...(savedAnswer ? { id: savedAnswer.id, createdAt: savedAnswer.createdAt } : {}),
         conversationId: conversation.id,
         role: MessageRole.ASSISTANT,
         mode,
         content: 'An error occurred while generating the response. Please try again.',
         status: MessageStatus.FAILED,
         citations: [],
+        clientRequestId: dto.clientRequestId ?? null,
       });
       await this.conversationContext.commit(scope, { ...prepared, compactions: 0 }, failedMessage);
       return { userMessage, assistantMessage: failedMessage };
@@ -285,17 +332,25 @@ export class AiService implements OnModuleInit {
     const validatedCitations: CitationItem[] = (generateResult.citations || [])
       .filter((citation) => evidenceByChunkId.has(citation.chunkId))
       .map((citation) => {
-        const matched = evidenceByChunkId.get(citation.chunkId);
+        const matched = evidenceByChunkId.get(citation.chunkId)!;
         return {
-          ...citation,
+          chunkId: matched.chunkId,
+          sourceId: matched.sourceId,
+          sourceType: matched.sourceType,
+          title: matched.title,
+          revision: matched.revision,
+          locator: matched.locator,
+          snippet: matched.snippet,
+          score: matched.score,
           evidenceNumber:
             assembled.evidenceItems.findIndex((item) => item.chunkId === citation.chunkId) + 1,
-          projectName: matched?.projectName ?? citation.projectName,
-          projectKey: matched?.projectKey ?? citation.projectKey,
+          projectName: matched.projectName,
+          projectKey: matched.projectKey,
         };
       });
 
     const assistantMessage = this.messageRepo.create({
+      ...(savedAnswer ? { id: savedAnswer.id, createdAt: savedAnswer.createdAt } : {}),
       conversationId: conversation.id,
       role: MessageRole.ASSISTANT,
       mode,
@@ -305,6 +360,7 @@ export class AiService implements OnModuleInit {
       modelName: generateResult.modelName,
       promptTokens: generateResult.promptTokens,
       completionTokens: generateResult.completionTokens,
+      clientRequestId: dto.clientRequestId ?? null,
     });
 
     await this.conversationContext.commit(scope, prepared, assistantMessage);

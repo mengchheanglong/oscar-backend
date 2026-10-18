@@ -130,7 +130,10 @@ export class AiController {
 
   @Post(':id/messages')
   @ApiOperation({ summary: 'Post a message and receive an AI assistant response' })
-  @ApiConflictResponse({ description: 'Conversation is busy or its context changed.' })
+  @ApiConflictResponse({
+    description:
+      'Conversation is busy, context changed, a request UUID was reused with different input, or an unfinished turn is too old to retry.',
+  })
   @ApiTooManyRequestsResponse({
     description: 'This backend has reached its concurrent chat capacity.',
   })
