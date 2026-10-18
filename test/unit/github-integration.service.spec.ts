@@ -169,7 +169,7 @@ describe('GitHubIntegrationService', () => {
         }),
       );
       expect(ingestionService.syncGitHubIssue).toHaveBeenCalled();
-      expect(result.status).toBe(GitHubConnectionStatus.CONNECTED);
+      expect(result.status).toBe(GitHubConnectionStatus.SYNCING);
     });
 
     it('throws BadRequestException if repository verification fails', async () => {
@@ -203,9 +203,112 @@ describe('GitHubIntegrationService', () => {
         expect.objectContaining({
           projectId,
           actorId,
-          action: 'GITHUB_SYNCED',
+          action: 'GITHUB_SYNC_PROGRESS',
         }),
       );
+    });
+
+    const connection = () =>
+      ({
+        id: 'conn-1',
+        projectId,
+        repositoryOwner: 'org',
+        repositoryName: 'repo',
+        status: GitHubConnectionStatus.CONNECTED,
+        syncCursor: '2026-01-01T00:00:00.000Z',
+        lastSyncedAt: new Date('2026-01-01T00:00:00Z'),
+      }) as GitHubConnection;
+
+    it('resumes both paginated streams and advances the watermark only after all pages complete', async () => {
+      const conn = connection();
+      connectionRepo.findOne.mockResolvedValue(conn);
+      const issues = jest
+        .spyOn(githubClient, 'fetchIssues')
+        .mockResolvedValueOnce({ issues: [], hasMore: true })
+        .mockResolvedValueOnce({ issues: [], hasMore: false });
+      const prs = jest
+        .spyOn(githubClient, 'fetchPullRequests')
+        .mockResolvedValueOnce({ pullRequests: [], hasMore: true })
+        .mockResolvedValueOnce({ pullRequests: [], hasMore: false });
+      for (let page = 0; page < 3; page++) {
+        expect((await service.syncRepository(projectId, actorId)).hasMore).toBe(true);
+        expect(conn.lastSyncedAt?.toISOString()).toBe('2026-01-01T00:00:00.000Z');
+        expect(conn.syncCursor!.length).toBeLessThanOrEqual(100);
+        // Recreate the service to prove continuation does not live only in memory.
+        service = new GitHubIntegrationService(
+          connectionRepo,
+          issueRepo,
+          prRepo,
+          fileRepo,
+          projectRepo,
+          githubClient,
+          ingestionService,
+          auditService,
+        );
+      }
+      const result = await service.syncRepository(projectId, actorId);
+      expect(result.hasMore).toBe(false);
+      expect(conn.status).toBe(GitHubConnectionStatus.CONNECTED);
+      expect(conn.syncCursor).toBe(`v2:${result.lastSyncedAt}`);
+      expect(issues.mock.calls.map((call) => call[2]?.page)).toEqual([1, 2]);
+      expect(issues.mock.calls[0]![2]?.since).toBeUndefined(); // Backfill legacy partial imports.
+      expect(prs.mock.calls.map((call) => call[2]?.page)).toEqual([1, 2]);
+    });
+
+    it('keeps a failed PR page retriable and does not report it as a completed sync', async () => {
+      const conn = connection();
+      connectionRepo.findOne.mockResolvedValue(conn);
+      jest.spyOn(githubClient, 'fetchIssues').mockResolvedValue({ issues: [], hasMore: false });
+      const prs = jest
+        .spyOn(githubClient, 'fetchPullRequests')
+        .mockRejectedValueOnce(new Error('HTTP 429'))
+        .mockResolvedValueOnce({ pullRequests: [], hasMore: false });
+      await service.syncRepository(projectId, actorId);
+      const cursor = conn.syncCursor;
+      await expect(service.syncRepository(projectId, actorId)).rejects.toThrow(
+        'Repository sync was interrupted',
+      );
+      expect(conn.status).toBe(GitHubConnectionStatus.ERROR);
+      expect(conn.syncCursor).toBe(cursor);
+      expect(conn.lastSyncedAt?.toISOString()).toBe('2026-01-01T00:00:00.000Z');
+      expect((await service.syncRepository(projectId, actorId)).hasMore).toBe(false);
+      expect(prs.mock.calls.map((call) => call[2]?.page)).toEqual([1, 1]);
+    });
+
+    it('retries the same issue page after extraction or comments fail', async () => {
+      const conn = connection();
+      connectionRepo.findOne.mockResolvedValue(conn);
+      const issues = jest.spyOn(githubClient, 'fetchIssues');
+      jest
+        .spyOn(githubClient, 'fetchIssueComments')
+        .mockRejectedValueOnce(new Error('HTTP 502'))
+        .mockResolvedValue([]);
+      await expect(service.syncRepository(projectId, actorId)).rejects.toThrow(
+        'Repository sync was interrupted',
+      );
+      expect(JSON.parse(conn.syncCursor!).p).toBe(1);
+      expect(conn.status).toBe(GitHubConnectionStatus.ERROR);
+      expect((await service.syncRepository(projectId, actorId)).hasMore).toBe(true);
+      expect(issues.mock.calls.map((call) => call[2]?.page)).toEqual([1, 1]);
+    });
+
+    it('rejects overlapping syncs and releases its lock after completion', async () => {
+      const conn = connection();
+      connectionRepo.findOne.mockResolvedValue(conn);
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const issues = jest.spyOn(githubClient, 'fetchIssues').mockImplementation(async () => {
+        await gate;
+        return { issues: [], hasMore: false };
+      });
+      const first = service.syncRepository(projectId, actorId);
+      while (!issues.mock.calls.length) await new Promise<void>((resolve) => setImmediate(resolve));
+      await expect(service.syncRepository(projectId, actorId)).rejects.toThrow('already syncing');
+      release();
+      await first;
+      expect((await service.syncRepository(projectId, actorId)).hasMore).toBe(false);
     });
 
     it('throws BadRequestException if connection is disconnected', async () => {

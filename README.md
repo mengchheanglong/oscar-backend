@@ -251,15 +251,29 @@ this slice does not install or connect their runtimes.
 
 ## Reviewed AI actions through MCP
 
-The stdio server now exposes 36 tools, including `generate_task_proposal`, `generate_decision_task_proposal`, `generate_meeting_analysis`, `list_ai_proposals`, `get_ai_proposal`, `update_ai_proposal`, `confirm_ai_proposal`, and `reject_ai_proposal`.
+The stdio server exposes current workspace tools for projects, tasks, decisions,
+documents, search, GitHub, activity, and reviewed AI proposals. It no longer
+exposes meeting, requirement, or dashboard tools. Restart the MCP client after
+rebuilding the backend to refresh tool discovery.
 
-Generation creates private, project-scoped drafts only. Inspect the proposal and its source revision, edit using its current version, and confirm only reviewed, user-authorized item IDs. Confirmation requires `userConfirmed: true` and a stable `idempotencyKey`; reuse that key for retries. An explicit empty `selectedItemIds` array saves no domain items (a meeting summary can still be selected separately). Unwanted drafts can be rejected. All operations use the existing authenticated API, permissions, validation and transaction checks.
+Generation creates a private, project-scoped task draft only. Inspect its source
+decision and revision, edit using the current proposal version, then confirm only
+reviewed item IDs with a stable `Idempotency-Key`; reuse that key for retries.
+An empty `selectedItemIds` array creates no tasks. Unwanted drafts can be
+rejected. All operations use the authenticated API, permissions, validation and
+transaction checks.
 
 Codex uses `.codex/config.toml` for project MCP settings. Forward the PAT with `env_vars = ["AI_WORKSPACE_API_KEY"]` and keep it in the local environment. CLI environment options belong before `-- node ...`; do not pass them as Node arguments. Restart the MCP client after rebuilding the backend to refresh its tool list.
 
-Requirement task drafts include server-owned sourceReferences for retrieved project documents. Review document/revision/page sources before confirmation; edits cannot replace these references. A changed or removed supporting document causes STALE_PROPOSAL. INVALID_PROPOSAL_DRAFT, INVALID_SELECTION and ASSIGNEE_NOT_MEMBER reject invalid writes. AI_RETRIEVAL_FAILED reports unavailable document context without creating a proposal or task.
+Decision-based task drafts retain the source decision and revision. Review and
+edit proposals before confirmation; a changed source decision requires
+regenerating the proposal. INVALID_PROPOSAL_DRAFT, INVALID_SELECTION and
+ASSIGNEE_NOT_MEMBER reject invalid writes. AI_RETRIEVAL_FAILED reports
+unavailable context without creating a proposal or task.
 
-GET /projects/:projectId/tasks/:taskId (and MCP get_task) returns aiProvenance for confirmed AI-created tasks: source entity/revision, proposal ID and document references. Private draft text is omitted. Meeting-derived requirements and decisions expose sourceMeetingId, and their generated tasks retain that link. Ordinary tasks return null provenance.
+GET /projects/:projectId/tasks/:taskId (and MCP `get_task`) returns aiProvenance
+for confirmed AI-created tasks, including the source entity/revision and proposal
+ID. Private draft text is omitted. Ordinary tasks return null provenance.
 
 ## Real data and provider configuration
 

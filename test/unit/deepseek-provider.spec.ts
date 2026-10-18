@@ -8,7 +8,7 @@ describe('DeepSeek structured drafts', () => {
     const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(
       new Response(
         JSON.stringify({
-          choices: [{ finish_reason: 'stop', message: { content: '{"type":"MEETING_ANALYSIS"}' } }],
+          choices: [{ finish_reason: 'stop', message: { content: '{"type":"CREATE_TASKS"}' } }],
         }),
       ),
     );
@@ -16,7 +16,7 @@ describe('DeepSeek structured drafts', () => {
       systemPrompt: 'Extract',
       userPrompt: 'Synthetic notes',
     });
-    expect(result.data).toEqual({ type: 'MEETING_ANALYSIS' });
+    expect(result.data).toEqual({ type: 'CREATE_TASKS' });
     expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string).max_tokens).toBe(6000);
     expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string).thinking).toEqual({
       type: 'disabled',

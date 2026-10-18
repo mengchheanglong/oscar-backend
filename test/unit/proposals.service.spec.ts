@@ -601,7 +601,7 @@ describe('ProposalsService', () => {
           const mockManager = {
             findOne: jest.fn((entityClass: unknown) => {
               if (entityClass === AIProposal) return Promise.resolve(pendingProposal);
-              if (entityClass === Decision) return Promise.resolve({ ...mockDecision, version: 3 }); // Requirement evolved to version 3!
+              if (entityClass === Decision) return Promise.resolve({ ...mockDecision, version: 3 }); // Decision evolved to version 3.
               return Promise.resolve(null);
             }),
           };
@@ -614,97 +614,93 @@ describe('ProposalsService', () => {
       ).rejects.toThrow(ConflictException);
     });
 
-    it.each([null, '44444444-4444-4444-4444-444444444444'])(
-      'creates selected tasks retaining source meeting %s and commits the proposal',
-      async (sourceMeetingId) => {
-        const pendingProposal = {
-          id: 'prop-123',
-          projectId: mockProjectId,
-          userId: mockUserId,
-          proposalType: ProposalType.TASK_PROPOSAL,
-          sourceEntityType: 'DECISION',
-          sourceEntityId: mockDecision.id,
-          sourceRevision: mockDecision.version,
-          draftJson: {
-            type: 'CREATE_TASKS',
-            items: [
-              {
-                itemId: 'draft-item-1',
-                title: 'Implement feature backend',
-                description: 'REST API implementation',
-                priority: Priority.HIGH,
-                sourceIds: [mockDecision.id],
-              },
-            ],
-          },
-          version: 1,
-          status: ProposalStatus.PENDING,
-          expiresAt: new Date(Date.now() + 100000),
-          confirmedBy: null,
-          confirmedAt: null,
-          resultRecordIds: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        } as AIProposal;
+    it('creates selected tasks and commits the proposal', async () => {
+      const pendingProposal = {
+        id: 'prop-123',
+        projectId: mockProjectId,
+        userId: mockUserId,
+        proposalType: ProposalType.TASK_PROPOSAL,
+        sourceEntityType: 'DECISION',
+        sourceEntityId: mockDecision.id,
+        sourceRevision: mockDecision.version,
+        draftJson: {
+          type: 'CREATE_TASKS',
+          items: [
+            {
+              itemId: 'draft-item-1',
+              title: 'Implement feature backend',
+              description: 'REST API implementation',
+              priority: Priority.HIGH,
+              sourceIds: [mockDecision.id],
+            },
+          ],
+        },
+        version: 1,
+        status: ProposalStatus.PENDING,
+        expiresAt: new Date(Date.now() + 100000),
+        confirmedBy: null,
+        confirmedAt: null,
+        resultRecordIds: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as AIProposal;
 
-        let capturedTask: Task | null = null;
-        let capturedCommit: ProposalCommit | null = null;
+      let capturedTask: Task | null = null;
+      let capturedCommit: ProposalCommit | null = null;
 
-        mockDataSource.transaction = jest.fn(
-          async (
-            cb: (manager: {
-              findOne: (entityClass: unknown) => Promise<unknown>;
-              query: () => Promise<unknown>;
-              create: (entityClass: unknown, plainObject: unknown) => unknown;
-              save: (entityClass: unknown, plainObject: unknown) => Promise<unknown>;
-            }) => Promise<unknown>,
-          ) => {
-            const mockManager = {
-              findOne: jest.fn((entityClass: unknown) => {
-                if (entityClass === AIProposal) return Promise.resolve(pendingProposal);
-                if (entityClass === Decision)
-                  return Promise.resolve({ ...mockDecision, sourceMeetingId });
-                return Promise.resolve(null);
-              }),
-              query: jest.fn().mockResolvedValue([{ max: 5 }]),
-              create: jest.fn((_entityClass: unknown, plainObject: unknown) => ({
-                id: 'gen-uuid',
-                ...(plainObject as object),
-              })),
-              save: jest.fn((entityClass: unknown, plainObject: unknown) => {
-                if (entityClass === Task) capturedTask = plainObject as Task;
-                if (entityClass === ProposalCommit) capturedCommit = plainObject as ProposalCommit;
-                return Promise.resolve({ id: 'saved-id', ...(plainObject as object) });
-              }),
-            };
-            return cb(mockManager);
-          },
-        );
+      mockDataSource.transaction = jest.fn(
+        async (
+          cb: (manager: {
+            findOne: (entityClass: unknown) => Promise<unknown>;
+            query: () => Promise<unknown>;
+            create: (entityClass: unknown, plainObject: unknown) => unknown;
+            save: (entityClass: unknown, plainObject: unknown) => Promise<unknown>;
+          }) => Promise<unknown>,
+        ) => {
+          const mockManager = {
+            findOne: jest.fn((entityClass: unknown) => {
+              if (entityClass === AIProposal) return Promise.resolve(pendingProposal);
+              if (entityClass === Decision) return Promise.resolve(mockDecision);
+              return Promise.resolve(null);
+            }),
+            query: jest.fn().mockResolvedValue([{ max: 5 }]),
+            create: jest.fn((_entityClass: unknown, plainObject: unknown) => ({
+              id: 'gen-uuid',
+              ...(plainObject as object),
+            })),
+            save: jest.fn((entityClass: unknown, plainObject: unknown) => {
+              if (entityClass === Task) capturedTask = plainObject as Task;
+              if (entityClass === ProposalCommit) capturedCommit = plainObject as ProposalCommit;
+              return Promise.resolve({ id: 'saved-id', ...(plainObject as object) });
+            }),
+          };
+          return cb(mockManager);
+        },
+      );
 
-        const res = await service.confirmProposal(
-          mockProjectId,
-          mockActor,
-          'prop-123',
-          { version: 1 },
-          'key-create-task',
-        );
+      const res = await service.confirmProposal(
+        mockProjectId,
+        mockActor,
+        'prop-123',
+        { version: 1 },
+        'key-create-task',
+      );
 
-        expect(res.resultRecordIds).toHaveLength(1);
-        expect(res.resultRecordIds[0]!.entityType).toBe('TASK');
-        expect(res.resultRecordIds[0]!.key).toBe('AIW-TASK-6'); // nextNumber was 6
-        expect(capturedTask).not.toBeNull();
-        expect(capturedTask!.number).toBe(6);
-        expect(capturedTask!.title).toBe('Implement feature backend');
-        expect(capturedTask!.requirementId).toBeNull();
-        expect(capturedTask!.sourceMeetingId).toBeNull();
-        expect(capturedCommit).not.toBeNull();
-        expect(capturedCommit!.idempotencyKey).toBe('key-create-task');
-        expect(mockOutboxService.emit).toHaveBeenCalledWith(
-          expect.anything(),
-          expect.objectContaining({ eventType: 'TASK_CREATED' }),
-        );
-      },
-    );
+      expect(res.resultRecordIds).toHaveLength(1);
+      expect(res.resultRecordIds[0]!.entityType).toBe('TASK');
+      expect(res.resultRecordIds[0]!.key).toBe('AIW-TASK-6'); // nextNumber was 6
+      expect(capturedTask).not.toBeNull();
+      expect(capturedTask!.number).toBe(6);
+      expect(capturedTask!.title).toBe('Implement feature backend');
+      expect(capturedTask!.requirementId).toBeNull();
+      expect(capturedTask!.sourceMeetingId).toBeNull();
+      expect(capturedCommit).not.toBeNull();
+      expect(capturedCommit!.idempotencyKey).toBe('key-create-task');
+      expect(mockOutboxService.emit).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ eventType: 'TASK_CREATED' }),
+      );
+    });
 
     it('should transactionally create tasks from architectural decision proposal on valid confirmation', async () => {
       const pendingDecisionProposal = {

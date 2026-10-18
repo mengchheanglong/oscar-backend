@@ -1,5 +1,12 @@
 import { createHash } from 'node:crypto';
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Project } from '../../projects/entities/project.entity';
@@ -9,6 +16,8 @@ import { KnowledgeSourceType } from '../../ingestion/entities/knowledge-source.e
 import {
   GITHUB_CLIENT,
   IGitHubClient,
+  GitHubApiIssue,
+  GitHubApiPullRequest,
   GitHubRateLimitError,
 } from './client/github-client.interface';
 import { ConnectGitHubDto } from './dto/connect-github.dto';
@@ -34,6 +43,7 @@ import {
 @Injectable()
 export class GitHubIntegrationService {
   private readonly logger = new Logger(GitHubIntegrationService.name);
+  private readonly activeSyncs = new Set<string>();
 
   // Supported extensions for repository codebase indexing
   private readonly supportedCodeExtensions = new Set([
@@ -146,6 +156,12 @@ export class GitHubIntegrationService {
       },
     });
 
+    if (connection && this.activeSyncs.has(connection.id)) {
+      throw new ConflictException({
+        code: 'GITHUB_SYNC_IN_PROGRESS',
+        message: 'This repository is already syncing. Try again shortly.',
+      });
+    }
     if (connection) {
       connection.repositoryId = String(repoInfo.id);
       connection.status = GitHubConnectionStatus.CONNECTED;
@@ -224,217 +240,271 @@ export class GitHubIntegrationService {
       });
     }
 
-    // 1. Fetch Issues
-    let fetchResult;
+    if (this.activeSyncs.has(connection.id)) {
+      throw new ConflictException({
+        code: 'GITHUB_SYNC_IN_PROGRESS',
+        message: 'This repository is already syncing. Try again shortly.',
+      });
+    }
+    this.activeSyncs.add(connection.id);
     try {
-      fetchResult = await this.githubClient.fetchIssues(
-        connection.repositoryOwner,
-        connection.repositoryName,
-        {
-          since: connection.syncCursor ?? undefined,
-          state: 'all',
-          perPage: 100,
-        },
-        accessToken,
-      );
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
+      return await this.syncRepositoryPage(connection, projectId, actorId, accessToken);
+    } finally {
+      this.activeSyncs.delete(connection.id);
+    }
+  }
+
+  /** One short page per request. The persisted cursor survives navigation, failures and restarts. */
+  private async syncRepositoryPage(
+    connection: GitHubConnection,
+    projectId: string,
+    actorId: string,
+    accessToken?: string,
+  ): Promise<SyncGitHubResponseDto> {
+    const progress = this.readSyncProgress(connection.syncCursor);
+    const cursor = JSON.stringify(progress);
+    connection.syncCursor = cursor;
+    connection.status = GitHubConnectionStatus.SYNCING;
+    connection.errorSummary = null;
+    await this.connectionRepo.save(connection);
+    let issues = 0,
+      prs = 0,
+      hasMore = true;
+    try {
+      const options = { state: 'all' as const, page: progress.p, perPage: 10 };
+      if (progress.k === 'i') {
+        const page = await this.githubClient.fetchIssues(
+          connection.repositoryOwner,
+          connection.repositoryName,
+          {
+            ...options,
+            since: progress.s === null ? undefined : new Date(progress.s).toISOString(),
+          },
+          accessToken,
+        );
+        for (const item of page.issues)
+          await this.syncIssue(projectId, connection, item, accessToken);
+        issues = page.issues.length;
+        if (page.hasMore) progress.p++;
+        else {
+          progress.k = 'p';
+          progress.p = 1;
+        }
+      } else {
+        const page = await this.githubClient.fetchPullRequests(
+          connection.repositoryOwner,
+          connection.repositoryName,
+          options,
+          accessToken,
+        );
+        for (const item of page.pullRequests)
+          await this.syncPullRequest(projectId, connection, item);
+        prs = page.pullRequests.length;
+        hasMore = page.hasMore;
+        progress.p++;
+      }
+      // Advance only after the entire page has been stored and indexed.
+      connection.syncCursor = hasMore
+        ? JSON.stringify(progress)
+        : `v2:${new Date(progress.t).toISOString()}`;
+      connection.status = hasMore
+        ? GitHubConnectionStatus.SYNCING
+        : GitHubConnectionStatus.CONNECTED;
+      if (!hasMore) connection.lastSyncedAt = new Date(progress.t);
+      connection.errorSummary = null;
+      await this.connectionRepo.save(connection);
+    } catch (error) {
+      connection.syncCursor = cursor;
       connection.status = GitHubConnectionStatus.ERROR;
-      connection.errorSummary = msg;
+      connection.errorSummary = error instanceof Error ? error.message : 'Repository sync failed.';
       await this.connectionRepo.save(connection);
       throw new BadRequestException({
         code: 'GITHUB_SYNC_FAILED',
-        message: `Failed to fetch issues from GitHub: ${msg}`,
+        message:
+          'Repository sync was interrupted. Check repository access and retry to resume the unfinished page.',
       });
     }
-
-    const { issues } = fetchResult;
-
-    for (const apiIssue of issues) {
-      let issue = await this.issueRepo.findOne({
-        where: { connectionId: connection.id, issueNumber: apiIssue.number },
-      });
-
-      const labelNames = (apiIssue.labels || []).map((l) => (typeof l === 'string' ? l : l.name));
-
-      if (issue) {
-        issue.title = apiIssue.title;
-        issue.body = apiIssue.body;
-        issue.state = apiIssue.state;
-        issue.htmlUrl = apiIssue.html_url;
-        issue.authorLogin = apiIssue.user?.login ?? null;
-        issue.labels = labelNames;
-        issue.githubUpdatedAt = new Date(apiIssue.updated_at);
-        issue.syncedAt = new Date();
-      } else {
-        issue = this.issueRepo.create({
-          projectId,
-          connectionId: connection.id,
-          githubIssueId: String(apiIssue.id),
-          issueNumber: apiIssue.number,
-          title: apiIssue.title,
-          body: apiIssue.body,
-          state: apiIssue.state,
-          htmlUrl: apiIssue.html_url,
-          authorLogin: apiIssue.user?.login ?? null,
-          labels: labelNames,
-          githubCreatedAt: new Date(apiIssue.created_at),
-          githubUpdatedAt: new Date(apiIssue.updated_at),
-          syncedAt: new Date(),
-        });
-      }
-
-      issue = await this.issueRepo.save(issue);
-
-      // Fetch issue comments to index discussion thread into vector memory
-      let comments: Array<{ authorLogin: string | null; body: string }> = [];
-      try {
-        const apiComments = await this.githubClient.fetchIssueComments(
-          connection.repositoryOwner,
-          connection.repositoryName,
-          issue.issueNumber,
-          accessToken,
-        );
-        comments = apiComments.map((c) => ({
-          authorLogin: c.user?.login ?? null,
-          body: c.body,
-        }));
-      } catch (e) {
-        this.logger.debug(`Could not fetch comments for issue #${issue.issueNumber}: ${e}`);
-      }
-
-      // Ingest and vectorize into KnowledgeSource for RAG and search
-      await this.ingestionService.syncGitHubIssue(projectId, {
-        issueId: issue.id,
-        issueNumber: issue.issueNumber,
-        title: issue.title,
-        body: issue.body,
-        state: issue.state,
-        htmlUrl: issue.htmlUrl,
-        authorLogin: issue.authorLogin,
-        labels: issue.labels,
-        repositoryOwner: connection.repositoryOwner,
-        repositoryName: connection.repositoryName,
-        comments,
-        revision: Math.floor(issue.githubUpdatedAt.getTime() / 1000),
-      });
-    }
-
-    // 2. Fetch Pull Requests
-    let prsCount = 0;
-    try {
-      const prResult = await this.githubClient.fetchPullRequests(
-        connection.repositoryOwner,
-        connection.repositoryName,
-        { state: 'all' },
-        accessToken,
-      );
-
-      for (const apiPr of prResult.pullRequests) {
-        let pr = await this.prRepo.findOne({
-          where: { connectionId: connection.id, prNumber: apiPr.number },
-        });
-
-        const labelNames = (apiPr.labels || []).map((l) => (typeof l === 'string' ? l : l.name));
-        const isMerged = !!apiPr.merged_at;
-
-        if (pr) {
-          pr.title = apiPr.title;
-          pr.body = apiPr.body;
-          pr.state = apiPr.state;
-          pr.htmlUrl = apiPr.html_url;
-          pr.authorLogin = apiPr.user?.login ?? null;
-          pr.baseBranch = apiPr.base?.ref ?? null;
-          pr.headBranch = apiPr.head?.ref ?? null;
-          pr.isMerged = isMerged;
-          pr.mergedAt = apiPr.merged_at ? new Date(apiPr.merged_at) : null;
-          pr.labels = labelNames;
-          pr.githubUpdatedAt = new Date(apiPr.updated_at);
-          pr.syncedAt = new Date();
-        } else {
-          pr = this.prRepo.create({
-            projectId,
-            connectionId: connection.id,
-            githubPrId: String(apiPr.id),
-            prNumber: apiPr.number,
-            title: apiPr.title,
-            body: apiPr.body,
-            state: apiPr.state,
-            htmlUrl: apiPr.html_url,
-            authorLogin: apiPr.user?.login ?? null,
-            baseBranch: apiPr.base?.ref ?? null,
-            headBranch: apiPr.head?.ref ?? null,
-            isMerged,
-            mergedAt: apiPr.merged_at ? new Date(apiPr.merged_at) : null,
-            labels: labelNames,
-            githubCreatedAt: new Date(apiPr.created_at),
-            githubUpdatedAt: new Date(apiPr.updated_at),
-            syncedAt: new Date(),
-          });
-        }
-
-        pr = await this.prRepo.save(pr);
-
-        // Ingest into KnowledgeSource
-        await this.ingestionService.syncGitHubPullRequest(projectId, {
-          prId: pr.id,
-          prNumber: pr.prNumber,
-          title: pr.title,
-          body: pr.body,
-          state: pr.state,
-          htmlUrl: pr.htmlUrl,
-          authorLogin: pr.authorLogin,
-          baseBranch: pr.baseBranch,
-          headBranch: pr.headBranch,
-          isMerged: pr.isMerged,
-          labels: pr.labels,
-          repositoryOwner: connection.repositoryOwner,
-          repositoryName: connection.repositoryName,
-          revision: Math.floor(pr.githubUpdatedAt.getTime() / 1000),
-        });
-      }
-      prsCount = prResult.pullRequests.length;
-    } catch (e) {
-      this.logger.warn(
-        `Could not sync PRs for ${connection.repositoryOwner}/${connection.repositoryName}: ${e}`,
-      );
-    }
-
-    const now = new Date();
-    connection.status = GitHubConnectionStatus.CONNECTED;
-    connection.errorSummary = null;
-    connection.lastSyncedAt = now;
-    connection.syncCursor = now.toISOString();
-    await this.connectionRepo.save(connection);
-
-    const totalIssues = await this.issueRepo.count({
-      where: { connectionId: connection.id },
-    });
-    const totalPrs = await this.prRepo.count({
-      where: { connectionId: connection.id },
-    });
-
+    const totalIssues = await this.issueRepo.count({ where: { connectionId: connection.id } });
+    const totalPrs = await this.prRepo.count({ where: { connectionId: connection.id } });
     await this.auditService.record({
       projectId,
       actorId,
-      action: 'GITHUB_SYNCED',
+      action: hasMore ? 'GITHUB_SYNC_PROGRESS' : 'GITHUB_SYNCED',
       entityType: 'GITHUB_CONNECTION',
       entityId: connection.id,
-      metadata: {
-        syncedIssuesCount: issues.length,
-        totalIssues,
-        syncedPrsCount: prsCount,
-        totalPrs,
-      },
+      metadata: { syncedIssuesCount: issues, totalIssues, syncedPrsCount: prs, totalPrs, hasMore },
+    });
+    return {
+      syncedCount: issues,
+      totalCount: totalIssues,
+      syncedPrCount: prs,
+      totalPrCount: totalPrs,
+      hasMore,
+      lastSyncedAt: connection.lastSyncedAt?.toISOString() ?? null,
+    };
+  }
+
+  private readSyncProgress(cursor: string | null): {
+    s: number | null;
+    t: number;
+    k: 'i' | 'p';
+    p: number;
+  } {
+    if (cursor?.startsWith('{')) {
+      try {
+        const value = JSON.parse(cursor) as { s: unknown; t: unknown; k: unknown; p: unknown };
+        if (
+          (value.s === null || (typeof value.s === 'number' && Number.isFinite(value.s))) &&
+          typeof value.t === 'number' &&
+          Number.isFinite(value.t) &&
+          (value.k === 'i' || value.k === 'p') &&
+          typeof value.p === 'number' &&
+          Number.isInteger(value.p) &&
+          value.p > 0
+        )
+          return value as { s: number | null; t: number; k: 'i' | 'p'; p: number };
+      } catch {
+        /* Legacy or malformed cursors restart a complete backfill. */
+      }
+    }
+    const since = cursor?.startsWith('v2:') ? Date.parse(cursor.slice(3)) : NaN;
+    // Old one-page cursors cannot certify a complete import; backfill those repositories once.
+    return { s: Number.isFinite(since) ? since : null, t: Date.now(), k: 'i', p: 1 };
+  }
+
+  private async syncIssue(
+    projectId: string,
+    connection: GitHubConnection,
+    apiIssue: GitHubApiIssue,
+    accessToken?: string,
+  ): Promise<void> {
+    let issue = await this.issueRepo.findOne({
+      where: { connectionId: connection.id, issueNumber: apiIssue.number },
     });
 
-    return {
-      syncedCount: issues.length,
-      totalCount: totalIssues,
-      syncedPrCount: prsCount,
-      totalPrCount: totalPrs,
-      lastSyncedAt: now.toISOString(),
-    };
+    const labelNames = (apiIssue.labels || []).map((l) => (typeof l === 'string' ? l : l.name));
+
+    if (issue) {
+      issue.title = apiIssue.title;
+      issue.body = apiIssue.body;
+      issue.state = apiIssue.state;
+      issue.htmlUrl = apiIssue.html_url;
+      issue.authorLogin = apiIssue.user?.login ?? null;
+      issue.labels = labelNames;
+      issue.githubUpdatedAt = new Date(apiIssue.updated_at);
+      issue.syncedAt = new Date();
+    } else {
+      issue = this.issueRepo.create({
+        projectId,
+        connectionId: connection.id,
+        githubIssueId: String(apiIssue.id),
+        issueNumber: apiIssue.number,
+        title: apiIssue.title,
+        body: apiIssue.body,
+        state: apiIssue.state,
+        htmlUrl: apiIssue.html_url,
+        authorLogin: apiIssue.user?.login ?? null,
+        labels: labelNames,
+        githubCreatedAt: new Date(apiIssue.created_at),
+        githubUpdatedAt: new Date(apiIssue.updated_at),
+        syncedAt: new Date(),
+      });
+    }
+
+    issue = await this.issueRepo.save(issue);
+
+    // Fetch issue comments to index discussion thread into vector memory
+    const apiComments = await this.githubClient.fetchIssueComments(
+      connection.repositoryOwner,
+      connection.repositoryName,
+      issue.issueNumber,
+      accessToken,
+    );
+    const comments = apiComments.map((c) => ({ authorLogin: c.user?.login ?? null, body: c.body }));
+
+    // Ingest and vectorize into KnowledgeSource for RAG and search
+    await this.ingestionService.syncGitHubIssue(projectId, {
+      issueId: issue.id,
+      issueNumber: issue.issueNumber,
+      title: issue.title,
+      body: issue.body,
+      state: issue.state,
+      htmlUrl: issue.htmlUrl,
+      authorLogin: issue.authorLogin,
+      labels: issue.labels,
+      repositoryOwner: connection.repositoryOwner,
+      repositoryName: connection.repositoryName,
+      comments,
+      revision: Math.floor(issue.githubUpdatedAt.getTime() / 1000),
+    });
+  }
+
+  private async syncPullRequest(
+    projectId: string,
+    connection: GitHubConnection,
+    apiPr: GitHubApiPullRequest,
+  ): Promise<void> {
+    let pr = await this.prRepo.findOne({
+      where: { connectionId: connection.id, prNumber: apiPr.number },
+    });
+
+    const labelNames = (apiPr.labels || []).map((l) => (typeof l === 'string' ? l : l.name));
+    const isMerged = !!apiPr.merged_at;
+
+    if (pr) {
+      pr.title = apiPr.title;
+      pr.body = apiPr.body;
+      pr.state = apiPr.state;
+      pr.htmlUrl = apiPr.html_url;
+      pr.authorLogin = apiPr.user?.login ?? null;
+      pr.baseBranch = apiPr.base?.ref ?? null;
+      pr.headBranch = apiPr.head?.ref ?? null;
+      pr.isMerged = isMerged;
+      pr.mergedAt = apiPr.merged_at ? new Date(apiPr.merged_at) : null;
+      pr.labels = labelNames;
+      pr.githubUpdatedAt = new Date(apiPr.updated_at);
+      pr.syncedAt = new Date();
+    } else {
+      pr = this.prRepo.create({
+        projectId,
+        connectionId: connection.id,
+        githubPrId: String(apiPr.id),
+        prNumber: apiPr.number,
+        title: apiPr.title,
+        body: apiPr.body,
+        state: apiPr.state,
+        htmlUrl: apiPr.html_url,
+        authorLogin: apiPr.user?.login ?? null,
+        baseBranch: apiPr.base?.ref ?? null,
+        headBranch: apiPr.head?.ref ?? null,
+        isMerged,
+        mergedAt: apiPr.merged_at ? new Date(apiPr.merged_at) : null,
+        labels: labelNames,
+        githubCreatedAt: new Date(apiPr.created_at),
+        githubUpdatedAt: new Date(apiPr.updated_at),
+        syncedAt: new Date(),
+      });
+    }
+
+    pr = await this.prRepo.save(pr);
+
+    // Ingest into KnowledgeSource
+    await this.ingestionService.syncGitHubPullRequest(projectId, {
+      prId: pr.id,
+      prNumber: pr.prNumber,
+      title: pr.title,
+      body: pr.body,
+      state: pr.state,
+      htmlUrl: pr.htmlUrl,
+      authorLogin: pr.authorLogin,
+      baseBranch: pr.baseBranch,
+      headBranch: pr.headBranch,
+      isMerged: pr.isMerged,
+      labels: pr.labels,
+      repositoryOwner: connection.repositoryOwner,
+      repositoryName: connection.repositoryName,
+      revision: Math.floor(pr.githubUpdatedAt.getTime() / 1000),
+    });
   }
 
   async syncCodebase(

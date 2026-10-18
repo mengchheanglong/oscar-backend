@@ -1,27 +1,48 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { GitHubConnectionStatus } from '../entities/github-connection.entity';
 
 export class GitHubConnectionResponseDto {
+  @ApiProperty()
   id!: string;
+  @ApiProperty()
   projectId!: string;
+  @ApiProperty()
   repositoryOwner!: string;
+  @ApiProperty()
   repositoryName!: string;
+  @ApiProperty({ type: String, nullable: true })
   repositoryId!: string | null;
+  @ApiProperty({ enum: GitHubConnectionStatus })
   status!: GitHubConnectionStatus;
+  @ApiProperty({ type: String, nullable: true })
   lastSyncedAt!: string | null;
+  @ApiProperty({ type: String, nullable: true })
   errorSummary!: string | null;
+  @ApiPropertyOptional()
   issueCount?: number;
+  @ApiPropertyOptional()
   pullRequestCount?: number;
+  @ApiPropertyOptional()
   fileCount?: number;
+  @ApiProperty()
   createdAt!: string;
+  @ApiProperty()
   updatedAt!: string;
 }
 
 export class SyncGitHubResponseDto {
+  @ApiProperty()
   syncedCount!: number;
+  @ApiProperty()
   totalCount!: number;
+  @ApiPropertyOptional()
   syncedPrCount?: number;
+  @ApiPropertyOptional()
   totalPrCount?: number;
-  lastSyncedAt!: string;
+  @ApiProperty()
+  hasMore!: boolean;
+  @ApiProperty({ type: String, nullable: true })
+  lastSyncedAt!: string | null;
 }
 
 export class GitHubIssueResponseDto {

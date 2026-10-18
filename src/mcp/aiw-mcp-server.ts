@@ -705,10 +705,10 @@ export class AiwMcpServer {
       },
     );
 
-    // 12. Update Task Status (Direct Dashboard Sync)
+    // 12. Update Task Status
     this.server.tool(
       'update_task_status',
-      'Update the status of a development task (e.g. move to IN_PROGRESS when starting, or DONE when completed). Automatically manages optimistic locking versioning and updates the Kanban board and Dashboard metrics in real-time.',
+      'Update the status of a development task (e.g. move to IN_PROGRESS when starting, or DONE when completed). Automatically manages optimistic locking versioning and updates the project task board immediately.',
       {
         taskKeyOrId: z.string().describe('Task key (e.g. "AIW-TSK-38" or "38") or UUID.'),
         status: z
@@ -756,7 +756,7 @@ export class AiwMcpServer {
           content: [
             {
               type: 'text',
-              text: `Successfully updated task [${taskKey}] to ${args.status}! Project Dashboard and Kanban board updated in real-time.`,
+              text: `Successfully updated task [${taskKey}] to ${args.status}! Project task board updated.`,
             },
           ],
         };

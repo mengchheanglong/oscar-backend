@@ -267,7 +267,6 @@ describe('Tasks API (E2E)', () => {
       return tasks.filter((t) => {
         if (!where) return true;
         if (where.projectId && t.projectId !== where.projectId) return false;
-        if (where.requirementId && t.requirementId !== where.requirementId) return false;
         if (t.deletedAt !== null) return false;
         return true;
       });
@@ -297,10 +296,6 @@ describe('Tasks API (E2E)', () => {
           if (params?.priority) filtered = filtered.filter((t) => t.priority === params.priority);
           if (params?.assigneeId)
             filtered = filtered.filter((t) => t.assigneeId === params.assigneeId);
-          if (params?.requirementId)
-            filtered = filtered.filter((t) => t.requirementId === params.requirementId);
-          if (params?.sourceMeetingId)
-            filtered = filtered.filter((t) => t.sourceMeetingId === params.sourceMeetingId);
           return builder;
         }),
         orderBy: jest.fn(() => builder),
@@ -441,7 +436,7 @@ describe('Tasks API (E2E)', () => {
     const project: Project = {
       id: testProjectId,
       key: testProjectKey,
-      name: 'Task & Meeting Test Project',
+      name: 'Task Test Project',
       description: null,
       status: ProjectStatus.ACTIVE,
       createdBy: ownerUser.id,
@@ -588,17 +583,17 @@ describe('Tasks API (E2E)', () => {
         .expect(400);
     });
 
-    it('rejects retired requirement linkage fields', async () => {
-      await request(app.getHttpServer())
-        .post(`${BASE()}/tasks`)
-        .set('Cookie', ownerAuth.cookies)
-        .set('x-csrf-token', ownerAuth.csrfToken)
-        .send({
-          title: 'Invalid Req Task',
-          requirementId: randomUUID(),
-        })
-        .expect(400);
-    });
+    it.each(['requirementId', 'sourceMeetingId'])(
+      'rejects the retired %s task linkage field',
+      async (field) => {
+        await request(app.getHttpServer())
+          .post(`${BASE()}/tasks`)
+          .set('Cookie', ownerAuth.cookies)
+          .set('x-csrf-token', ownerAuth.csrfToken)
+          .send({ title: 'Task with retired linkage', [field]: randomUUID() })
+          .expect(400);
+      },
+    );
 
     it('should reject creation by VIEWER', async () => {
       await request(app.getHttpServer())

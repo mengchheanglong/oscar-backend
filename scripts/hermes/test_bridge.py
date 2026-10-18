@@ -16,7 +16,7 @@ import httpx
 TOOLS = [
     {"name": "search_project_evidence", "description": "Search", "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}},
     {"name": "calculate_pricing", "description": "Calculate", "parameters": {"type": "object", "properties": {"price": {"type": "number"}, "variableCost": {"type": "number"}, "fixedCost": {"type": "number"}, "units": {"type": "integer"}}, "required": ["price", "variableCost", "fixedCost", "units"]}},
-    {"name": "request_task_review", "description": "Draft", "parameters": {"type": "object", "properties": {"requirementId": {"type": "string"}, "title": {"type": "string"}}, "required": ["requirementId", "title"]}},
+    {"name": "request_task_review", "description": "Draft", "parameters": {"type": "object", "properties": {"decisionId": {"type": "string"}, "title": {"type": "string"}}, "required": ["decisionId", "title"]}},
     {"name": "list_local_folders", "description": "Folders", "parameters": {"type": "object", "properties": {}}},
     {"name": "list_local_files", "description": "Files", "parameters": {"type": "object", "properties": {"folderId": {"type": "string"}}, "required": ["folderId"]}},
     {"name": "search_local_files", "description": "Search files", "parameters": {"type": "object", "properties": {"folderId": {"type": "string"}, "query": {"type": "string"}}, "required": ["folderId", "query"]}},
@@ -42,7 +42,7 @@ class BridgeSmoke(unittest.TestCase):
         fixtures = [
             ("search_project_evidence", {"query": "pricing"}),
             ("calculate_pricing", {"price": 20, "variableCost": 5, "fixedCost": 100, "units": 10}),
-            ("request_task_review", {"requirementId": "9b6bcda4-1f76-4f6b-9d55-7e2167fc7564", "title": "Review pricing"}),
+            ("request_task_review", {"decisionId": "9b6bcda4-1f76-4f6b-9d55-7e2167fc7564", "title": "Review pricing"}),
             ("list_local_folders", {}),
             ("list_local_files", {"folderId": "synthetic-folder"}),
             ("search_local_files", {"folderId": "synthetic-folder", "query": "Mercury"}),

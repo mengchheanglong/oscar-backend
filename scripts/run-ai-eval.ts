@@ -8,7 +8,6 @@ import { MockLlmProvider } from '../src/modules/ai/llm/mock-llm-provider';
 import { ContextAssembler } from '../src/modules/ai/context/context-assembler';
 import { RetrievedEvidence } from '../src/modules/ai/retrieval/retrieval.service';
 import { Priority } from '../src/common/enums/priority.enum';
-import { DecisionStatus } from '../src/modules/decisions/entities/decision.entity';
 
 interface EvalResult {
   caseId: string;
@@ -236,35 +235,25 @@ async function runEvaluation() {
             details = 'Invalid CREATE_TASKS schema structure';
           } else {
             const validPriorities = Object.values(Priority);
-            const badPriority = (data.items as Array<{ priority?: Priority }>).some(
-              (it) => !it.priority || !validPriorities.includes(it.priority),
+            const invalidItem = (
+              data.items as Array<{
+                itemId?: string;
+                title?: string;
+                description?: string;
+                priority?: Priority;
+              }>
+            ).some(
+              (item) =>
+                !item.itemId?.trim() ||
+                !item.title?.trim() ||
+                !item.description?.trim() ||
+                !item.priority ||
+                !validPriorities.includes(item.priority),
             );
-            if (badPriority) {
+            if (invalidItem) {
               schemaValid = false;
               passed = false;
-              details = 'Task item has invalid Priority enum value';
-            }
-          }
-        } else if (testCase.expectedStructuredType === 'MEETING_ANALYSIS') {
-          if (
-            data.type !== 'MEETING_ANALYSIS' ||
-            !data.summary ||
-            !Array.isArray(data.decisions) ||
-            !Array.isArray(data.requirements) ||
-            !Array.isArray(data.actionItems)
-          ) {
-            schemaValid = false;
-            passed = false;
-            details = 'Invalid MEETING_ANALYSIS schema structure';
-          } else {
-            const validDecStatuses = Object.values(DecisionStatus);
-            const badDec = (data.decisions as Array<{ status?: DecisionStatus }>).some(
-              (d) => !d.status || !validDecStatuses.includes(d.status),
-            );
-            if (badDec) {
-              schemaValid = false;
-              passed = false;
-              details = 'Meeting decision has invalid DecisionStatus enum value';
+              details = 'Task items must include an id, title, description, and valid priority';
             }
           }
         }

@@ -1,3 +1,4 @@
+import { SyncGitHubDto } from './dto/sync-github.dto';
 import { SyncCodebaseDto } from './dto/sync-codebase.dto';
 import {
   Body,
@@ -51,7 +52,7 @@ export class GitHubIntegrationController {
   @ApiResponse({ status: 200, type: GitHubConnectionResponseDto })
   async getConnection(
     @Param('projectId', ParseUUIDPipe) projectId: string,
-    @Query('connectionId') connectionId?: string,
+    @Query('connectionId', new ParseUUIDPipe({ optional: true })) connectionId?: string,
   ): Promise<GitHubConnectionResponseDto | null> {
     return this.githubService.getConnection(projectId, connectionId);
   }
@@ -106,10 +107,9 @@ export class GitHubIntegrationController {
   async sync(
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @CurrentUser('id') actorId: string,
-    @Body('connectionId') connectionId?: string,
-    @Body('accessToken') accessToken?: string,
+    @Body() dto: SyncGitHubDto,
   ): Promise<SyncGitHubResponseDto> {
-    return this.githubService.syncRepository(projectId, actorId, connectionId, accessToken);
+    return this.githubService.syncRepository(projectId, actorId, dto.connectionId, dto.accessToken);
   }
 
   @Post('connections/:connectionId/sync')
@@ -120,9 +120,9 @@ export class GitHubIntegrationController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('connectionId', ParseUUIDPipe) connectionId: string,
     @CurrentUser('id') actorId: string,
-    @Body('accessToken') accessToken?: string,
+    @Body() dto: SyncGitHubDto,
   ): Promise<SyncGitHubResponseDto> {
-    return this.githubService.syncRepository(projectId, actorId, connectionId, accessToken);
+    return this.githubService.syncRepository(projectId, actorId, connectionId, dto.accessToken);
   }
 
   @Post('sync-code')
@@ -177,7 +177,7 @@ export class GitHubIntegrationController {
   async disconnect(
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @CurrentUser('id') actorId: string,
-    @Query('connectionId') connectionId?: string,
+    @Query('connectionId', new ParseUUIDPipe({ optional: true })) connectionId?: string,
   ): Promise<void> {
     await this.githubService.disconnect(projectId, actorId, connectionId);
   }

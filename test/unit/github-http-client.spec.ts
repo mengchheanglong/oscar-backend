@@ -35,6 +35,28 @@ describe('GitHub complete source traversal', () => {
       new HttpGitHubClientService().fetchFileContent('owner', 'repo', 'src/app.ts'),
     ).rejects.toBeInstanceOf(GitHubRateLimitError);
   });
+  it('reads all discussion pages and propagates a failed comments request', async () => {
+    const comment = {
+      id: 1,
+      body: 'Synthetic discussion',
+      user: null,
+      created_at: '2026-01-01',
+      updated_at: '2026-01-01',
+    };
+    const mock = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify([comment]), { headers: { link: '<next>; rel="next"' } }),
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify([{ ...comment, id: 2 }])))
+      .mockResolvedValueOnce(new Response('', { status: 429 }));
+    const client = new HttpGitHubClientService();
+    expect((await client.fetchIssueComments('org', 'repo', 1)).map((item) => item.id)).toEqual([
+      1, 2,
+    ]);
+    expect(String(mock.mock.calls[1]![0])).toContain('page=2');
+    await expect(client.fetchIssueComments('org', 'repo', 1)).rejects.toThrow('HTTP 429');
+  });
   it('bounds every external request with a timeout signal', async () => {
     const timeout = jest.spyOn(AbortSignal, 'timeout');
     const mock = jest

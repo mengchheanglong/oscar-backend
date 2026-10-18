@@ -26,7 +26,7 @@ async function main() {
   await page.fill('input[type="password"]', 'Password123!');
   await page.click('button[type="submit"]');
 
-  console.log('Logged in, waiting for dashboard or navigation...');
+  console.log('Logged in, opening the task board...');
   await page.waitForTimeout(2000);
 
   console.log('Navigating to /tasks...');

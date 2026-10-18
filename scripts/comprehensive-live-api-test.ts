@@ -273,11 +273,8 @@ async function main() {
     assert(Array.isArray(res.body.data), 'Expected array');
   });
 
-  // 3. DASHBOARD
-  console.log('\n--- 3. Dashboard ---');
-
-  // 4. TASKS (KANBAN & LIST)
-  console.log('\n--- 4. Tasks ---');
+  // 3. TASKS (KANBAN & LIST)
+  console.log('\n--- 3. Tasks ---');
   await runTest('Tasks', 'List project tasks for AIW', async () => {
     const res = await request('GET', `/projects/${aiwProjectId}/tasks`, { cookies: aliceCookies });
     assert(res.status === 200, `Expected 200 but got ${res.status}`);
@@ -379,11 +376,8 @@ async function main() {
     assert(res.status === 400 || res.status === 404, `Expected 400/404 but got ${res.status}`);
   });
 
-  // 5. REQUIREMENTS
-  console.log('\n--- 5. Requirements ---');
-
-  // 6. DECISIONS (ADRs)
-  console.log('\n--- 6. Decisions ---');
+  // 4. DECISIONS (ADRs)
+  console.log('\n--- 4. Decisions ---');
   await runTest('Decisions', 'List decisions for AIW', async () => {
     const res = await request('GET', `/projects/${aiwProjectId}/decisions`, {
       cookies: aliceCookies,
@@ -416,11 +410,8 @@ async function main() {
     assert(res.body.data.status === 'ACCEPTED', 'Status not ACCEPTED');
   });
 
-  // 7. MEETINGS
-  console.log('\n--- 7. Meetings ---');
-
-  // 8. DOCUMENTS
-  console.log('\n--- 8. Documents ---');
+  // 5. DOCUMENTS
+  console.log('\n--- 5. Documents ---');
   await runTest('Documents', 'List documents for AIW', async () => {
     const res = await request('GET', `/projects/${aiwProjectId}/documents`, {
       cookies: aliceCookies,
@@ -429,8 +420,8 @@ async function main() {
     assert(Array.isArray(res.body.data), 'Expected array');
   });
 
-  // 9. SEARCH
-  console.log('\n--- 9. Search ---');
+  // 6. SEARCH
+  console.log('\n--- 6. Search ---');
   await runTest('Search', 'Unified keyword search across entities', async () => {
     const res = await request('GET', `/projects/${aiwProjectId}/search?q=Architecture`, {
       cookies: aliceCookies,

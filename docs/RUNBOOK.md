@@ -2,7 +2,7 @@
 
 ## 1. System Overview & Deployment Topology
 
-The **AI Workspace Backend** is an enterprise-grade collaborative workspace engine built with **NestJS**, **TypeScript (Strict Mode)**, **Express**, and **PostgreSQL 16** with **pgvector**. It provides centralized project tracking (Requirements, Decisions, Tasks, Meetings, Documents) tightly integrated with a secure, grounded AI retrieval-augmented generation (RAG) and transactional proposal confirmation engine.
+The **Continuum Backend** is a workspace engine built with **NestJS**, **TypeScript**, **Express**, and **PostgreSQL** with **pgvector**. It provides projects, decisions, tasks, documents, grounded AI chat, and reviewed task proposals. Meetings, Requirements, and Dashboard APIs are retired; their historical database migrations remain for compatibility. See [feature retirement](FEATURE_RETIREMENT.md).
 
 ### 1.1 Architecture Topology
 
@@ -45,7 +45,7 @@ The **AI Workspace Backend** is an enterprise-grade collaborative workspace engi
 
 1. **Decoupled AI & Storage**: Core workspace operations function independently of AI availability. If AI providers are unavailable, standard CRUD and search fallback remain 100% operational.
 2. **Provider Separation**: Generation uses DeepSeek V4 Pro (`deepseek-v4-pro`); embeddings use OpenAI (`text-embedding-3-small`). DeepSeek credentials are never sent to embedding endpoints.
-3. **Transactional Proposals**: AI output is untrusted. Actionable suggestions (Tasks, Meeting summaries) require explicit human confirmation with `Idempotency-Key` headers, verified against optimistic concurrency versions before persistence.
+3. **Transactional Proposals**: AI output is untrusted. Task suggestions require explicit human confirmation with an idempotency key and current proposal version before persistence.
 4. **Access Isolation**: Cross-project queries return `404 Not Found` (never `403`) to eliminate resource enumeration and privacy leaks.
 
 ---
@@ -253,7 +253,7 @@ _Verify: Returns HTTP 201 with document ID and status `PENDING`. Background work
 
 ### Step 4: Hybrid Knowledge Search
 
-Search across documents, requirements, and decisions:
+Search indexed project documents and active workspace records:
 
 ```bash
 curl "http://localhost:3000/api/v1/projects/$PROJECT_ID/search?q=telemetry+protocol" \
@@ -286,33 +286,35 @@ curl -X POST http://localhost:3000/api/v1/projects/$PROJECT_ID/ai/conversations/
 
 _Verify: Returns synthesized response with valid Markdown citation badges referencing the uploaded document._
 
-### Step 7: Create a Project Requirement
+### Step 7: Record an Architecture Decision
+
+Create a decision in the project:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/projects/$PROJECT_ID/requirements \
+curl -X POST http://localhost:3000/api/v1/projects/$PROJECT_ID/decisions \
   -b "aiws_session=$SESSION_COOKIE" \
   -H "x-csrf-token: $CSRF_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"title":"Edge OTA Firmware Update","description":"Support cryptographically signed A/B firmware updates over cellular."}'
+  -d '{"title":"Use signed A/B firmware updates","decisionText":"Firmware updates must use cryptographically signed A/B images.","rationale":"This supports safe rollback and verifies the publisher."}'
 ```
 
-_Verify: Returns HTTP 201 with key `FLEET-REQ-1`._
+_Verify: Returns HTTP 201 with the new decision ID. Save it as [36m[1m$DECISION_ID[0m for the next step._
 
-### Step 8: Generate AI Task Proposals
+### Step 8: Generate and Review Task Drafts
 
-Request AI decomposition of the requirement into implementation tasks:
+Generate an editable proposal from that decision:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/projects/$PROJECT_ID/ai/requirements/$REQ_ID/task-proposals \
+curl -X POST http://localhost:3000/api/v1/projects/$PROJECT_ID/ai/decisions/$DECISION_ID/task-proposals \
   -b "aiws_session=$SESSION_COOKIE" \
   -H "x-csrf-token: $CSRF_TOKEN"
 ```
 
-_Verify: Returns HTTP 201 with proposal draft status `PENDING` containing structured tasks with priorities._
+Review or edit the returned pending proposal before confirming it. Generation alone creates no tasks.
 
-### Step 9: Confirm AI Proposal (Transactional Human-in-the-Loop)
+### Step 9: Confirm the Reviewed Proposal
 
-Confirm the proposal with an idempotency key to transactionally create real domain tasks:
+Confirm only after reviewing the task draft. Use a fresh idempotency key for this confirmation and reuse it for retries:
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/projects/$PROJECT_ID/ai/proposals/$PROPOSAL_ID/confirm \
@@ -323,16 +325,13 @@ curl -X POST http://localhost:3000/api/v1/projects/$PROJECT_ID/ai/proposals/$PRO
   -d '{"version":1}'
 ```
 
-_Verify: Returns HTTP 200 with proposal status `CONFIRMED` and array of generated `resultRecordIds` (`FLEET-TSK-1`, `FLEET-TSK-2`). Replaying with same `Idempotency-Key` returns cached response without duplicate records._
+_Verify: Returns HTTP 200 with the proposal and created task IDs. Replaying with the same key and payload does not create duplicate tasks._
 
-### Step 10: Inspect Dashboard & Audit Trail
+### Step 10: Verify the Project Task Board
 
 ```bash
-curl "http://localhost:3000/api/v1/projects/$PROJECT_ID/dashboard" \
-  -b "aiws_session=$SESSION_COOKIE"
-
-curl "http://localhost:3000/api/v1/projects/$PROJECT_ID/activity" \
+curl "http://localhost:3000/api/v1/projects/$PROJECT_ID/tasks" \
   -b "aiws_session=$SESSION_COOKIE"
 ```
 
-_Verify: Returns comprehensive dashboard metrics and audit logs recording `AI_PROPOSAL_CONFIRMED`, `TASK_CREATED`, and `DOCUMENT_UPLOADED`._
+_Verify: The confirmed tasks appear in the project task list. Meetings, Requirements, and Dashboard routes are retired; see [feature retirement](FEATURE_RETIREMENT.md) for compatibility details._

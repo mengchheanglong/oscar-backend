@@ -16,6 +16,7 @@ import { GitHubRepoFile } from './github-repo-file.entity';
 
 export enum GitHubConnectionStatus {
   CONNECTED = 'CONNECTED',
+  SYNCING = 'SYNCING',
   DISCONNECTED = 'DISCONNECTED',
   ERROR = 'ERROR',
 }

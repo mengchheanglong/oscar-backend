@@ -5263,6 +5263,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncGitHubDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -5307,6 +5317,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncGitHubDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -7783,15 +7803,115 @@
       },
       "GitHubConnectionResponseDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "repositoryOwner": {
+            "type": "string"
+          },
+          "repositoryName": {
+            "type": "string"
+          },
+          "repositoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CONNECTED",
+              "SYNCING",
+              "DISCONNECTED",
+              "ERROR"
+            ]
+          },
+          "lastSyncedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorSummary": {
+            "type": "string",
+            "nullable": true
+          },
+          "issueCount": {
+            "type": "number"
+          },
+          "pullRequestCount": {
+            "type": "number"
+          },
+          "fileCount": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "repositoryOwner",
+          "repositoryName",
+          "repositoryId",
+          "status",
+          "lastSyncedAt",
+          "errorSummary",
+          "createdAt",
+          "updatedAt"
+        ]
       },
       "ConnectGitHubDto": {
         "type": "object",
         "properties": {}
       },
+      "SyncGitHubDto": {
+        "type": "object",
+        "properties": {
+          "connectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accessToken": {
+            "type": "string",
+            "description": "Temporary repository access token; never stored."
+          }
+        }
+      },
       "SyncGitHubResponseDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "syncedCount": {
+            "type": "number"
+          },
+          "totalCount": {
+            "type": "number"
+          },
+          "syncedPrCount": {
+            "type": "number"
+          },
+          "totalPrCount": {
+            "type": "number"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "lastSyncedAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "syncedCount",
+          "totalCount",
+          "hasMore",
+          "lastSyncedAt"
+        ]
       },
       "SyncCodebaseDto": {
         "type": "object",

@@ -102,33 +102,16 @@ export class HttpGitHubClientService implements IGitHubClient {
     accessToken?: string,
   ): Promise<GitHubApiComment[]> {
     const headers = this.buildHeaders(accessToken);
-    const url = `${this.baseUrl}/repos/${owner}/${repo}/issues/${issueNumber}/comments?per_page=30`;
-    const res = await fetch(url, {
-      method: 'GET',
-      headers,
-      signal: AbortSignal.timeout(20_000),
-    });
-
-    if (!res.ok) {
-      this.logger.warn(`Failed to fetch comments for issue #${issueNumber}: ${res.status}`);
-      return [];
+    const comments: GitHubApiComment[] = [];
+    let page = 1;
+    while (true) {
+      const url = `${this.baseUrl}/repos/${owner}/${repo}/issues/${issueNumber}/comments?per_page=100&page=${page}`;
+      const res = await fetch(url, { method: 'GET', headers, signal: AbortSignal.timeout(20_000) });
+      if (!res.ok) throw new Error(`GitHub comments API returned HTTP ${res.status}`);
+      comments.push(...((await res.json()) as GitHubApiComment[]));
+      if (!(res.headers.get('link') || '').includes('rel="next"')) return comments;
+      page++;
     }
-
-    const data = (await res.json()) as Array<{
-      id: number;
-      body: string;
-      user: { login: string } | null;
-      created_at: string;
-      updated_at: string;
-    }>;
-
-    return data.map((c) => ({
-      id: c.id,
-      body: c.body,
-      user: c.user ? { login: c.user.login } : null,
-      created_at: c.created_at,
-      updated_at: c.updated_at,
-    }));
   }
 
   async fetchPullRequests(
