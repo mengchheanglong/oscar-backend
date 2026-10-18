@@ -13,6 +13,10 @@ export interface RetrieveParams {
   };
   limit?: number;
   mode?: 'hybrid' | 'semantic' | 'keyword';
+  /** Allow conversational retrieval to broaden context when there are no direct matches. */
+  allowWorkspaceFallback?: boolean;
+  /** Ignore semantic neighbors below this cosine-similarity score. */
+  minSemanticScore?: number;
 }
 
 export interface RetrievedEvidence {
@@ -57,7 +61,17 @@ export class RetrievalService {
   }
 
   async retrieve(params: RetrieveParams): Promise<RetrievedEvidence[]> {
-    const { actorId, projectId, projectIds, query, filters, limit = 8, mode = 'hybrid' } = params;
+    const {
+      actorId,
+      projectId,
+      projectIds,
+      query,
+      filters,
+      limit = 8,
+      mode = 'hybrid',
+      allowWorkspaceFallback = true,
+      minSemanticScore,
+    } = params;
 
     if (
       filters?.sourceType &&
@@ -84,6 +98,7 @@ export class RetrievalService {
         filters?.sourceType,
         limit,
         actorId,
+        allowWorkspaceFallback,
       );
     }
 
@@ -94,11 +109,20 @@ export class RetrievalService {
         filters?.sourceType,
         limit,
         actorId,
+        minSemanticScore,
       );
     }
 
     // Hybrid mode (Dense Vector + Sparse Keyword via Reciprocal Rank Fusion)
-    return this.retrieveHybrid(targetProjectIds, trimmedQuery, filters?.sourceType, limit, actorId);
+    return this.retrieveHybrid(
+      targetProjectIds,
+      trimmedQuery,
+      filters?.sourceType,
+      limit,
+      actorId,
+      allowWorkspaceFallback,
+      minSemanticScore,
+    );
   }
 
   private async retrieveSemantic(
@@ -107,6 +131,7 @@ export class RetrievalService {
     sourceType?: KnowledgeSourceType,
     limit = 8,
     actorId?: string,
+    minSemanticScore?: number,
   ): Promise<RetrievedEvidence[]> {
     if (!this.embeddingProvider) {
       throw new ServiceUnavailableException(
@@ -160,7 +185,9 @@ export class RetrievalService {
       ],
     );
 
-    return raw.map((row) => this.mapToEvidence(row, row.score_signal ?? 0));
+    return raw
+      .map((row) => this.mapToEvidence(row, row.score_signal ?? 0))
+      .filter((item) => minSemanticScore === undefined || item.score >= minSemanticScore);
   }
 
   private analyzeQuery(query: string): {
@@ -247,6 +274,7 @@ export class RetrievalService {
     sourceType?: KnowledgeSourceType,
     limit = 8,
     actorId?: string,
+    allowWorkspaceFallback = true,
   ): Promise<RetrievedEvidence[]> {
     const analysis = this.analyzeQuery(query);
     const effectiveType = sourceType ?? analysis.typePreference;
@@ -328,7 +356,7 @@ export class RetrievalService {
       ],
     );
 
-    if (raw.length === 0) {
+    if (raw.length === 0 && allowWorkspaceFallback) {
       // Partitioned Fallback: when user query is conversational or keyword match is empty,
       // retrieve recent active tasks, decisions, and documents across all target workspaces.
       const fallbackRaw: RawChunkQueryResult[] = await this.dataSource.query(
@@ -391,14 +419,37 @@ export class RetrievalService {
     sourceType?: KnowledgeSourceType,
     limit = 8,
     actorId?: string,
+    allowWorkspaceFallback = true,
+    minSemanticScore?: number,
   ): Promise<RetrievedEvidence[]> {
     if (!this.embeddingProvider)
-      return this.retrieveKeyword(projectIds, query, sourceType, limit, actorId);
+      return this.retrieveKeyword(
+        projectIds,
+        query,
+        sourceType,
+        limit,
+        actorId,
+        allowWorkspaceFallback,
+      );
     const candidateLimit = Math.max(limit * 2, 20);
 
     const [semanticCandidates, keywordCandidates] = await Promise.all([
-      this.retrieveSemantic(projectIds, query, sourceType, candidateLimit, actorId),
-      this.retrieveKeyword(projectIds, query, sourceType, candidateLimit, actorId),
+      this.retrieveSemantic(
+        projectIds,
+        query,
+        sourceType,
+        candidateLimit,
+        actorId,
+        minSemanticScore,
+      ),
+      this.retrieveKeyword(
+        projectIds,
+        query,
+        sourceType,
+        candidateLimit,
+        actorId,
+        allowWorkspaceFallback,
+      ),
     ]);
 
     // Reciprocal Rank Fusion (RRF) with k = 60

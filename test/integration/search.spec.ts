@@ -147,6 +147,13 @@ describe('Search against PostgreSQL', () => {
         0,
       );
     }
+    const hybridMiss = await service.search(
+      project.id,
+      { q: 'Hybridnomatchunobtainium', mode: 'hybrid' },
+      owner.id,
+    );
+    expect(hybridMiss.meta.total).toBe(0);
+    expect(hybridMiss.data).toEqual([]);
   });
   it.each(['keyword', 'hybrid'] as const)(
     'includes owned folder files in the Documents filter with %s and excludes other members',

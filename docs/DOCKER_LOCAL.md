@@ -46,8 +46,12 @@ project's database and test container. Both commands preserve volumes.
 ## Existing local data on this machine
 
 The ignored `compose.override.yaml` reuses the external volume
-`ai-workspace-backend_postgres-data`. It also mounts the current host document
-folder into `/app/var/uploads` for the Docker API. Keep the old
+`ai-workspace-backend_postgres-data` so existing local database records remain
+available. It also mounts a host document folder into `/app/var/uploads` for the
+Docker API. Keep that bind mount on Continuum's local
+`var/develop/uploads` directory so new files stay with this project. If moving
+an installation that has existing uploads, copy those files deliberately before
+changing the mount; setup must not remove the old folder. Keep the old
 `ai-workspace-backend-postgres-1` container stopped while Continuum PostgreSQL
 uses that volume. Preserve this volume when maintaining the installation.
 

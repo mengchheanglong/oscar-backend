@@ -1774,34 +1774,35 @@ Provider generation was not exercised. No remote push or hosted deployment.
 - Verified backend lint/typecheck/build/formatting, OpenAPI regeneration, 310 unit tests, 126 HTTP tests, and 82 PostgreSQL integration tests. Frontend lint/typecheck/build and 19 regression tests passed. Database tests used only the isolated `_test` database on 55433; the new retirement fixture required a longer setup timeout, after which the complete suite passed.
 - Local production-build browser checks covered sidebar navigation/settings, legacy project links, project access controls, Decisions, and Global search. Temporary synthetic QA records/session files were removed. Local UI/API remain available on 3002/3001 against the isolated develop database. No provider requests, pushes, main changes, or hosted deployment. AIW returned no accepted decisions; no assigned task ID was supplied.
 
-### 2026-10-18 - Full feature QA checkpoint (in progress)
+### 2026-10-18 - Full feature QA checkpoint (complete)
 
-- Automated checks: lint, typecheck, build, format check, 312 unit tests, 129 HTTP
-  tests, and 87 real PostgreSQL tests passed. PostgreSQL checks used only the
-  dedicated test database on port 55433; development checks used the isolated
-  local database on port 55432. No database reset or deployment access was used.
-- Corrected global search to find indexed document bodies and owned private
-  folder files, retain source paths/URLs, deduplicate chunks, and apply status,
-  date, assignee and type filters consistently. Private folder results remain
-  restricted to their owner; keyword misses do not use chat's fallback.
-- Restored missing API key, aggregate, proposal and GitHub controllers in the
-  offline OpenAPI generator. Its 82 paths now match the live API; local references
-  and the configured session-cookie security scheme are checked by regression.
-- GitHub mutations now require CSRF for browser sessions. External GitHub requests
-  have a 20-second timeout and do not log raw provider error bodies.
-- Live synthetic checks passed for task/decision operations and stale versions,
-  project roles/archive/restore, PDF/DOCX/TXT extraction and revisions/downloads,
-  private folder access, invitations/acceptance/cancellation, password change,
-  real DeepSeek project/all-project answers and idempotent retry, private memory
-  recall, MCP stdio discovery/read/token revocation, public GitHub sync/code
-  indexing, and a successful Hermes research run. These are individual acceptance
-  checks, not a claim that every UI flow is verified.
-- Frontend fixes: guest drafts survive first-project creation, generated decision
-  task proposals open the review UI, and search opens private folder previews and
-  GitHub source links correctly. Fake password-email/remember-me controls and the
-  obsolete browser session-reset key were removed; recovery and data controls
-  describe the implemented behavior.
-- Both Docker images build, and API/frontend readiness succeeds directly and
-  through the frontend proxy. Manual production-build navigation/settings checks
-  and failure/recovery coverage are still in progress. Synthetic fixtures remain
-  isolated for the rest of this audit and must be cleaned up before completion.
+- Automated backend checks passed: lint, typecheck, build, format check, 42 unit
+  suites / 319 tests, 9 HTTP end-to-end suites / 130 tests, and 11 PostgreSQL
+  integration suites / 87 tests. PostgreSQL tests used only the dedicated test
+  database on port 55433; local acceptance used the isolated develop database on
+  port 55432. The AI evaluation suite passed 36/36 gates with its deterministic
+  mocked provider. Frontend lint, typecheck, build, and 25 targeted regression
+  tests passed.
+- Fixed Global Search returning workspace fallback records and weak semantic
+  neighbors for unique no-match queries. Conversational retrieval retains its
+  default workspace fallback; Search disables it and applies a 0.5 semantic
+  similarity floor while preserving direct keyword and strong semantic matches.
+  Unit and PostgreSQL regressions cover weak-match rejection, positive semantic
+  results, chat fallback compatibility, and hybrid no-match behavior.
+- Live production-build checks on ports 3001/3002 confirmed that Global Search
+  returns zero results for a unique miss across projects, returns a known indexed
+  match only from its owning project, and clears its offline error after network
+  recovery. API readiness and the frontend returned HTTP 200 after correcting
+  the ignored machine-local upload mount to Continuum's `var/develop/uploads`.
+- Manual acceptance checks covered task/decision operations and stale versions,
+  project roles/archive/restore, document extraction/revisions/downloads and
+  private-folder access, invitations/acceptance/cancellation, password change,
+  project and all-project chat context, private memory recall, MCP discovery/read/
+  token revocation, GitHub sync/code indexing, and a Hermes research run. These
+  are targeted checks, not a claim that every possible UI path was exercised.
+- Removed the two explicitly synthetic QA projects from the local develop DB;
+  their associated records were removed by project cascade. The exact temporary
+  QA upload file is absent. No legacy uploads, other user files, database volume,
+  or deployment data were deleted. The shared local PostgreSQL volume is retained.
+- Local audit evidence is in `C:/Users/User/.codex/testing/continuum-full-audit-20261018`.
+  No push, deployment, or production database access occurred.

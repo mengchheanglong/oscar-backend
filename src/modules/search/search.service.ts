@@ -412,6 +412,10 @@ export class SearchService {
         : undefined,
       limit: 200,
       mode,
+      // Global Search must only return matches; chat retrieval keeps the broad fallback.
+      allowWorkspaceFallback: false,
+      // Suppress weak nearest neighbors while keeping direct keyword hits in hybrid results.
+      minSemanticScore: 0.5,
     });
     // Hydrate real entity dates/status/links and apply the same filters used by keyword search.
     // This also counts sources once even when several chunks match.

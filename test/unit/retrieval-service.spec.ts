@@ -106,6 +106,117 @@ describe('RetrievalService', () => {
     );
   });
 
+  it('filters low-similarity semantic neighbors when a minimum score is requested', async () => {
+    mockDataSource.query.mockResolvedValue([
+      {
+        id: 'chunk-weak',
+        knowledge_source_id: 'ks-weak',
+        text: 'Unrelated workspace content',
+        metadata: null,
+        token_count: 20,
+        chunk_index: 0,
+        source_type: KnowledgeSourceType.DOCUMENT,
+        source_id: 'doc-weak',
+        title: 'Unrelated document',
+        source_revision: 1,
+        score_signal: 0.2,
+      },
+      {
+        id: 'chunk-relevant',
+        knowledge_source_id: 'ks-relevant',
+        text: 'Relevant document content',
+        metadata: null,
+        token_count: 20,
+        chunk_index: 0,
+        source_type: KnowledgeSourceType.DOCUMENT,
+        source_id: 'doc-relevant',
+        title: 'Relevant document',
+        source_revision: 1,
+        score_signal: 0.6,
+      },
+    ]);
+
+    const result = await service.retrieve({
+      actorId: 'user-1',
+      projectId: 'proj-1',
+      query: 'Unique search query',
+      mode: 'semantic',
+      minSemanticScore: 0.3,
+    });
+
+    expect(result.map((item) => item.sourceId)).toEqual(['doc-relevant']);
+  });
+
+  it('keeps strict hybrid search empty when semantic neighbors are weak and keyword search misses', async () => {
+    mockDataSource.query.mockImplementation((sql: string) =>
+      Promise.resolve(
+        sql.includes('c.embedding <=>')
+          ? [
+              {
+                id: 'chunk-weak',
+                knowledge_source_id: 'ks-weak',
+                text: 'Unrelated workspace content',
+                metadata: null,
+                token_count: 20,
+                chunk_index: 0,
+                source_type: KnowledgeSourceType.DOCUMENT,
+                source_id: 'doc-weak',
+                title: 'Unrelated document',
+                source_revision: 1,
+                score_signal: 0.49,
+              },
+            ]
+          : [],
+      ),
+    );
+
+    const result = await service.retrieve({
+      actorId: 'user-1',
+      projectId: 'proj-1',
+      query: 'Unique search query',
+      mode: 'hybrid',
+      allowWorkspaceFallback: false,
+      minSemanticScore: 0.5,
+    });
+
+    expect(result).toEqual([]);
+  });
+
+  it('retains strong semantic neighbors in strict hybrid search', async () => {
+    mockDataSource.query.mockImplementation((sql: string) =>
+      Promise.resolve(
+        sql.includes('c.embedding <=>')
+          ? [
+              {
+                id: 'chunk-strong',
+                knowledge_source_id: 'ks-strong',
+                text: 'Relevant semantic result',
+                metadata: null,
+                token_count: 20,
+                chunk_index: 0,
+                source_type: KnowledgeSourceType.DOCUMENT,
+                source_id: 'doc-strong',
+                title: 'Relevant document',
+                source_revision: 1,
+                score_signal: 0.6,
+              },
+            ]
+          : [],
+      ),
+    );
+
+    const result = await service.retrieve({
+      actorId: 'user-1',
+      projectId: 'proj-1',
+      query: 'Unique search query',
+      mode: 'hybrid',
+      allowWorkspaceFallback: false,
+      minSemanticScore: 0.5,
+    });
+
+    expect(result.map((item) => item.sourceId)).toEqual(['doc-strong']);
+  });
+
   it('uses real keyword retrieval without embeddings and reports semantic search unavailable', async () => {
     const keywordOnly = new RetrievalService(mockDataSource as unknown as DataSource);
     mockDataSource.query.mockResolvedValueOnce([
