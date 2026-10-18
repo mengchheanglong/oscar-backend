@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Project } from '../../projects/entities/project.entity';
 import { AuditService } from '../../audit/audit.service';
 import { IngestionService } from '../../ingestion/ingestion.service';
@@ -79,7 +79,6 @@ export class GitHubIntegrationService {
     private readonly githubClient: IGitHubClient,
     private readonly ingestionService: IngestionService,
     private readonly auditService: AuditService,
-    private readonly dataSource: DataSource,
   ) {}
 
   async listConnections(projectId: string): Promise<GitHubConnectionResponseDto[]> {

@@ -1,4 +1,4 @@
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { EmbeddingProvider } from '../../ingestion/embedding/embedding-provider.interface';
 import { KnowledgeSourceType } from '../../ingestion/entities';
@@ -48,7 +48,6 @@ interface RawChunkQueryResult {
 
 @Injectable()
 export class RetrievalService {
-  private readonly logger = new Logger(RetrievalService.name);
   private embeddingProvider?: EmbeddingProvider;
 
   constructor(private readonly dataSource: DataSource) {}

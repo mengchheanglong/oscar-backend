@@ -5,7 +5,6 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
-  Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -47,8 +46,6 @@ import { LlmProvider } from './llm/llm-provider.interface';
 
 @Injectable()
 export class ProposalsService {
-  private readonly logger = new Logger(ProposalsService.name);
-
   constructor(
     @InjectRepository(AIProposal)
     private readonly proposalRepository: Repository<AIProposal>,
@@ -58,8 +55,6 @@ export class ProposalsService {
     private readonly requirementRepository: Repository<Requirement>,
     @InjectRepository(Meeting)
     private readonly meetingRepository: Repository<Meeting>,
-    @InjectRepository(Task)
-    private readonly taskRepository: Repository<Task>,
     @InjectRepository(Decision)
     private readonly decisionRepository: Repository<Decision>,
     @InjectRepository(Project)

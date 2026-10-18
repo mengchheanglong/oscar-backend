@@ -256,7 +256,6 @@ describe('ProposalsService', () => {
       mockCommitRepo as never,
       mockReqRepo as never,
       mockMeetingRepo as never,
-      mockTaskRepo as never,
       mockDecisionRepo as never,
       mockProjectRepo as never,
       mockMemberRepo as never,

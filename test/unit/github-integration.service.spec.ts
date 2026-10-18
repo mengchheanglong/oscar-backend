@@ -1,5 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Project } from '../../src/modules/projects/entities/project.entity';
 import { AuditService } from '../../src/modules/audit/audit.service';
 import { IngestionService } from '../../src/modules/ingestion/ingestion.service';
@@ -25,7 +25,6 @@ describe('GitHubIntegrationService', () => {
   let githubClient: MockGitHubClientService;
   let ingestionService: jest.Mocked<IngestionService>;
   let auditService: jest.Mocked<AuditService>;
-  let dataSource: jest.Mocked<DataSource>;
 
   const projectId = 'proj-123';
   const actorId = 'user-456';
@@ -88,10 +87,6 @@ describe('GitHubIntegrationService', () => {
       record: jest.fn().mockResolvedValue({} as never),
     } as unknown as jest.Mocked<AuditService>;
 
-    dataSource = {
-      transaction: jest.fn().mockImplementation((cb) => cb({ save: jest.fn(), delete: jest.fn() })),
-    } as unknown as jest.Mocked<DataSource>;
-
     service = new GitHubIntegrationService(
       connectionRepo,
       issueRepo,
@@ -101,7 +96,6 @@ describe('GitHubIntegrationService', () => {
       githubClient,
       ingestionService,
       auditService,
-      dataSource,
     );
   });
 

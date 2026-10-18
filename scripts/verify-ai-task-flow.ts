@@ -37,7 +37,6 @@ async function run() {
     dataSource.getRepository(ProposalCommit),
     dataSource.getRepository(Requirement),
     dataSource.getRepository(Meeting),
-    dataSource.getRepository(Task),
     dataSource.getRepository(Decision),
     dataSource.getRepository(Project),
     dataSource.getRepository(ProjectMember),

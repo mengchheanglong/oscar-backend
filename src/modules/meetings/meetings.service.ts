@@ -9,9 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, IsNull, Repository, SelectQueryBuilder } from 'typeorm';
 import { Meeting } from './entities/meeting.entity';
 import { MeetingAttendee } from './entities/meeting-attendee.entity';
-import { Project } from '../projects/entities/project.entity';
 import { ProjectMember, ProjectRole } from '../projects/entities/project-member.entity';
-import { User } from '../users/entities/user.entity';
 import { CreateMeetingDto } from './dto/create-meeting.dto';
 import { UpdateMeetingDto } from './dto/update-meeting.dto';
 import { ListMeetingsQueryDto } from './dto/list-meetings-query.dto';
@@ -29,14 +27,8 @@ export class MeetingsService {
   constructor(
     @InjectRepository(Meeting)
     private readonly meetingRepository: Repository<Meeting>,
-    @InjectRepository(MeetingAttendee)
-    private readonly attendeeRepository: Repository<MeetingAttendee>,
-    @InjectRepository(Project)
-    private readonly projectRepository: Repository<Project>,
     @InjectRepository(ProjectMember)
     private readonly memberRepository: Repository<ProjectMember>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
     private readonly auditService: AuditService,
     private readonly outboxService: OutboxService,
     private readonly dataSource: DataSource,
