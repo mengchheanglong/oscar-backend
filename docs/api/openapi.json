@@ -3581,7 +3581,8 @@
                 "DOCUMENT",
                 "GITHUB_ISSUE",
                 "GITHUB_PR",
-                "GITHUB_CODE"
+                "GITHUB_CODE",
+                "GOAL"
               ]
             }
           },
@@ -3879,7 +3880,7 @@
     },
     "/api/v1/projects/{projectId}/ai/conversations": {
       "get": {
-        "operationId": "AiController_listConversations",
+        "operationId": "AssistantController_listConversations",
         "parameters": [
           {
             "name": "projectId",
@@ -3922,7 +3923,7 @@
         ]
       },
       "post": {
-        "operationId": "AiController_createConversation",
+        "operationId": "AssistantController_createConversation",
         "parameters": [
           {
             "name": "projectId",
@@ -3974,7 +3975,7 @@
     },
     "/api/v1/projects/{projectId}/ai/conversations/{id}": {
       "get": {
-        "operationId": "AiController_getConversation",
+        "operationId": "AssistantController_getConversation",
         "parameters": [
           {
             "name": "projectId",
@@ -4019,7 +4020,7 @@
         ]
       },
       "patch": {
-        "operationId": "AiController_updateConversation",
+        "operationId": "AssistantController_updateConversation",
         "parameters": [
           {
             "name": "projectId",
@@ -4074,7 +4075,7 @@
         ]
       },
       "delete": {
-        "operationId": "AiController_deleteConversation",
+        "operationId": "AssistantController_deleteConversation",
         "parameters": [
           {
             "name": "projectId",
@@ -4114,7 +4115,7 @@
     },
     "/api/v1/projects/{projectId}/ai/conversations/{id}/messages": {
       "get": {
-        "operationId": "AiController_listMessages",
+        "operationId": "AssistantController_listMessages",
         "parameters": [
           {
             "name": "projectId",
@@ -4162,7 +4163,7 @@
         ]
       },
       "post": {
-        "operationId": "AiController_postMessage",
+        "operationId": "AssistantController_postMessage",
         "parameters": [
           {
             "name": "projectId",
@@ -4243,7 +4244,7 @@
     },
     "/api/v1/projects/{projectId}/ai/conversations/{id}/messages/{messageId}/exclude-context": {
       "post": {
-        "operationId": "AiController_excludeMessage",
+        "operationId": "AssistantController_excludeMessage",
         "parameters": [
           {
             "name": "projectId",
@@ -4627,7 +4628,7 @@
     },
     "/api/v1/projects/{projectId}/ai/memories": {
       "get": {
-        "operationId": "CopilotMemoryController_list",
+        "operationId": "SavedMemoryController_list",
         "parameters": [
           {
             "name": "projectId",
@@ -4646,7 +4647,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/CopilotMemoryResponseDto"
+                    "$ref": "#/components/schemas/SavedMemoryResponseDto"
                   }
                 }
               }
@@ -4660,11 +4661,11 @@
         ],
         "summary": "List the latest 100 private copilot memories in the project",
         "tags": [
-          "Copilot Memory"
+          "Saved personal memory"
         ]
       },
       "post": {
-        "operationId": "CopilotMemoryController_create",
+        "operationId": "SavedMemoryController_create",
         "parameters": [
           {
             "name": "projectId",
@@ -4680,7 +4681,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCopilotMemoryDto"
+                "$ref": "#/components/schemas/CreateSavedMemoryDto"
               }
             }
           }
@@ -4691,7 +4692,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CopilotMemoryResponseDto"
+                  "$ref": "#/components/schemas/SavedMemoryResponseDto"
                 }
               }
             }
@@ -4704,13 +4705,13 @@
         ],
         "summary": "Save explicitly reviewed private copilot memory; retries use the same key",
         "tags": [
-          "Copilot Memory"
+          "Saved personal memory"
         ]
       }
     },
     "/api/v1/projects/{projectId}/ai/memories/{id}": {
       "patch": {
-        "operationId": "CopilotMemoryController_update",
+        "operationId": "SavedMemoryController_update",
         "parameters": [
           {
             "name": "projectId",
@@ -4734,7 +4735,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCopilotMemoryDto"
+                "$ref": "#/components/schemas/UpdateSavedMemoryDto"
               }
             }
           }
@@ -4745,7 +4746,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CopilotMemoryResponseDto"
+                  "$ref": "#/components/schemas/SavedMemoryResponseDto"
                 }
               }
             }
@@ -4758,11 +4759,11 @@
         ],
         "summary": "Edit reviewed private memory using its current version",
         "tags": [
-          "Copilot Memory"
+          "Saved personal memory"
         ]
       },
       "delete": {
-        "operationId": "CopilotMemoryController_remove",
+        "operationId": "SavedMemoryController_remove",
         "parameters": [
           {
             "name": "projectId",
@@ -4802,7 +4803,7 @@
         ],
         "summary": "Remove private copilot memory from saved copilot context",
         "tags": [
-          "Copilot Memory"
+          "Saved personal memory"
         ]
       }
     },
@@ -5004,6 +5005,270 @@
         ],
         "tags": [
           "Agent Runs"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai/handoffs/paperclip-targets": {
+      "get": {
+        "operationId": "PlatformHandoffsController_paperclipTargets",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "connectionId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperclipTargetsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Platform handoffs"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai/handoffs/models": {
+      "get": {
+        "operationId": "PlatformHandoffsController_models",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "connectionId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/T3ModelResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Platform handoffs"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai/handoffs": {
+      "get": {
+        "operationId": "PlatformHandoffsController_list",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conversationId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlatformHandoffResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Platform handoffs"
+        ]
+      },
+      "post": {
+        "operationId": "PlatformHandoffsController_create",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlatformHandoffDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformHandoffResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Platform handoffs"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai/handoffs/{id}/refresh": {
+      "post": {
+        "operationId": "PlatformHandoffsController_refresh",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformHandoffResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Platform handoffs"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai/handoffs/{id}/cancel": {
+      "post": {
+        "operationId": "PlatformHandoffsController_cancel",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformHandoffResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Platform handoffs"
         ]
       }
     },
@@ -5564,6 +5829,2033 @@
         "summary": "List indexed GitHub codebase files for project",
         "tags": [
           "GitHub Integration"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/goals": {
+      "get": {
+        "operationId": "GoalsController_list",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PLANNED",
+                "ACTIVE",
+                "ACHIEVED",
+                "PAUSED",
+                "ABANDONED"
+              ]
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "BUSINESS",
+                "TECHNICAL",
+                "FINANCIAL",
+                "PERSONAL",
+                "OPERATIONS"
+              ]
+            }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by specific project UUID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Filter or search in goal title and description",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Goals returned"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List project goals with filters and pagination",
+        "tags": [
+          "Goals"
+        ]
+      },
+      "post": {
+        "operationId": "GoalsController_create",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGoalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Goal created"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Create a new project goal",
+        "tags": [
+          "Goals"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/goals/{goalId}": {
+      "get": {
+        "operationId": "GoalsController_getById",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "goalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Goal returned"
+          },
+          "404": {
+            "description": "Goal not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get goal details",
+        "tags": [
+          "Goals"
+        ]
+      },
+      "patch": {
+        "operationId": "GoalsController_update",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "goalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGoalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Goal updated"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Update a goal",
+        "tags": [
+          "Goals"
+        ]
+      },
+      "delete": {
+        "operationId": "GoalsController_delete",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "goalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Goal deleted"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Soft-delete a goal",
+        "tags": [
+          "Goals"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/goals/{goalId}/summary": {
+      "get": {
+        "operationId": "GoalsController_getSummary",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "goalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Goal summary returned"
+          },
+          "404": {
+            "description": "Goal not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get goal summary with measured progress, linked tasks and decisions",
+        "tags": [
+          "Goals"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/goals/{goalId}/metrics": {
+      "post": {
+        "operationId": "GoalsController_addMetric",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "goalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGoalMetricDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Metric created"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Add a metric to a goal",
+        "tags": [
+          "Goals"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/goals/{goalId}/metrics/{metricId}": {
+      "patch": {
+        "operationId": "GoalsController_updateMetric",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "goalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metricId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGoalMetricDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Metric updated"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Update a goal metric",
+        "tags": [
+          "Goals"
+        ]
+      },
+      "delete": {
+        "operationId": "GoalsController_deleteMetric",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "goalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metricId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Metric deleted"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Delete a goal metric",
+        "tags": [
+          "Goals"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/goals/{goalId}/revisions": {
+      "get": {
+        "operationId": "GoalsController_listRevisions",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "goalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revisions returned"
+          },
+          "404": {
+            "description": "Goal not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List goal revisions",
+        "tags": [
+          "Goals"
+        ]
+      }
+    },
+    "/api/v1/goals": {
+      "get": {
+        "operationId": "UserGoalsController_listUserGoals",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PLANNED",
+                "ACTIVE",
+                "ACHIEVED",
+                "PAUSED",
+                "ABANDONED"
+              ]
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "BUSINESS",
+                "TECHNICAL",
+                "FINANCIAL",
+                "PERSONAL",
+                "OPERATIONS"
+              ]
+            }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by specific project UUID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Filter or search in goal title and description",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Goals returned"
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List user-owned goals with filters and pagination",
+        "tags": [
+          "Goals"
+        ]
+      },
+      "post": {
+        "operationId": "UserGoalsController_createGoal",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGoalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Goal created"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Create a new user-owned goal",
+        "tags": [
+          "Goals"
+        ]
+      }
+    },
+    "/api/v1/goals/{goalId}": {
+      "get": {
+        "operationId": "UserGoalsController_getGoal",
+        "parameters": [
+          {
+            "name": "goalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Goal returned"
+          },
+          "404": {
+            "description": "Goal not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get goal details by ID",
+        "tags": [
+          "Goals"
+        ]
+      },
+      "patch": {
+        "operationId": "UserGoalsController_updateGoal",
+        "parameters": [
+          {
+            "name": "goalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGoalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Goal updated"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Update a user-owned goal",
+        "tags": [
+          "Goals"
+        ]
+      },
+      "delete": {
+        "operationId": "UserGoalsController_deleteGoal",
+        "parameters": [
+          {
+            "name": "goalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Goal deleted"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Delete a user-owned goal",
+        "tags": [
+          "Goals"
+        ]
+      }
+    },
+    "/api/v1/goals/{goalId}/summary": {
+      "get": {
+        "operationId": "UserGoalsController_getGoalSummary",
+        "parameters": [
+          {
+            "name": "goalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Goal summary returned"
+          },
+          "404": {
+            "description": "Goal not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get goal summary with measured progress, linked tasks and decisions",
+        "tags": [
+          "Goals"
+        ]
+      }
+    },
+    "/api/v1/goals/{goalId}/metrics": {
+      "post": {
+        "operationId": "UserGoalsController_addMetric",
+        "parameters": [
+          {
+            "name": "goalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGoalMetricDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Metric created"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Add a metric to a user goal",
+        "tags": [
+          "Goals"
+        ]
+      }
+    },
+    "/api/v1/goals/{goalId}/metrics/{metricId}": {
+      "patch": {
+        "operationId": "UserGoalsController_updateMetric",
+        "parameters": [
+          {
+            "name": "goalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metricId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGoalMetricDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Metric updated"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Update a user goal metric",
+        "tags": [
+          "Goals"
+        ]
+      },
+      "delete": {
+        "operationId": "UserGoalsController_deleteMetric",
+        "parameters": [
+          {
+            "name": "goalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metricId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Metric deleted"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Delete a user goal metric",
+        "tags": [
+          "Goals"
+        ]
+      }
+    },
+    "/api/v1/goals/{goalId}/revisions": {
+      "get": {
+        "operationId": "UserGoalsController_listRevisions",
+        "parameters": [
+          {
+            "name": "goalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revisions returned"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List revisions of a user goal",
+        "tags": [
+          "Goals"
+        ]
+      }
+    },
+    "/api/v1/mavis/context/retrieve": {
+      "post": {
+        "operationId": "MavisController_retrieveContext",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetrieveContextDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Context pack with approved memories, sources, and execution results"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Retrieve permissioned MAVIS context pack for an agent session or copilot turn",
+        "tags": [
+          "mavis"
+        ]
+      }
+    },
+    "/api/v1/mavis/memories": {
+      "get": {
+        "operationId": "MavisController_listMemories",
+        "parameters": [
+          {
+            "name": "scopeType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PERSONAL",
+                "PROJECT",
+                "GOAL"
+              ]
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DECISION",
+                "PREFERENCE",
+                "FACT",
+                "LESSON",
+                "HYPOTHESIS",
+                "GOAL_STRATEGY",
+                "OBSERVATION",
+                "PROCEDURAL"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PROPOSED",
+                "APPROVED",
+                "REJECTED",
+                "SUPERSEDED"
+              ]
+            }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "goalId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by goal ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Search term for statements and rationales",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit results (default: 50, max: 100)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Pagination page offset (1-based)",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of memories"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List MAVIS memories with scope, status, and type filtering",
+        "tags": [
+          "mavis"
+        ]
+      }
+    },
+    "/api/v1/mavis/memories/{id}": {
+      "get": {
+        "operationId": "MavisController_getMemory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Memory record with provenance"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get a specific memory by ID with full provenance",
+        "tags": [
+          "mavis"
+        ]
+      },
+      "delete": {
+        "operationId": "MavisController_deleteMemory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expectedVersion",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Memory deleted"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Soft-delete a memory",
+        "tags": [
+          "mavis"
+        ]
+      }
+    },
+    "/api/v1/mavis/memories/candidate": {
+      "post": {
+        "operationId": "MavisController_proposeCandidate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCandidateMemoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Candidate memory created with PROPOSED status"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Propose a candidate memory for human review",
+        "tags": [
+          "mavis"
+        ]
+      }
+    },
+    "/api/v1/mavis/memories/from-run/{runId}": {
+      "post": {
+        "operationId": "MavisController_createFromRun",
+        "parameters": [
+          {
+            "name": "runId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunMemoryCandidateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Candidate memory created with PROPOSED status"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Create a candidate memory from a completed agent run",
+        "tags": [
+          "mavis"
+        ]
+      }
+    },
+    "/api/v1/mavis/memories/from-decision/{decisionId}": {
+      "post": {
+        "operationId": "MavisController_createFromDecision",
+        "parameters": [
+          {
+            "name": "decisionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Candidate memory created with PROPOSED status"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Create a candidate memory from a project decision",
+        "tags": [
+          "mavis"
+        ]
+      }
+    },
+    "/api/v1/mavis/memories/{id}/review": {
+      "post": {
+        "operationId": "MavisController_reviewMemory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewMemoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reviewed memory"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Execute human review on a candidate or active memory",
+        "tags": [
+          "mavis"
+        ]
+      }
+    },
+    "/api/v1/mavis/memories/{id}/approve": {
+      "post": {
+        "operationId": "MavisController_approveMemory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryVersionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Memory marked APPROVED"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Approve a candidate memory",
+        "tags": [
+          "mavis"
+        ]
+      }
+    },
+    "/api/v1/mavis/memories/{id}/reject": {
+      "post": {
+        "operationId": "MavisController_rejectMemory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectMemoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Memory marked REJECTED"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Reject a candidate memory",
+        "tags": [
+          "mavis"
+        ]
+      }
+    },
+    "/api/v1/mavis/memories/{id}/supersede": {
+      "post": {
+        "operationId": "MavisController_supersedeMemory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectMemoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Superseded old memory and active new replacement"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Supersede an approved memory with an updated correction",
+        "tags": [
+          "mavis"
+        ]
+      }
+    },
+    "/api/v1/platforms/overview": {
+      "get": {
+        "operationId": "PlatformsController_getOverview",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformActivityOverviewDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get OSCAR platform activity overview answering what is happening in Paperclip and T3",
+        "tags": [
+          "platforms"
+        ]
+      }
+    },
+    "/api/v1/platforms/connections": {
+      "post": {
+        "operationId": "PlatformsController_createConnection",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConnectionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformConnection"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Register a new external platform connection (Paperclip or T3 Code)",
+        "tags": [
+          "platforms"
+        ]
+      },
+      "get": {
+        "operationId": "PlatformsController_listConnections",
+        "parameters": [
+          {
+            "name": "platformType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "paperclip",
+                "t3"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "HEALTHY",
+                "DEGRADED",
+                "REVOKED",
+                "UNREACHABLE",
+                "DISCONNECTED"
+              ]
+            }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by project ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "maximum": 100,
+              "default": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List registered platform connections",
+        "tags": [
+          "platforms"
+        ]
+      }
+    },
+    "/api/v1/platforms/connections/{id}": {
+      "get": {
+        "operationId": "PlatformsController_getConnection",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformConnection"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get a platform connection by ID",
+        "tags": [
+          "platforms"
+        ]
+      },
+      "patch": {
+        "operationId": "PlatformsController_updateConnection",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConnectionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformConnection"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Update a platform connection",
+        "tags": [
+          "platforms"
+        ]
+      },
+      "delete": {
+        "operationId": "PlatformsController_deleteConnection",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Delete a platform connection",
+        "tags": [
+          "platforms"
+        ]
+      }
+    },
+    "/api/v1/platforms/connections/{id}/authorize": {
+      "post": {
+        "operationId": "PlatformsController_authorize",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "platforms"
+        ]
+      }
+    },
+    "/api/v1/platforms/connections/{id}/oauth/callback": {
+      "get": {
+        "operationId": "PlatformsController_completeAuthorization",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "platforms"
+        ]
+      }
+    },
+    "/api/v1/platforms/connections/{id}/test": {
+      "post": {
+        "operationId": "PlatformsController_testConnection",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformConnection"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Run a live health and capability probe on a platform connection",
+        "tags": [
+          "platforms"
+        ]
+      }
+    },
+    "/api/v1/platforms/connections/{id}/entities": {
+      "get": {
+        "operationId": "PlatformsController_getEntities",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Fetch live read-only entities from the connected platform",
+        "tags": [
+          "platforms"
+        ]
+      }
+    },
+    "/api/v1/platforms/links": {
+      "post": {
+        "operationId": "PlatformsController_createExternalLink",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExternalLinkDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalLink"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Map an external platform record to a OSCAR goal or project",
+        "tags": [
+          "platforms"
+        ]
+      },
+      "get": {
+        "operationId": "PlatformsController_listExternalLinks",
+        "parameters": [
+          {
+            "name": "connectionId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by connection ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "platformType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "paperclip",
+                "t3"
+              ]
+            }
+          },
+          {
+            "name": "externalEntityType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "agent",
+                "team",
+                "issue",
+                "thread",
+                "run",
+                "workspace"
+              ]
+            }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by mapped project ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "goalId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by mapped goal ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "maximum": 100,
+              "default": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List mapped external records",
+        "tags": [
+          "platforms"
+        ]
+      }
+    },
+    "/api/v1/platforms/links/{id}": {
+      "delete": {
+        "operationId": "PlatformsController_deleteExternalLink",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Remove a mapped external record link",
+        "tags": [
+          "platforms"
         ]
       }
     }
@@ -6453,6 +8745,10 @@
           "supersedesDecisionId": {
             "type": "string",
             "description": "ID of an existing decision this supersedes"
+          },
+          "goalId": {
+            "type": "string",
+            "description": "UUID of associated goal"
           }
         },
         "required": [
@@ -6493,6 +8789,11 @@
           "supersedesDecisionId": {
             "type": "string",
             "description": "ID of an existing decision this supersedes"
+          },
+          "goalId": {
+            "type": "object",
+            "description": "UUID of associated goal",
+            "nullable": true
           }
         },
         "required": [
@@ -6557,6 +8858,10 @@
       "TaskResponseDto": {
         "type": "object",
         "properties": {
+          "goalId": {
+            "type": "object",
+            "nullable": true
+          },
           "aiProvenance": {
             "nullable": true,
             "description": "Confirmed AI source metadata on task detail; private draft text is omitted.",
@@ -6720,6 +9025,10 @@
             "type": "string",
             "example": "Waiting on Phase 2 scope decision",
             "description": "Reason why the task is blocked"
+          },
+          "goalId": {
+            "type": "string",
+            "description": "UUID of associated goal"
           }
         },
         "required": [
@@ -6780,6 +9089,11 @@
             "type": "object",
             "example": "Waiting on Phase 2 scope decision",
             "description": "Reason why the task is blocked",
+            "nullable": true
+          },
+          "goalId": {
+            "type": "object",
+            "description": "UUID of associated goal",
             "nullable": true
           }
         },
@@ -6992,7 +9306,8 @@
               "DOCUMENT",
               "GITHUB_ISSUE",
               "GITHUB_PR",
-              "GITHUB_CODE"
+              "GITHUB_CODE",
+              "GOAL"
             ],
             "example": "DOCUMENT"
           },
@@ -7065,6 +9380,10 @@
             "example": 0
           },
           "GITHUB_CODE": {
+            "type": "number",
+            "example": 0
+          },
+          "GOAL": {
             "type": "number",
             "example": 0
           }
@@ -7148,7 +9467,8 @@
               "QA",
               "DX",
               "INFRASTRUCTURE",
-              "PRESENTATION"
+              "PRESENTATION",
+              "STRATEGY"
             ],
             "example": "PM"
           },
@@ -7274,7 +9594,8 @@
               "QA",
               "DX",
               "INFRASTRUCTURE",
-              "PRESENTATION"
+              "PRESENTATION",
+              "STRATEGY"
             ],
             "example": "PM"
           },
@@ -7329,7 +9650,8 @@
               "QA",
               "DX",
               "INFRASTRUCTURE",
-              "PRESENTATION"
+              "PRESENTATION",
+              "STRATEGY"
             ],
             "default": "PM"
           }
@@ -7355,6 +9677,10 @@
       "PostMessageDto": {
         "type": "object",
         "properties": {
+          "goalId": {
+            "type": "string",
+            "description": "Goal selected for this strategic review"
+          },
           "clientRequestId": {
             "type": "string",
             "description": "Stable UUID for this send and its retries. Reusing it with different content is rejected."
@@ -7372,7 +9698,8 @@
               "QA",
               "DX",
               "INFRASTRUCTURE",
-              "PRESENTATION"
+              "PRESENTATION",
+              "STRATEGY"
             ]
           },
           "sourceType": {
@@ -7558,7 +9885,7 @@
           "version"
         ]
       },
-      "CopilotMemoryResponseDto": {
+      "SavedMemoryResponseDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -7601,7 +9928,7 @@
           "updatedAt"
         ]
       },
-      "CreateCopilotMemoryDto": {
+      "CreateSavedMemoryDto": {
         "type": "object",
         "properties": {
           "kind": {
@@ -7641,7 +9968,7 @@
           "idempotencyKey"
         ]
       },
-      "UpdateCopilotMemoryDto": {
+      "UpdateSavedMemoryDto": {
         "type": "object",
         "properties": {
           "kind": {
@@ -7687,12 +10014,20 @@
           },
           "revision": {
             "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
           }
         },
         "required": [
           "available",
           "runtime",
-          "revision"
+          "revision",
+          "provider",
+          "model"
         ]
       },
       "AgentRunResponseDto": {
@@ -7799,6 +10134,200 @@
         "required": [
           "prompt",
           "idempotencyKey"
+        ]
+      },
+      "PaperclipTargetDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "PaperclipTargetsResponseDto": {
+        "type": "object",
+        "properties": {
+          "agents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperclipTargetDto"
+            }
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperclipTargetDto"
+            }
+          }
+        },
+        "required": [
+          "agents",
+          "projects"
+        ]
+      },
+      "T3ModelResponseDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "instanceId": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "instanceId",
+          "model",
+          "label"
+        ]
+      },
+      "PlatformHandoffResponseDto": {
+        "type": "object",
+        "properties": {
+          "platformType": {
+            "type": "string",
+            "enum": [
+              "t3",
+              "paperclip"
+            ]
+          },
+          "remoteAgentId": {
+            "type": "object",
+            "nullable": true
+          },
+          "externalUrl": {
+            "type": "object",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "conversationId": {
+            "type": "string"
+          },
+          "remoteProjectId": {
+            "type": "object",
+            "nullable": true
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "QUEUED",
+              "DISPATCHING",
+              "UNCERTAIN",
+              "RUNNING",
+              "WAITING",
+              "SUCCEEDED",
+              "FAILED",
+              "CANCELLED"
+            ]
+          },
+          "threadId": {
+            "type": "object",
+            "nullable": true
+          },
+          "runId": {
+            "type": "object",
+            "nullable": true
+          },
+          "remoteStatus": {
+            "type": "object",
+            "nullable": true
+          },
+          "result": {
+            "type": "object",
+            "nullable": true
+          },
+          "notice": {
+            "type": "object",
+            "nullable": true
+          },
+          "assistantMessageId": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "platformType",
+          "id",
+          "projectId",
+          "conversationId",
+          "remoteProjectId",
+          "prompt",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreatePlatformHandoffDto": {
+        "type": "object",
+        "properties": {
+          "platformType": {
+            "type": "string",
+            "enum": [
+              "t3",
+              "paperclip"
+            ],
+            "default": "t3"
+          },
+          "providerInstanceId": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "remoteAgentId": {
+            "type": "string"
+          },
+          "conversationId": {
+            "type": "string"
+          },
+          "connectionId": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "remoteProjectId": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversationId",
+          "connectionId",
+          "idempotencyKey",
+          "prompt"
         ]
       },
       "GitHubConnectionResponseDto": {
@@ -7930,6 +10459,735 @@
         "properties": {}
       },
       "GitHubRepoFileResponseDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateGoalMilestoneDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "m-1"
+          },
+          "title": {
+            "type": "string",
+            "example": "Complete prototype and deploy to staging"
+          },
+          "targetDate": {
+            "type": "object",
+            "example": "2026-11-15"
+          },
+          "completed": {
+            "type": "boolean",
+            "example": false
+          },
+          "completedAt": {
+            "type": "object",
+            "example": null
+          }
+        },
+        "required": [
+          "id",
+          "title"
+        ]
+      },
+      "CreateGoalInitiativeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "init-1"
+          },
+          "title": {
+            "type": "string",
+            "example": "Establish payment processor integration"
+          },
+          "description": {
+            "type": "object",
+            "example": "Integrate Stripe customer portal"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "TODO",
+              "IN_PROGRESS",
+              "DONE"
+            ],
+            "default": "TODO"
+          }
+        },
+        "required": [
+          "id",
+          "title"
+        ]
+      },
+      "CreateGoalDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Validate product with 10 paying customers",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "description": {
+            "type": "string",
+            "example": "Detailed description of the strategic validation goal"
+          },
+          "motivation": {
+            "type": "string",
+            "example": "Why this goal is essential for sustainable business traction"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PLANNED",
+              "ACTIVE",
+              "ACHIEVED",
+              "PAUSED",
+              "ABANDONED"
+            ],
+            "default": "ACTIVE"
+          },
+          "timeframe": {
+            "type": "string",
+            "example": "Q4 2026"
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2026-10-01"
+          },
+          "targetDate": {
+            "type": "string",
+            "example": "2026-12-31"
+          },
+          "baseline": {
+            "type": "string",
+            "example": "0 paying customers, 2 beta testers"
+          },
+          "target": {
+            "type": "string",
+            "example": "10 paying customers with >$50/mo ARR"
+          },
+          "progress": {
+            "type": "number",
+            "example": 0,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "BUSINESS",
+              "TECHNICAL",
+              "FINANCIAL",
+              "PERSONAL",
+              "OPERATIONS"
+            ],
+            "default": "BUSINESS"
+          },
+          "dependencies": {
+            "type": "string",
+            "example": "Stripe onboarding, customer interviews"
+          },
+          "risks": {
+            "type": "string",
+            "example": "High customer churn, onboarding drop-off"
+          },
+          "reviewCadence": {
+            "type": "string",
+            "enum": [
+              "DAILY",
+              "WEEKLY",
+              "BIWEEKLY",
+              "MONTHLY",
+              "QUARTERLY"
+            ],
+            "default": "WEEKLY"
+          },
+          "milestones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateGoalMilestoneDto"
+            }
+          },
+          "initiatives": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateGoalInitiativeDto"
+            }
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Optional project ID to associate with this goal"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "UpdateGoalDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number",
+            "example": 1,
+            "description": "Current version for optimistic locking"
+          },
+          "title": {
+            "type": "string",
+            "example": "Validate product with 10 paying customers",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "description": {
+            "type": "string",
+            "example": "Detailed description of the strategic validation goal"
+          },
+          "motivation": {
+            "type": "string",
+            "example": "Why this goal is essential for sustainable business traction"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PLANNED",
+              "ACTIVE",
+              "ACHIEVED",
+              "PAUSED",
+              "ABANDONED"
+            ]
+          },
+          "timeframe": {
+            "type": "string",
+            "example": "Q4 2026"
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2026-10-01"
+          },
+          "targetDate": {
+            "type": "string",
+            "example": "2026-12-31"
+          },
+          "baseline": {
+            "type": "string",
+            "example": "0 paying customers, 2 beta testers"
+          },
+          "target": {
+            "type": "string",
+            "example": "10 paying customers with >$50/mo ARR"
+          },
+          "progress": {
+            "type": "number",
+            "example": 50,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "BUSINESS",
+              "TECHNICAL",
+              "FINANCIAL",
+              "PERSONAL",
+              "OPERATIONS"
+            ]
+          },
+          "dependencies": {
+            "type": "string",
+            "example": "Stripe onboarding, customer interviews"
+          },
+          "risks": {
+            "type": "string",
+            "example": "High customer churn, onboarding drop-off"
+          },
+          "reviewCadence": {
+            "type": "string",
+            "enum": [
+              "DAILY",
+              "WEEKLY",
+              "BIWEEKLY",
+              "MONTHLY",
+              "QUARTERLY"
+            ]
+          },
+          "milestones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateGoalMilestoneDto"
+            }
+          },
+          "initiatives": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateGoalInitiativeDto"
+            }
+          },
+          "projectId": {
+            "type": "object",
+            "description": "Optional project ID to associate with this goal",
+            "nullable": true
+          },
+          "revisionReason": {
+            "type": "string",
+            "example": "Updated customer target after initial cohort review"
+          }
+        },
+        "required": [
+          "version"
+        ]
+      },
+      "CreateGoalMetricDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Paying Customers"
+          },
+          "unit": {
+            "type": "string",
+            "example": "users"
+          },
+          "baselineValue": {
+            "type": "number",
+            "example": 0,
+            "default": 0
+          },
+          "currentValue": {
+            "type": "number",
+            "example": 2,
+            "default": 0
+          },
+          "targetValue": {
+            "type": "number",
+            "example": 10
+          },
+          "observationDate": {
+            "type": "string",
+            "example": "2026-10-18"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Observed from Stripe customer subscriptions dashboard"
+          }
+        },
+        "required": [
+          "name",
+          "unit",
+          "baselineValue",
+          "currentValue",
+          "targetValue"
+        ]
+      },
+      "UpdateGoalMetricDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Paying Customers"
+          },
+          "unit": {
+            "type": "string",
+            "example": "users"
+          },
+          "baselineValue": {
+            "type": "number",
+            "example": 0
+          },
+          "currentValue": {
+            "type": "number",
+            "example": 5
+          },
+          "targetValue": {
+            "type": "number",
+            "example": 10
+          },
+          "observationDate": {
+            "type": "string",
+            "example": "2026-10-25"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Weekly cohort check"
+          }
+        }
+      },
+      "RetrieveContextDto": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The current user query or goal context to retrieve relevant knowledge for"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Project ID for project-scoped knowledge and evidence"
+          },
+          "goalId": {
+            "type": "string",
+            "description": "Goal ID for goal-scoped context and metrics"
+          },
+          "includeApprovedMemories": {
+            "type": "boolean",
+            "description": "Include approved canonical memories (default: true)"
+          },
+          "includeHistoricalConversations": {
+            "type": "boolean",
+            "description": "Include historical conversation dialogue (default: true)"
+          },
+          "includeProjectSources": {
+            "type": "boolean",
+            "description": "Include project documents, code and files (default: true)"
+          },
+          "includeExecutionResults": {
+            "type": "boolean",
+            "description": "Include completed agent run outcomes and raw results (default: true)"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Max items per category (default: 6, max: 20)"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "CreateCandidateMemoryDto": {
+        "type": "object",
+        "properties": {
+          "statement": {
+            "type": "string",
+            "description": "The substantive statement or finding of the memory"
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Optional explanation or reasoning behind this memory"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "DECISION",
+              "PREFERENCE",
+              "FACT",
+              "LESSON",
+              "HYPOTHESIS",
+              "GOAL_STRATEGY",
+              "OBSERVATION",
+              "PROCEDURAL"
+            ],
+            "description": "Canonical type of memory"
+          },
+          "scopeType": {
+            "type": "string",
+            "enum": [
+              "PERSONAL",
+              "PROJECT",
+              "GOAL"
+            ],
+            "description": "Scope of applicability"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Project ID if scoped or linked to a project"
+          },
+          "goalId": {
+            "type": "string",
+            "description": "Goal ID if scoped or linked to a goal"
+          },
+          "sourcePlatform": {
+            "type": "string",
+            "description": "Platform originating this candidate memory",
+            "default": "oscar"
+          },
+          "sourceType": {
+            "type": "string",
+            "enum": [
+              "AGENT_RUN",
+              "CHAT_MESSAGE",
+              "DECISION",
+              "DOCUMENT",
+              "MANUAL"
+            ],
+            "description": "Kind of source generating the memory"
+          },
+          "sourceId": {
+            "type": "string",
+            "description": "ID of originating entity (run ID, message ID, decision ID, etc.)"
+          },
+          "sourceMetadata": {
+            "type": "object",
+            "description": "Additional structured provenance metadata"
+          },
+          "validUntil": {
+            "type": "string",
+            "description": "Expiration date after which memory is considered stale"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "description": "Optional idempotency key to prevent duplicate creation"
+          }
+        },
+        "required": [
+          "statement",
+          "type",
+          "scopeType"
+        ]
+      },
+      "RunMemoryCandidateDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ReviewMemoryDto": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "APPROVE",
+              "REJECT",
+              "SUPERSEDE"
+            ],
+            "description": "Review action to execute"
+          },
+          "supersedingStatement": {
+            "type": "string",
+            "description": "Replacement statement when action is SUPERSEDE"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Optional explanation or review notes"
+          },
+          "expectedVersion": {
+            "type": "number",
+            "description": "Expected current version for optimistic concurrency"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "MemoryVersionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RejectMemoryDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CorrectMemoryDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PlatformActivityOverviewDto": {
+        "type": "object",
+        "properties": {
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "oscarAnswer": {
+            "type": "string",
+            "description": "OSCAR answer describing current Paperclip and T3 activity"
+          },
+          "totalPlatforms": {
+            "type": "number",
+            "description": "Total connected platforms"
+          },
+          "healthyPlatforms": {
+            "type": "number",
+            "description": "Healthy platforms count"
+          },
+          "paperclip": {
+            "type": "object",
+            "description": "Paperclip activity and entities"
+          },
+          "t3": {
+            "type": "object",
+            "description": "T3 activity and entities"
+          },
+          "linkedRecordsCount": {
+            "type": "number",
+            "description": "Count of external items linked to Continuum goals/projects"
+          },
+          "generatedAt": {
+            "type": "string",
+            "description": "Timestamp of snapshot"
+          }
+        },
+        "required": [
+          "warnings",
+          "oscarAnswer",
+          "totalPlatforms",
+          "healthyPlatforms",
+          "paperclip",
+          "t3",
+          "linkedRecordsCount",
+          "generatedAt"
+        ]
+      },
+      "CreateConnectionDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Display name for the connection",
+            "example": "Production Paperclip"
+          },
+          "platformType": {
+            "type": "string",
+            "enum": [
+              "paperclip",
+              "t3"
+            ],
+            "description": "Target platform type",
+            "example": "paperclip"
+          },
+          "baseUrl": {
+            "type": "string",
+            "description": "Platform base URL endpoint",
+            "example": "https://api.paperclip.ai"
+          },
+          "authType": {
+            "type": "string",
+            "enum": [
+              "bearer",
+              "api_key",
+              "none",
+              "oauth"
+            ],
+            "default": "bearer"
+          },
+          "authToken": {
+            "type": "string",
+            "description": "Authentication token or API key"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Project ID if scoped to a project",
+            "format": "uuid"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional connection metadata"
+          }
+        },
+        "required": [
+          "name",
+          "platformType",
+          "baseUrl"
+        ]
+      },
+      "PlatformConnection": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateConnectionDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Display name for the connection"
+          },
+          "baseUrl": {
+            "type": "string",
+            "description": "Platform base URL endpoint"
+          },
+          "authType": {
+            "type": "string",
+            "enum": [
+              "bearer",
+              "api_key",
+              "none",
+              "oauth"
+            ]
+          },
+          "authToken": {
+            "type": "string",
+            "description": "Updated authentication token or API key"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional connection metadata"
+          }
+        }
+      },
+      "CreateExternalLinkDto": {
+        "type": "object",
+        "properties": {
+          "connectionId": {
+            "type": "string",
+            "description": "Connection ID this record belongs to",
+            "format": "uuid"
+          },
+          "externalEntityType": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "team",
+              "issue",
+              "thread",
+              "run",
+              "workspace"
+            ],
+            "description": "Type of external entity"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External entity ID on the native platform",
+            "example": "issue-42"
+          },
+          "externalTitle": {
+            "type": "string",
+            "description": "External entity title or summary",
+            "example": "Implement auth adapter"
+          },
+          "externalUrl": {
+            "type": "string",
+            "description": "Deep link URL to native platform record"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "OSCAR Project ID to map to",
+            "format": "uuid"
+          },
+          "goalId": {
+            "type": "string",
+            "description": "OSCAR Goal ID to map to",
+            "format": "uuid"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Entity metadata and state snapshot"
+          }
+        },
+        "required": [
+          "connectionId",
+          "externalEntityType",
+          "externalId",
+          "externalTitle",
+          "externalUrl"
+        ]
+      },
+      "ExternalLink": {
         "type": "object",
         "properties": {}
       }

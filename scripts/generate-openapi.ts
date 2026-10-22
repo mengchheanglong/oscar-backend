@@ -32,10 +32,10 @@ import { SearchController } from '../src/modules/search/search.controller';
 import { SearchService } from '../src/modules/search/search.service';
 import { IngestionController } from '../src/modules/ingestion/ingestion.controller';
 import { IngestionService } from '../src/modules/ingestion/ingestion.service';
-import { AiController } from '../src/modules/ai/ai.controller';
-import { AiService } from '../src/modules/ai/ai.service';
-import { CopilotMemoryController } from '../src/modules/ai/copilot-memory.controller';
-import { CopilotMemoryService } from '../src/modules/ai/copilot-memory.service';
+import { AssistantController } from '../src/modules/assistant/assistant.controller';
+import { AssistantService } from '../src/modules/assistant/assistant.service';
+import { SavedMemoryController } from '../src/modules/assistant/saved-memory.controller';
+import { SavedMemoryService } from '../src/modules/assistant/saved-memory.service';
 import { Document } from '../src/modules/documents/entities/document.entity';
 import { DocumentRevision } from '../src/modules/documents/entities/document-revision.entity';
 import { STORAGE_DRIVER } from '../src/modules/storage/storage.interface';
@@ -47,16 +47,25 @@ import { Task } from '../src/modules/tasks/entities/task.entity';
 import { User } from '../src/modules/users/entities/user.entity';
 import { Project } from '../src/modules/projects/entities/project.entity';
 import { createOpenApiDocument } from '../src/openapi';
-import { AgentRunsController } from '../src/modules/ai/agent-runs.controller';
-import { AgentRunsService } from '../src/modules/ai/agent-runs.service';
+import { AgentRunsController } from '../src/modules/assistant/agent-runs.controller';
+import { AgentRunsService } from '../src/modules/assistant/agent-runs.service';
+import { PlatformHandoffsController } from '../src/modules/assistant/platform-handoffs.controller';
+import { PlatformHandoffsService } from '../src/modules/assistant/platform-handoffs.service';
 import { ApiKeysController } from '../src/modules/auth/api-keys.controller';
 import { ApiKeyService } from '../src/modules/auth/services/api-key.service';
 import { UserTasksController } from '../src/modules/tasks/user-tasks.controller';
 import { UserDocumentsController } from '../src/modules/documents/user-documents.controller';
-import { ProposalsController } from '../src/modules/ai/proposals.controller';
-import { ProposalsService } from '../src/modules/ai/proposals.service';
+import { ProposalsController } from '../src/modules/assistant/proposals.controller';
+import { ProposalsService } from '../src/modules/assistant/proposals.service';
 import { GitHubIntegrationController } from '../src/modules/integrations/github/github-integration.controller';
 import { GitHubIntegrationService } from '../src/modules/integrations/github/github-integration.service';
+import { GoalsController } from '../src/modules/goals/goals.controller';
+import { UserGoalsController } from '../src/modules/goals/user-goals.controller';
+import { GoalsService } from '../src/modules/goals/goals.service';
+import { MavisController } from '../src/modules/mavis/mavis.controller';
+import { MavisService } from '../src/modules/mavis/mavis.service';
+import { PlatformsController } from '../src/modules/platforms/platforms.controller';
+import { PlatformsService } from '../src/modules/platforms/platforms.service';
 
 export const OPENAPI_CONTROLLERS = [
   UploadedFoldersController,
@@ -75,11 +84,16 @@ export const OPENAPI_CONTROLLERS = [
   UserDocumentsController,
   SearchController,
   IngestionController,
-  AiController,
+  AssistantController,
   ProposalsController,
-  CopilotMemoryController,
+  SavedMemoryController,
   AgentRunsController,
+  PlatformHandoffsController,
   GitHubIntegrationController,
+  GoalsController,
+  UserGoalsController,
+  MavisController,
+  PlatformsController,
 ];
 
 // Offline metadata-only app: no database connection, .env, provider call, or listening socket.
@@ -111,11 +125,15 @@ export const OPENAPI_CONTROLLERS = [
     { provide: DocumentsService, useValue: {} },
     { provide: SearchService, useValue: {} },
     { provide: IngestionService, useValue: {} },
-    { provide: AiService, useValue: {} },
-    { provide: CopilotMemoryService, useValue: {} },
+    { provide: AssistantService, useValue: {} },
+    { provide: SavedMemoryService, useValue: {} },
     { provide: AgentRunsService, useValue: {} },
+    { provide: PlatformHandoffsService, useValue: {} },
     { provide: ProposalsService, useValue: {} },
     { provide: GitHubIntegrationService, useValue: {} },
+    { provide: GoalsService, useValue: {} },
+    { provide: MavisService, useValue: {} },
+    { provide: PlatformsService, useValue: {} },
     { provide: STORAGE_DRIVER, useValue: {} },
     { provide: getRepositoryToken(ProjectMember), useValue: {} },
     { provide: getRepositoryToken(Decision), useValue: {} },

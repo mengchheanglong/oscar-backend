@@ -12,6 +12,7 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { Project } from '../../projects/entities/project.entity';
 import { Priority } from '../../../common/enums/priority.enum';
+import { Goal } from '../../goals/entities/goal.entity';
 
 export enum TaskStatus {
   TODO = 'TODO',
@@ -72,6 +73,13 @@ export class Task {
 
   @Column({ name: 'source_meeting_id', type: 'uuid', nullable: true })
   sourceMeetingId!: string | null;
+
+  @Column({ name: 'goal_id', type: 'uuid', nullable: true })
+  goalId?: string | null;
+
+  @ManyToOne(() => Goal, (goal) => goal.tasks, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'goal_id' })
+  goal?: Goal | null;
 
   @Column({ name: 'created_by', type: 'uuid' })
   createdBy!: string;

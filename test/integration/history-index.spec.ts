@@ -9,21 +9,24 @@ import {
   ProjectMember,
   ProjectRole,
 } from '../../src/modules/projects/entities/project-member.entity';
-import { AiMode, Conversation } from '../../src/modules/ai/entities/conversation.entity';
+import {
+  AssistantMode,
+  Conversation,
+} from '../../src/modules/assistant/entities/conversation.entity';
 import {
   ChatMessage,
   MessageRole,
   MessageStatus,
-} from '../../src/modules/ai/entities/chat-message.entity';
+} from '../../src/modules/assistant/entities/chat-message.entity';
 import {
   HistoryIndexRepository,
   HistoryIndexLimits,
-} from '../../src/modules/ai/context/history-index.repository';
-import { HistoryIndexWorker } from '../../src/modules/ai/context/history-index.worker';
-import { HistoryVectorRepository } from '../../src/modules/ai/context/history-vector.repository';
-import { ConversationHistoryRepository } from '../../src/modules/ai/context/conversation-history.repository';
-import { embeddingIdentity } from '../../src/modules/ai/memory/private-memory.contract';
-import { historyEmbeddingIdentity } from '../../src/modules/ai/context/history-retrieval.contract';
+} from '../../src/modules/assistant/context/history-index.repository';
+import { HistoryIndexWorker } from '../../src/modules/assistant/context/history-index.worker';
+import { HistoryVectorRepository } from '../../src/modules/assistant/context/history-vector.repository';
+import { ConversationHistoryRepository } from '../../src/modules/assistant/context/conversation-history.repository';
+import { embeddingIdentity } from '../../src/modules/assistant/memory/private-memory.contract';
+import { historyEmbeddingIdentity } from '../../src/modules/assistant/context/history-retrieval.contract';
 
 describe('Durable automatic history indexing with PostgreSQL', () => {
   let db: DataSource, jobs: HistoryIndexRepository;
@@ -102,7 +105,7 @@ describe('Durable automatic history indexing with PostgreSQL', () => {
       conversationId: conversation.id,
       role: MessageRole.USER,
       content,
-      mode: AiMode.WORKSPACE,
+      mode: AssistantMode.WORKSPACE,
     });
   async function limits(texts = 100, bytes = 100000): Promise<HistoryIndexLimits> {
     const used = (
@@ -144,7 +147,7 @@ describe('Durable automatic history indexing with PostgreSQL', () => {
       conversationId: foreign.id,
       role: MessageRole.USER,
       content: 'Other private fact.',
-      mode: AiMode.WORKSPACE,
+      mode: AssistantMode.WORKSPACE,
     });
     const cap = await limits(10);
     cap.scopeTexts = 1;

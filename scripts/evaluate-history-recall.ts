@@ -4,8 +4,8 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { databaseOptions } from '../src/database/database-options';
-import { memoryEmbedder } from '../src/modules/ai/memory/private-memory.provider';
-import { DEFAULT_HISTORY_MAX_DISTANCE } from '../src/modules/ai/context/history-retrieval.contract';
+import { memoryEmbedder } from '../src/modules/assistant/memory/private-memory.provider';
+import { DEFAULT_HISTORY_MAX_DISTANCE } from '../src/modules/assistant/context/history-retrieval.contract';
 import {
   evaluateHistoryRecall,
   syntheticHistoryEmbedder,

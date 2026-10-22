@@ -25,6 +25,7 @@ import { AuditLog } from '../../src/modules/audit/entities/audit-log.entity';
 import { Decision } from '../../src/modules/decisions/entities/decision.entity';
 import { DecisionRevision } from '../../src/modules/decisions/entities/decision-revision.entity';
 import { Task } from '../../src/modules/tasks/entities/task.entity';
+import { Goal } from '../../src/modules/goals/entities/goal.entity';
 import { PasswordService } from '../../src/modules/auth/services/password.service';
 import { OutboxService } from '../../src/modules/ingestion/outbox.service';
 
@@ -337,6 +338,10 @@ describe('Decisions API (E2E)', () => {
   const mockDataSource = {
     entityMetadatas: [] as unknown[],
     options: { type: 'postgres' },
+    getRepository: jest.fn(() => ({
+      find: jest.fn().mockResolvedValue([]),
+      findOne: jest.fn().mockResolvedValue(null),
+    })),
     transaction: jest.fn(async (cb: (manager: unknown) => Promise<unknown>) =>
       cb(mockEntityManager),
     ),
@@ -525,6 +530,11 @@ describe('Decisions API (E2E)', () => {
       .useValue(mockDecisionRevisionRepository)
       .overrideProvider(getRepositoryToken(Task))
       .useValue({ find: jest.fn().mockResolvedValue([]), findOne: jest.fn() })
+      .overrideProvider(getRepositoryToken(Goal))
+      .useValue({
+        find: jest.fn().mockResolvedValue([]),
+        findOne: jest.fn().mockResolvedValue(null),
+      })
       .overrideProvider(DataSource)
       .useValue(mockDataSource)
       .compile();

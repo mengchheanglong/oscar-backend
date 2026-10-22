@@ -1,7 +1,7 @@
 # English history answer evaluation
 
 Evaluated on 2026-10-16 using the configured DeepSeek V4 Pro generation adapter
-and normal OpenRouter embeddings. This exercises the real `AiService.postMessage`
+and normal OpenRouter embeddings. This exercises the real `AssistantService.postMessage`
 path inside a Nest application context against a dedicated PostgreSQL test
 database. It is separate from the earlier retrieval-only benchmark.
 

@@ -1,4 +1,4 @@
-import { MessageStatus } from '../../src/modules/ai/entities/chat-message.entity';
+import { MessageStatus } from '../../src/modules/assistant/entities/chat-message.entity';
 import { gradeHistoryAnswer } from '../fixtures/history-answer-evaluation';
 import { EvaluationNetworkBudget } from '../../scripts/lib/evaluation-network-budget';
 

@@ -46,4 +46,9 @@ export class UpdateDecisionDto {
   @IsOptional()
   @IsUUID()
   supersedesDecisionId?: string;
+
+  @ApiPropertyOptional({ description: 'UUID of associated goal', nullable: true })
+  @IsOptional()
+  @IsUUID()
+  goalId?: string | null;
 }

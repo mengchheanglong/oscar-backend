@@ -4,10 +4,10 @@ import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { z } from 'zod';
 import { databaseOptions } from '../src/database/database-options';
-import { memoryEmbedder } from '../src/modules/ai/memory/private-memory.provider';
-import { ConversationHistoryRepository } from '../src/modules/ai/context/conversation-history.repository';
-import { HistoryVectorRepository } from '../src/modules/ai/context/history-vector.repository';
-import { HistoryRecallService } from '../src/modules/ai/context/history-recall.service';
+import { memoryEmbedder } from '../src/modules/assistant/memory/private-memory.provider';
+import { ConversationHistoryRepository } from '../src/modules/assistant/context/conversation-history.repository';
+import { HistoryVectorRepository } from '../src/modules/assistant/context/history-vector.repository';
+import { HistoryRecallService } from '../src/modules/assistant/context/history-recall.service';
 
 async function main(): Promise<void> {
   const [projectId, userId, confirmation] = process.argv.slice(2);

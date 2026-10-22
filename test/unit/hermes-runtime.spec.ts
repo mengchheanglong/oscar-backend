@@ -4,10 +4,11 @@ import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import fs from 'node:fs';
 import path from 'node:path';
-import { HermesRuntime } from '../../src/modules/ai/runtime/hermes-runtime';
+import { HermesRuntime } from '../../src/modules/assistant/runtime/hermes-runtime';
+import * as credentials from '../../src/modules/assistant/runtime/hermes-credentials';
 
 describe('Hermes subprocess boundary', () => {
-  function setup() {
+  function setup(overrides: Record<string, unknown> = {}) {
     jest.spyOn(fs, 'existsSync').mockReturnValue(true);
     const child = Object.assign(new EventEmitter(), {
       stdin: new PassThrough(),
@@ -25,6 +26,7 @@ describe('Hermes subprocess boundary', () => {
         HERMES_PYTHON: path.resolve('prepared-python'),
         HERMES_ROOT: path.resolve('isolated-source'),
         DEEPSEEK_API_KEY: 'synthetic-test-key',
+        ...overrides,
       }),
     );
     return { child, spawn, runtime };
@@ -35,6 +37,49 @@ describe('Hermes subprocess boundary', () => {
     model: 'deepseek-v4-pro',
     apiKey: 'synthetic-test-key',
   };
+
+  const nousConfig = {
+    HERMES_PROVIDER: 'nous',
+    HERMES_AUTH_PYTHON: path.resolve('auth-python'),
+    HERMES_AUTH_ROOT: path.resolve('auth-source'),
+    HERMES_AUTH_HOME: path.resolve('auth-home'),
+    DEEPSEEK_API_KEY: '',
+  };
+  it('uses only the Nous invoke credential in the isolated agent process', async () => {
+    const { child, spawn, runtime } = setup(nousConfig);
+    const model = 'stepfun/step-3.7-flash:free';
+    jest.spyOn(credentials, 'nousCredentials').mockResolvedValue({
+      provider: 'nous',
+      model,
+      baseUrl: 'https://inference-api.nousresearch.com/v1',
+      apiKey: 'synthetic-nous-invoke',
+    });
+    expect(runtime.available()).toBe(true);
+    const promise = runtime.execute(
+      { ...input, model },
+      { tool: jest.fn() },
+      new AbortController().signal,
+    );
+    await new Promise((r) => setImmediate(r));
+    const sent = JSON.parse(String(child.stdin.read()));
+    expect(sent).toMatchObject({ provider: 'nous', model, apiKey: 'synthetic-nous-invoke' });
+    expect(JSON.stringify(sent)).not.toContain('synthetic-test-key');
+    expect(spawn.mock.calls[0]?.[2]?.env).not.toHaveProperty('HERMES_HOME');
+    expect(spawn.mock.calls[0]?.[2]?.env).not.toHaveProperty('HERMES_AUTH_HOME');
+    child.stdout.write(JSON.stringify({ type: 'result', content: 'Nous result' }) + '\n');
+    child.emit('close', 0);
+    await expect(promise).resolves.toBe('Nous result');
+  });
+  it('fails closed when Nous auth is unavailable instead of trying DeepSeek', async () => {
+    const { spawn, runtime } = setup(nousConfig);
+    jest
+      .spyOn(credentials, 'nousCredentials')
+      .mockRejectedValue(new Error('HERMES_NOUS_AUTH_REQUIRED'));
+    await expect(
+      runtime.execute(input, { tool: jest.fn() }, new AbortController().signal),
+    ).rejects.toThrow('HERMES_NOUS_AUTH_REQUIRED');
+    expect(spawn).not.toHaveBeenCalled();
+  });
 
   it('routes tool requests through the parent and completes only on a clean process exit', async () => {
     const { child, spawn, runtime } = setup();

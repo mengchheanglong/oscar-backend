@@ -64,4 +64,9 @@ export class UpdateTaskDto {
   @IsString()
   @MaxLength(500)
   blockedReason?: string | null;
+
+  @ApiPropertyOptional({ description: 'UUID of associated goal', nullable: true })
+  @IsOptional()
+  @IsUUID()
+  goalId?: string | null;
 }

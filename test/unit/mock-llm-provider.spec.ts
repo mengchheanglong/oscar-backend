@@ -1,6 +1,6 @@
-import { MockLlmProvider } from '../../src/modules/ai/llm/mock-llm-provider';
+import { MockLlmProvider } from '../../src/modules/assistant/llm/mock-llm-provider';
 import { KnowledgeSourceType } from '../../src/modules/ingestion/entities';
-import { RetrievedEvidence } from '../../src/modules/ai/retrieval/retrieval.service';
+import { RetrievedEvidence } from '../../src/modules/mavis/retrieval/retrieval.service';
 
 describe('MockLlmProvider', () => {
   let provider: MockLlmProvider;

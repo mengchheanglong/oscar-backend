@@ -31,6 +31,8 @@ export class TaskAiProvenanceDto {
 }
 
 export class TaskResponseDto {
+  @ApiPropertyOptional({ nullable: true })
+  goalId!: string | null;
   @ApiPropertyOptional({
     type: TaskAiProvenanceDto,
     nullable: true,
@@ -108,6 +110,7 @@ export class TaskResponseDto {
   static fromEntity(task: Task, projectKey: string): TaskResponseDto {
     return {
       id: task.id,
+      goalId: task.goalId ?? null,
       projectId: task.projectId,
       number: task.number,
       displayKey: `${task.project?.key || projectKey}-TASK-${task.number}`,

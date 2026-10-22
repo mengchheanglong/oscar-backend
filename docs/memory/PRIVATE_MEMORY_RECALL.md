@@ -35,10 +35,10 @@ the latest 100 for management; that listing limit does not limit recall.
 
 ## Code ownership
 
-`src/modules/ai/memory/` contains the scope/result contracts, provider factory,
-SQL repository and selection/indexing service. Existing `CopilotMemoryService`
+`src/modules/assistant/memory/` contains the scope/result contracts, provider factory,
+SQL repository and selection/indexing service. Existing `SavedMemoryService`
 retains reviewed CRUD, source validation, optimistic versions and retry identity.
-`AiService` and `AgentRunsService` delegate selection without duplicating ranking.
+`AssistantService` and `AgentRunsService` delegate selection without duplicating ranking.
 The configured workspace generation model and existing frontend API remain intact.
 
 The shared OpenAI embedding adapter now validates response count, unique indices,

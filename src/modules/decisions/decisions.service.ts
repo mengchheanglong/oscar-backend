@@ -11,6 +11,7 @@ import { Decision, DecisionStatus } from './entities/decision.entity';
 import { DecisionRevision } from './entities/decision-revision.entity';
 import { Project } from '../projects/entities/project.entity';
 import { ProjectRole } from '../projects/entities/project-member.entity';
+import { Goal } from '../goals/entities/goal.entity';
 import { CreateDecisionDto } from './dto/create-decision.dto';
 import { UpdateDecisionDto } from './dto/update-decision.dto';
 import { ListDecisionsQueryDto } from './dto/list-decisions-query.dto';
@@ -38,6 +39,8 @@ export class DecisionsService {
     private readonly revisionRepository: Repository<DecisionRevision>,
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
+    @InjectRepository(Goal)
+    private readonly goalRepository: Repository<Goal>,
     private readonly auditService: AuditService,
     private readonly outboxService: OutboxService,
     private readonly dataSource: DataSource,
@@ -64,6 +67,9 @@ export class DecisionsService {
     if (dto.supersedesDecisionId) {
       await this.validateDecisionInProject(dto.supersedesDecisionId, projectId);
     }
+    if (dto.goalId) {
+      await this.validateGoalInProject(dto.goalId, projectId);
+    }
 
     return this.dataSource.transaction(async (manager) => {
       // Allocate project-local number
@@ -83,6 +89,7 @@ export class DecisionsService {
         decidedAt: null,
         decidedBy: null,
         supersedesDecisionId: dto.supersedesDecisionId ?? null,
+        goalId: dto.goalId ?? null,
         sourceMeetingId: null,
         createdBy: actorId,
         updatedBy: actorId,
@@ -234,6 +241,12 @@ export class DecisionsService {
     }
     if (dto.supersedesDecisionId !== undefined) {
       decision.supersedesDecisionId = dto.supersedesDecisionId ?? null;
+    }
+    if (dto.goalId !== undefined) {
+      if (dto.goalId !== null) {
+        await this.validateGoalInProject(dto.goalId, projectId);
+      }
+      decision.goalId = dto.goalId ?? null;
     }
     decision.updatedBy = actorId;
 
@@ -409,5 +422,38 @@ export class DecisionsService {
       code: 'SUPERSESSION_CHAIN_TOO_DEEP',
       message: 'Supersession chain exceeds maximum depth.',
     });
+  }
+
+  private async validateGoalInProject(goalId: string, projectId: string): Promise<void> {
+    try {
+      const goal = await this.goalRepository.findOne({
+        where: { id: goalId, deletedAt: IsNull() },
+        select: ['id', 'projectId'],
+      });
+      if (!goal) {
+        throw new BadRequestException({
+          code: 'INVALID_GOAL',
+          message: 'Referenced goal not found in this project.',
+        });
+      }
+      if (goal.projectId !== projectId) {
+        throw new BadRequestException({
+          code: 'INVALID_GOAL',
+          message: 'Referenced goal does not belong to this project.',
+        });
+      }
+    } catch (err: unknown) {
+      if (err instanceof BadRequestException) throw err;
+      if (
+        (typeof err === 'object' && err !== null && 'code' in err && err.code === '22P02') ||
+        (err instanceof Error && err.message.includes('invalid input syntax for type uuid'))
+      ) {
+        throw new BadRequestException({
+          code: 'INVALID_GOAL',
+          message: 'Referenced goal not found in this project.',
+        });
+      }
+      throw err;
+    }
   }
 }

@@ -7,13 +7,16 @@ import {
   ProjectMember,
   ProjectRole,
 } from '../../src/modules/projects/entities/project-member.entity';
-import { AiMode, Conversation } from '../../src/modules/ai/entities/conversation.entity';
-import { ChatMessage, MessageRole } from '../../src/modules/ai/entities/chat-message.entity';
-import { MemoryEmbeddingProvider } from '../../src/modules/ai/memory/private-memory.contract';
-import { ConversationHistoryRepository } from '../../src/modules/ai/context/conversation-history.repository';
-import { HistoryVectorRepository } from '../../src/modules/ai/context/history-vector.repository';
-import { HistoryRecallService } from '../../src/modules/ai/context/history-recall.service';
-import { DEFAULT_HISTORY_MAX_DISTANCE } from '../../src/modules/ai/context/history-retrieval.contract';
+import {
+  AssistantMode,
+  Conversation,
+} from '../../src/modules/assistant/entities/conversation.entity';
+import { ChatMessage, MessageRole } from '../../src/modules/assistant/entities/chat-message.entity';
+import { MemoryEmbeddingProvider } from '../../src/modules/assistant/memory/private-memory.contract';
+import { ConversationHistoryRepository } from '../../src/modules/assistant/context/conversation-history.repository';
+import { HistoryVectorRepository } from '../../src/modules/assistant/context/history-vector.repository';
+import { HistoryRecallService } from '../../src/modules/assistant/context/history-recall.service';
+import { DEFAULT_HISTORY_MAX_DISTANCE } from '../../src/modules/assistant/context/history-retrieval.contract';
 
 export const historyCases = [
   {
@@ -196,7 +199,7 @@ export async function evaluateHistoryRecall(
       messages.save({
         conversationId: id,
         role: MessageRole.USER,
-        mode: AiMode.WORKSPACE,
+        mode: AssistantMode.WORKSPACE,
         content,
       });
     const current = await makeChat();

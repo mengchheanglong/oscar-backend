@@ -18,7 +18,7 @@ import {
   KnowledgeSource,
   KnowledgeSourceType,
 } from '../../src/modules/ingestion/entities';
-import { RetrievalService } from '../../src/modules/ai/retrieval/retrieval.service';
+import { RetrievalService } from '../../src/modules/mavis/retrieval/retrieval.service';
 import { ConfigService } from '@nestjs/config';
 import { IngestionService } from '../../src/modules/ingestion/ingestion.service';
 import { ProcessingJob } from '../../src/modules/ingestion/entities';

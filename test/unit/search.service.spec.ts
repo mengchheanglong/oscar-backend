@@ -8,6 +8,7 @@ describe('SearchService (Unit)', () => {
   let mockDecRepo: { createQueryBuilder: jest.Mock };
   let mockTaskRepo: { createQueryBuilder: jest.Mock };
   let mockDocRepo: { createQueryBuilder: jest.Mock };
+  let mockGoalRepo: { createQueryBuilder: jest.Mock };
 
   const mockProjectId = '11111111-1111-1111-1111-111111111111';
 
@@ -17,8 +18,8 @@ describe('SearchService (Unit)', () => {
     };
 
     interface MockQb<T> {
-      where: () => MockQb<T>;
-      andWhere: () => MockQb<T>;
+      where: (clause?: string, params?: Record<string, unknown>) => MockQb<T>;
+      andWhere: (clause?: string, params?: Record<string, unknown>) => MockQb<T>;
       leftJoinAndSelect: () => MockQb<T>;
       getMany: () => Promise<T[]>;
     }
@@ -90,6 +91,10 @@ describe('SearchService (Unit)', () => {
       ),
     };
 
+    mockGoalRepo = {
+      createQueryBuilder: jest.fn().mockReturnValue(createMockQb([])),
+    };
+
     service = new SearchService(
       mockProjectRepo as unknown as import('typeorm').Repository<
         import('../../src/modules/projects/entities/project.entity').Project
@@ -105,8 +110,11 @@ describe('SearchService (Unit)', () => {
       >,
       {
         retrieve: jest.fn().mockResolvedValue([]),
-      } as unknown as import('../../src/modules/ai/retrieval/retrieval.service').RetrievalService,
+      } as unknown as import('../../src/modules/mavis/retrieval/retrieval.service').RetrievalService,
       { query: jest.fn().mockResolvedValue([]) } as unknown as import('typeorm').DataSource,
+      mockGoalRepo as unknown as import('typeorm').Repository<
+        import('../../src/modules/goals/entities/goal.entity').Goal
+      >,
     );
   });
 
@@ -135,6 +143,7 @@ describe('SearchService (Unit)', () => {
       GITHUB_ISSUE: 0,
       GITHUB_PR: 0,
       GITHUB_CODE: 0,
+      GOAL: 0,
     });
 
     // Verify ordering: newest updatedAt first (task-1 at 13:00, req-1 at 12:00, etc.)
@@ -169,5 +178,52 @@ describe('SearchService (Unit)', () => {
     expect(result.data[0]!.type).toBe(SearchEntityType.DOCUMENT);
     expect(result.meta.countsByType.DOCUMENT).toBe(1);
     expect(result.meta.countsByType.TASK).toBe(0);
+  });
+
+  it('filters and scopes goal search to project and actor personal goals', async () => {
+    mockProjectRepo.findOneBy.mockResolvedValue({
+      id: mockProjectId,
+      key: 'AIW',
+    });
+
+    const mockGoalQb = {
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([
+        {
+          id: 'goal-1',
+          projectId: mockProjectId,
+          userId: 'actor',
+          title: 'Reach $100K ARR',
+          description: 'Scale subscription revenue',
+          motivation: 'Achieve profitability',
+          target: '$100K',
+          status: 'IN_PROGRESS',
+          category: 'BUSINESS',
+          progress: 50,
+          updatedAt: new Date('2026-09-15T15:00:00Z'),
+        },
+      ]),
+    };
+    mockGoalRepo.createQueryBuilder.mockReturnValue(mockGoalQb);
+
+    const result = await service.search(
+      mockProjectId,
+      {
+        q: 'revenue',
+        type: SearchEntityType.GOAL,
+      },
+      'actor-123',
+    );
+
+    expect(mockGoalRepo.createQueryBuilder).toHaveBeenCalled();
+    expect(mockGoalQb.where).toHaveBeenCalledWith(
+      '(goal.projectId = :projectId OR (goal.projectId IS NULL AND goal.userId = :actorId))',
+      { projectId: mockProjectId, actorId: 'actor-123' },
+    );
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]!.type).toBe(SearchEntityType.GOAL);
+    expect(result.data[0]!.title).toBe('Reach $100K ARR');
+    expect(result.meta.countsByType.GOAL).toBe(1);
   });
 });

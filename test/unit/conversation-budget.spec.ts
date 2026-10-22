@@ -3,7 +3,7 @@ import {
   estimateContext,
   prepareConversationContext,
   ContextTurn,
-} from '../../src/modules/ai/context/conversation-budget';
+} from '../../src/modules/assistant/context/conversation-budget';
 
 describe('Conversation context budget', () => {
   const previous = { summary: '', through: '0', revision: 0 };

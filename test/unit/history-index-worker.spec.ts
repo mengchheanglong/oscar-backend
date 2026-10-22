@@ -1,10 +1,10 @@
 import { ConfigService } from '@nestjs/config';
-import { HistoryIndexWorker } from '../../src/modules/ai/context/history-index.worker';
+import { HistoryIndexWorker } from '../../src/modules/assistant/context/history-index.worker';
 import {
   HistoryIndexRepository,
   HistoryIndexBatch,
-} from '../../src/modules/ai/context/history-index.repository';
-import { HistoryVectorRepository } from '../../src/modules/ai/context/history-vector.repository';
+} from '../../src/modules/assistant/context/history-index.repository';
+import { HistoryVectorRepository } from '../../src/modules/assistant/context/history-vector.repository';
 
 describe('Automatic history indexing lifecycle', () => {
   const config = new ConfigService({ AI_ENABLED: true, AI_HISTORY_AUTO_INDEX_ENABLED: true });

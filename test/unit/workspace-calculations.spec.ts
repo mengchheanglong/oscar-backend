@@ -1,4 +1,4 @@
-import { calculatePricing } from '../../src/modules/ai/runtime/workspace-calculations';
+import { calculatePricing } from '../../src/modules/assistant/runtime/workspace-calculations';
 
 describe('Pricing scenarios', () => {
   it('calculates contribution, profit and integer break-even from explicit inputs', () => {

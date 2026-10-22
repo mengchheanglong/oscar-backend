@@ -5,10 +5,10 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { databaseOptions } from '../src/database/database-options';
-import { AiService } from '../src/modules/ai/ai.service';
-import { CopilotMemoryService } from '../src/modules/ai/copilot-memory.service';
-import { HistoryRecallService } from '../src/modules/ai/context/history-recall.service';
-import { ConversationContextService } from '../src/modules/ai/context/conversation-context.service';
+import { AssistantService } from '../src/modules/assistant/assistant.service';
+import { SavedMemoryService } from '../src/modules/assistant/saved-memory.service';
+import { HistoryRecallService } from '../src/modules/assistant/context/history-recall.service';
+import { ConversationContextService } from '../src/modules/assistant/context/conversation-context.service';
 import {
   ANSWER_CASES,
   AnswerCase,
@@ -90,10 +90,10 @@ async function main(): Promise<void> {
     const report = await evaluateHistoryAnswers(
       app.get(DataSource),
       {
-        ai: app.get(AiService),
+        ai: app.get(AssistantService),
         recall: app.get(HistoryRecallService),
         context,
-        memory: app.get(CopilotMemoryService),
+        memory: app.get(SavedMemoryService),
         config: app.get(ConfigService),
         trace: () => trace,
         progress: (name, passed) => console.log(JSON.stringify({ case: name, passed })),

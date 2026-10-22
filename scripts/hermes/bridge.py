@@ -61,6 +61,13 @@ def main():
             logging.shutdown()
             return
         request = json.loads(wire_in.readline())
+        provider = request.get("provider", "deepseek")
+        base_url = request.get("baseUrl", "https://api.deepseek.com")
+        if provider == "nous":
+            if base_url != "https://inference-api.nousresearch.com/v1" or not request["model"].endswith(":free"):
+                raise RuntimeError("Invalid Nous invocation")
+        elif provider != "deepseek" or base_url != "https://api.deepseek.com":
+            raise RuntimeError("Invalid provider")
         sequence = 0
         lock = threading.Lock()
 
@@ -99,7 +106,7 @@ def main():
                                   handler=handler(schema["name"]), check_fn=lambda: True)
             agent = AIAgent(
                 provider="custom", api_mode="chat_completions",
-                base_url="https://api.deepseek.com", api_key=request["apiKey"],
+                base_url=base_url, api_key=request["apiKey"],
                 model=request["model"], max_iterations=8, max_tokens=3000,
                 enabled_toolsets=["ai_workspace"], quiet_mode=True,
                 skip_context_files=True, skip_memory=True, skip_background_review=True,

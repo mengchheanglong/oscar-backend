@@ -20,6 +20,7 @@ export enum SearchEntityType {
   GITHUB_ISSUE = 'GITHUB_ISSUE',
   GITHUB_PR = 'GITHUB_PR',
   GITHUB_CODE = 'GITHUB_CODE',
+  GOAL = 'GOAL',
 }
 
 export class SearchQueryDto {
@@ -148,6 +149,9 @@ export class SearchMetaCountsDto {
 
   @ApiPropertyOptional({ example: 0 })
   GITHUB_CODE?: number;
+
+  @ApiPropertyOptional({ example: 0 })
+  GOAL?: number;
 }
 
 export class SearchMetaDto {

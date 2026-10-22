@@ -15,9 +15,12 @@ Use the blueprint's [implementation roadmap](docs/product/OSCAR_MAVIS_Vision_and
 for new planning, beginning with Phase 0: preserve and verify the current baseline.
 Its [first MVP](docs/product/OSCAR_MAVIS_Vision_and_Architecture.md#16-the-first-mvp-i-would-actually-build)
 connects a real goal, approved memory, and one supervised external agent workflow.
-Goals, Paperclip/T3 integrations, and expanded MAVIS capabilities described there
-are planned work, not claims of existing functionality. The inherited implementation
-guide remains a record of the foundation and its verification history.
+The [Phases 1–3 implementation](docs/product/OSCAR_MAVIS_PHASES_1_3.md) adds goals,
+approved MAVIS memory, and platform activity. The [T3 chat handoff](docs/product/OSCAR_T3_HANDOFF.md)
+adds reviewed, supervised execution and returns T3's result to OSCAR chat.
+The [shared agent handoff guide](docs/product/OSCAR_AGENT_HANDOFFS.md) covers Hermes,
+T3 and Paperclip execution, result summaries and configuration. The inherited
+implementation guide remains a record of the foundation and its verification history.
 
 The [documentation map](docs/README.md) groups the product, architecture, memory,
 evaluation, operations, and API references by topic.
@@ -309,7 +312,7 @@ Runtime pages and MCP tools use saved workspace records. The current workspace h
 
 To enable real semantic search, configure `AI_EMBEDDING_PROVIDER=openai` with a separate `OPENAI_API_KEY`, then reindex the project sources. Migration `1790985600000-RemoveMockEmbeddings` makes vectors nullable and clears only vectors labeled `mock-*`, retaining text, provenance and real vectors. Apply migrations explicitly; never reset a persistent database for this cleanup.
 
-The legacy mock verification scripts (`verify-p2-01-ingestion.ts`, `verify-p2-02-retrieval-chat.ts`, `verify-ai-task-flow.ts`) require a separate local `TEST_DATABASE_URL` targeting `ai_workspace_test` on port 55433. They ignore the application's `DATABASE_URL` so they cannot populate the live workspace with test data.
+The legacy mock verification scripts (`verify-p2-01-ingestion.ts`, `verify-retrieval-chat.ts`, `verify-ai-task-flow.ts`) require a separate local `TEST_DATABASE_URL` targeting `ai_workspace_test` on port 55433. They ignore the application's `DATABASE_URL` so they cannot populate the live workspace with test data.
 
 ## Complete GitHub code indexing
 
@@ -381,3 +384,5 @@ Standalone chats retain their all-project context in conversation metadata. Appl
 before starting this backend revision. The private chat remains in its existing
 storage project; broader context means permitted project knowledge, not broader
 access to another user's private conversation or memory.
+
+See [Phase 1–3 implementation and compatibility](docs/product/OSCAR_MAVIS_PHASES_1_3.md) for goals, MAVIS review, platform setup, and module naming.

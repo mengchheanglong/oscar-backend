@@ -14,9 +14,13 @@ import {
   ProjectMember,
   ProjectRole,
 } from '../../src/modules/projects/entities/project-member.entity';
+import { Goal } from '../../src/modules/goals/entities/goal.entity';
 import { AuditService } from '../../src/modules/audit/audit.service';
 import { OutboxService } from '../../src/modules/ingestion/outbox.service';
-import { AIProposal, ProposalStatus } from '../../src/modules/ai/entities/proposal.entity';
+import {
+  AssistantProposal,
+  ProposalStatus,
+} from '../../src/modules/assistant/entities/proposal.entity';
 
 const PROJECT_ID = '11111111-1111-1111-1111-111111111111';
 const ACTOR_ID = '22222222-2222-2222-2222-222222222222';
@@ -67,6 +71,10 @@ describe('TasksService', () => {
     findOne: jest.fn(),
   };
 
+  const mockGoalRepo = {
+    findOne: jest.fn(),
+  };
+
   const mockAuditService = {
     record: jest.fn().mockResolvedValue(undefined),
   };
@@ -97,6 +105,7 @@ describe('TasksService', () => {
         { provide: getRepositoryToken(Task), useValue: mockTaskRepo },
         { provide: getRepositoryToken(Project), useValue: mockProjectRepo },
         { provide: getRepositoryToken(ProjectMember), useValue: mockMemberRepo },
+        { provide: getRepositoryToken(Goal), useValue: mockGoalRepo },
         { provide: AuditService, useValue: mockAuditService },
         { provide: OutboxService, useValue: mockOutboxService },
         { provide: DataSource, useValue: mockDataSource },
@@ -121,7 +130,7 @@ describe('TasksService', () => {
       });
       mockDataSource.getRepository.mockReturnValue({ findOne });
       const result = await service.getAiProvenance(PROJECT_ID, TASK_ID);
-      expect(mockDataSource.getRepository).toHaveBeenCalledWith(AIProposal);
+      expect(mockDataSource.getRepository).toHaveBeenCalledWith(AssistantProposal);
       expect(findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -191,6 +200,43 @@ describe('TasksService', () => {
         expect.objectContaining({ action: 'TASK_ASSIGNED' }),
       );
     });
+
+    it('should reject when goalId does not belong to the project', async () => {
+      mockGoalRepo.findOne.mockResolvedValue({ id: 'goal-other', projectId: 'other-project' });
+
+      await expect(
+        service.create(PROJECT_ID, ACTOR_ID, {
+          title: 'Task with other goal',
+          goalId: 'goal-other',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject when goalId does not exist', async () => {
+      mockGoalRepo.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.create(PROJECT_ID, ACTOR_ID, {
+          title: 'Task with missing goal',
+          goalId: 'nonexistent-goal',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should allow creating task with valid goal in same project', async () => {
+      mockGoalRepo.findOne.mockResolvedValue({ id: 'goal-same', projectId: PROJECT_ID });
+      mockTransactionManager.query.mockResolvedValue([{ max: 0 }]);
+      const saved = makeTask({ number: 1, goalId: 'goal-same' });
+      mockTransactionManager.create.mockReturnValue(saved);
+      mockTransactionManager.save.mockResolvedValue(saved);
+
+      const res = await service.create(PROJECT_ID, ACTOR_ID, {
+        title: 'Task with valid goal',
+        goalId: 'goal-same',
+      });
+
+      expect(res.goalId).toBe('goal-same');
+    });
   });
 
   describe('getById', () => {
@@ -239,6 +285,36 @@ describe('TasksService', () => {
       await expect(
         service.update(PROJECT_ID, TASK_ID, ACTOR_ID, { version: 1, title: 'Stale' }),
       ).rejects.toThrow(ConflictException);
+    });
+
+    it('should reject update if goalId belongs to another project', async () => {
+      const task = makeTask({ version: 1 });
+      mockTaskRepo.findOne.mockResolvedValue(task);
+      mockGoalRepo.findOne.mockResolvedValue({ id: 'goal-other', projectId: 'other-project' });
+
+      await expect(
+        service.update(PROJECT_ID, TASK_ID, ACTOR_ID, {
+          version: 1,
+          goalId: 'goal-other',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should allow updating goalId when valid', async () => {
+      const task = makeTask({ version: 1 });
+      mockTaskRepo.findOne.mockResolvedValue(task);
+      mockGoalRepo.findOne.mockResolvedValue({ id: 'goal-same', projectId: PROJECT_ID });
+      mockTaskRepo.save.mockImplementation(async (entity: Task) => ({
+        ...entity,
+        version: entity.version + 1,
+      }));
+
+      const result = await service.update(PROJECT_ID, TASK_ID, ACTOR_ID, {
+        version: 1,
+        goalId: 'goal-same',
+      });
+
+      expect(result.goalId).toBe('goal-same');
     });
   });
 

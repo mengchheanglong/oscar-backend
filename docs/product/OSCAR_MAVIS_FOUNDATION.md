@@ -11,7 +11,7 @@ into implemented APIs.
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Backend         | Private `mengchheanglong/oscar-backend`, source revision `70fd486d85a50b9dc9d17d80d78a215215bb82b9`                                                                   |
 | Frontend        | Private `mengchheanglong/oscar-frontend`, source revision `017a6679a1d0e1cd44c2d053e0c1e5f27534cc3f`                                                                  |
-| Local layout    | `OSCAR/continuum-backend` and `OSCAR/continuum-frontend`; external runtime source lives outside both repositories                                                     |
+| Local layout    | `OSCAR/oscar-backend` and `OSCAR/oscar-frontend`; external runtime source lives outside both repositories                                                             |
 | Branches        | `develop` is the current working branch; `main` is the GitHub default in both repositories                                                                            |
 | Toolchain       | Node 24.14.0, pnpm 10.32.1, committed independent lockfiles                                                                                                           |
 | Application     | Existing Next.js frontend and NestJS/TypeORM backend; no new service or framework                                                                                     |
@@ -26,11 +26,10 @@ revision, whether either checkout was dirty, and SHA-256 hashes for every migrat
 Reports do not imply that uncommitted changes are included in their Git revision.
 
 The GitHub repositories were renamed to OSCAR after baseline verification, with
-history and private visibility preserved. New sibling checkouts should use
-`OSCAR/oscar-backend` and `OSCAR/oscar-frontend`. Windows currently prevents the
-physical folder rename on this machine, so its existing `continuum-*` paths are
-retained. The runner recognizes both frontend folder names, and the local Compose
-configuration selects the existing path. See [rename notes](CONTINUUM.md).
+history and private visibility preserved. The current sibling checkouts use
+`OSCAR/oscar-backend` and `OSCAR/oscar-frontend`. The runner also recognizes legacy
+folder names. See [rename notes](CONTINUUM.md) and the
+[Phase 1–3 implementation guide](OSCAR_MAVIS_PHASES_1_3.md).
 
 ## Repeatable verification
 
@@ -77,18 +76,18 @@ that GitHub Actions has already run the new workflow.
 
 ## Existing capabilities and ownership
 
-| Area                | Current implementation                                                                                       | Boundary to preserve                                                                                                                                 |
-| ------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Chat and turns      | `src/modules/ai/ai.service.ts`, `context/conversation-context.service.ts`, `entities/chat-message.entity.ts` | Private owner/project conversation, serialized/idempotent turns, bounded context and explicit exclusions                                             |
-| All-project context | `ai.service.ts`, `retrieval/retrieval.service.ts`                                                            | Shared evidence can span accessible projects; it does not make private memory globally visible or create a projectless database owner                |
-| Reviewed memory     | `copilot-memory.service.ts`, `memory/private-memory.service.ts`, `memory/private-memory.repository.ts`       | Actor/project access, explicit confirmation, versions, source ownership, live-row validation, and reauthorization after embedding work               |
-| Historical recall   | `context/history-recall.service.ts`, history repositories and indexing worker                                | Dialogue is historical evidence; exclusions, identity/version checks, retention semantics, and bounded indexing remain separate from reviewed memory |
-| Tasks and decisions | `src/modules/tasks`, `src/modules/decisions`, `src/modules/ai/proposals.service.ts`                          | Project-owned records and validated, reviewed, transactional task proposals; an agent cannot confirm its own task draft                              |
-| Files and knowledge | `src/modules/documents`, `local-folders`, `ingestion`, `search`                                              | Uploaded and local sources retain ownership and provenance; deletion and revisions affect retrieval eligibility                                      |
-| Hermes              | `runtime/hermes-runtime.ts`, `runtime/runtime-contract.ts`, `scripts/hermes/bridge.py`                       | Pinned clean source, temporary profile, seven allowed tools, eight iterations, twelve parent tool calls, 180-second subprocess deadline              |
-| MCP                 | `src/mcp/aiw-mcp-server.ts`, API authentication and domain services                                          | Existing bearer-token client to authorized project APIs; not a universal cross-agent memory or external execution gateway                            |
+| Area                | Current implementation                                                                                                     | Boundary to preserve                                                                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chat and turns      | `src/modules/assistant/assistant.service.ts`, `context/conversation-context.service.ts`, `entities/chat-message.entity.ts` | Private owner/project conversation, serialized/idempotent turns, bounded context and explicit exclusions                                             |
+| All-project context | `assistant.service.ts`, `src/modules/mavis/retrieval/retrieval.service.ts`                                                 | Shared evidence can span accessible projects; it does not make private memory globally visible or create a projectless database owner                |
+| Reviewed memory     | `saved-memory.service.ts`, `memory/private-memory.service.ts`, `memory/private-memory.repository.ts`                       | Actor/project access, explicit confirmation, versions, source ownership, live-row validation, and reauthorization after embedding work               |
+| Historical recall   | `context/history-recall.service.ts`, history repositories and indexing worker                                              | Dialogue is historical evidence; exclusions, identity/version checks, retention semantics, and bounded indexing remain separate from reviewed memory |
+| Tasks and decisions | `src/modules/tasks`, `src/modules/decisions`, `src/modules/assistant/proposals.service.ts`                                 | Project-owned records and validated, reviewed, transactional task proposals; an agent cannot confirm its own task draft                              |
+| Files and knowledge | `src/modules/documents`, `local-folders`, `ingestion`, `search`                                                            | Uploaded and local sources retain ownership and provenance; deletion and revisions affect retrieval eligibility                                      |
+| Hermes              | `runtime/hermes-runtime.ts`, `runtime/runtime-contract.ts`, `scripts/hermes/bridge.py`                                     | Pinned clean source, temporary profile, seven allowed tools, eight iterations, twelve parent tool calls, 180-second subprocess deadline              |
+| MCP                 | `src/mcp/oscar-mcp-server.ts`, API authentication and domain services                                                      | Existing bearer-token client to authorized project APIs; not a universal cross-agent memory or external execution gateway                            |
 
-Backend paths in the table are relative to `src/modules/ai` unless a full `src/`
+Backend paths in the table are relative to `src/modules/assistant` unless a full `src/`
 path is shown. Frontend regression coverage lives in the sibling repository's
 `test` directory. Existing source and tests are the implementation evidence;
 historical design documents may describe features that were later changed.
@@ -96,10 +95,10 @@ historical design documents may describe features that were later changed.
 The baseline's regression evidence includes:
 
 - Chat privacy, project authorization, reviewed proposals, and role checks:
-  `test/e2e/ai-security-isolation.spec.ts` and `test/unit/proposals.service.spec.ts`.
+  `test/e2e/assistant-security-isolation.spec.ts` and `test/unit/proposals.service.spec.ts`.
   HTTP suites use test doubles; PostgreSQL integration suites exercise persistence.
 - Memory corrections, actor/project isolation, recall, exclusions, and indexing:
-  `test/integration/copilot-memory.spec.ts`, `conversation-history.spec.ts`, and
+  `test/integration/saved-memory.spec.ts`, `conversation-history.spec.ts`, and
   `history-index.spec.ts` in that directory.
 - Run persistence and cancellation: `test/integration/agent-runs.spec.ts`.
   Subprocess protocol and environment isolation: `test/unit/hermes-runtime.spec.ts`.

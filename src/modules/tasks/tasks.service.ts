@@ -7,11 +7,12 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, IsNull, Raw, Repository, SelectQueryBuilder } from 'typeorm';
-import { AIProposal, ProposalStatus } from '../ai/entities/proposal.entity';
-import { TaskProposalPayloadSchema } from '../ai/dto/task-proposal.dto';
+import { AssistantProposal, ProposalStatus } from '../assistant/entities/proposal.entity';
+import { TaskProposalPayloadSchema } from '../assistant/dto/task-proposal.dto';
 import { Task, TaskStatus, Priority } from './entities/task.entity';
 import { Project } from '../projects/entities/project.entity';
 import { ProjectMember, ProjectRole } from '../projects/entities/project-member.entity';
+import { Goal } from '../goals/entities/goal.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { ListTasksQueryDto } from './dto/list-tasks-query.dto';
@@ -37,6 +38,8 @@ export class TasksService {
     private readonly projectRepository: Repository<Project>,
     @InjectRepository(ProjectMember)
     private readonly memberRepository: Repository<ProjectMember>,
+    @InjectRepository(Goal)
+    private readonly goalRepository: Repository<Goal>,
     private readonly auditService: AuditService,
     private readonly outboxService: OutboxService,
     private readonly dataSource: DataSource,
@@ -57,6 +60,9 @@ export class TasksService {
     if (dto.assigneeId) {
       await this.validateAssigneeInProject(dto.assigneeId, projectId);
     }
+    if (dto.goalId) {
+      await this.validateGoalInProject(dto.goalId, projectId);
+    }
 
     return this.dataSource.transaction(async (manager) => {
       const result: { max: number | null }[] = await manager.query(
@@ -75,6 +81,7 @@ export class TasksService {
         blockedReason: dto.blockedReason ? dto.blockedReason.trim() : null,
         assigneeId: dto.assigneeId ?? null,
         dueDate: dto.dueDate ?? null,
+        goalId: dto.goalId ?? null,
         createdBy: actorId,
         updatedBy: actorId,
         version: 1,
@@ -247,7 +254,7 @@ export class TasksService {
   }
 
   async getAiProvenance(projectId: string, taskId: string) {
-    const proposal = await this.dataSource.getRepository(AIProposal).findOne({
+    const proposal = await this.dataSource.getRepository(AssistantProposal).findOne({
       where: {
         projectId,
         status: ProposalStatus.CONFIRMED,
@@ -312,6 +319,12 @@ export class TasksService {
     }
     if (dto.assigneeId !== undefined) task.assigneeId = dto.assigneeId;
     if (dto.dueDate !== undefined) task.dueDate = dto.dueDate;
+    if (dto.goalId !== undefined) {
+      if (dto.goalId !== null) {
+        await this.validateGoalInProject(dto.goalId, projectId);
+      }
+      task.goalId = dto.goalId;
+    }
     task.updatedBy = actorId;
 
     const saved = await this.taskRepository.save(task);
@@ -442,6 +455,39 @@ export class TasksService {
         throw new BadRequestException({
           code: 'INVALID_ASSIGNEE',
           message: 'Assignee must be an active member of this project.',
+        });
+      }
+      throw err;
+    }
+  }
+
+  private async validateGoalInProject(goalId: string, projectId: string): Promise<void> {
+    try {
+      const goal = await this.goalRepository.findOne({
+        where: { id: goalId, deletedAt: IsNull() },
+        select: ['id', 'projectId'],
+      });
+      if (!goal) {
+        throw new BadRequestException({
+          code: 'INVALID_GOAL',
+          message: 'Referenced goal not found in this project.',
+        });
+      }
+      if (goal.projectId !== projectId) {
+        throw new BadRequestException({
+          code: 'INVALID_GOAL',
+          message: 'Referenced goal does not belong to this project.',
+        });
+      }
+    } catch (err: unknown) {
+      if (err instanceof BadRequestException) throw err;
+      if (
+        (typeof err === 'object' && err !== null && 'code' in err && err.code === '22P02') ||
+        (err instanceof Error && err.message.includes('invalid input syntax for type uuid'))
+      ) {
+        throw new BadRequestException({
+          code: 'INVALID_GOAL',
+          message: 'Referenced goal not found in this project.',
         });
       }
       throw err;

@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Project } from '../projects/entities/project.entity';
 import { Decision } from '../decisions/entities/decision.entity';
 import { Task } from '../tasks/entities/task.entity';
 import { Document } from '../documents/entities/document.entity';
+import { Goal } from '../goals/entities/goal.entity';
 import {
   SearchEntityType,
   SearchQueryDto,
@@ -12,7 +13,7 @@ import {
   SearchMetaCountsDto,
   SearchResponseDto,
 } from './dto/search.dto';
-import { RetrievalService, RetrievedEvidence } from '../ai/retrieval/retrieval.service';
+import { RetrievalService, RetrievedEvidence } from '../mavis/retrieval/retrieval.service';
 import { KnowledgeSourceType } from '../ingestion/entities';
 
 @Injectable()
@@ -28,6 +29,9 @@ export class SearchService {
     private readonly documentRepository: Repository<Document>,
     private readonly retrievalService: RetrievalService,
     private readonly dataSource: DataSource,
+    @Optional()
+    @InjectRepository(Goal)
+    private readonly goalRepository?: Repository<Goal>,
   ) {}
 
   async search(
@@ -61,6 +65,7 @@ export class SearchService {
       GITHUB_ISSUE: 0,
       GITHUB_PR: 0,
       GITHUB_CODE: 0,
+      GOAL: 0,
     };
 
     const searchPromises: Promise<SearchResultItemDto[]>[] = [];
@@ -79,6 +84,15 @@ export class SearchService {
     // 5. Documents
     if (!query.assigneeId && (!selectedType || selectedType === SearchEntityType.DOCUMENT)) {
       searchPromises.push(this.searchDocuments(projectId, projectKey, q, term, query));
+    }
+
+    // 6. Goals
+    if (
+      !query.assigneeId &&
+      this.goalRepository &&
+      (!selectedType || selectedType === SearchEntityType.GOAL)
+    ) {
+      searchPromises.push(this.searchGoals(projectId, projectKey, q, term, query, actorId));
     }
 
     const resultsArrays = await Promise.all(searchPromises);
@@ -427,5 +441,48 @@ export class SearchService {
       data: items.slice((page - 1) * pageSize, page * pageSize),
       meta: { page, pageSize, total: items.length, countsByType },
     };
+  }
+
+  private async searchGoals(
+    projectId: string,
+    projectKey: string,
+    _q: string,
+    term: string,
+    query: SearchQueryDto,
+    actorId: string,
+  ): Promise<SearchResultItemDto[]> {
+    if (!this.goalRepository) return [];
+    const qb = this.goalRepository
+      .createQueryBuilder('goal')
+      .where(
+        '(goal.projectId = :projectId OR (goal.projectId IS NULL AND goal.userId = :actorId))',
+        { projectId, actorId },
+      )
+      .andWhere('goal.deletedAt IS NULL')
+      .andWhere(
+        '(goal.title ILIKE :term OR goal.description ILIKE :term OR goal.motivation ILIKE :term OR goal.target ILIKE :term)',
+        { term },
+      );
+
+    if (query.status) {
+      qb.andWhere('goal.status = :status', { status: query.status });
+    }
+
+    const items = await qb.getMany();
+    return items.map((item) => ({
+      id: item.id,
+      type: SearchEntityType.GOAL,
+      key: `${projectKey}-GOAL`,
+      title: item.title,
+      snippet: this.createSnippet(item.description || item.motivation),
+      status: item.status,
+      priority: null,
+      updatedAt: item.updatedAt,
+      metadata: {
+        category: item.category,
+        progress: item.progress,
+        target: item.target,
+      },
+    }));
   }
 }

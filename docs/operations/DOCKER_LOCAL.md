@@ -15,7 +15,7 @@ and `oscar-frontend:local`; rebuild them with `pnpm stack:up` before app startup
 1. `pnpm db:up` starts PostgreSQL on `127.0.0.1:55432`.
 2. In the backend folder, use `pnpm dev`, or `pnpm build` then
    `pnpm start:prod`. The local `.env` sets port 3001 and the isolated
-   `ai_workspace_develop` database.
+   `oscar` database.
 3. In the frontend folder, use `pnpm dev` and open `http://localhost:3002`.
 
 The frontend proxies `/api/v1` to `http://127.0.0.1:3001`. Hermes uses its existing

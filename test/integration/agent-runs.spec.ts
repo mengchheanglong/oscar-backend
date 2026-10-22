@@ -1,5 +1,5 @@
-import { PrivateMemoryService } from '../../src/modules/ai/memory/private-memory.service';
-import { PrivateMemoryRepository } from '../../src/modules/ai/memory/private-memory.repository';
+import { PrivateMemoryService } from '../../src/modules/assistant/memory/private-memory.service';
+import { PrivateMemoryRepository } from '../../src/modules/assistant/memory/private-memory.repository';
 import { UploadedFoldersService } from '../../src/modules/local-folders/uploaded-folders.service';
 import { LocalStorageService } from '../../src/modules/storage/local-storage.service';
 import 'reflect-metadata';
@@ -12,24 +12,27 @@ import { ConfigService } from '@nestjs/config';
 import { DataSource, In } from 'typeorm';
 import { databaseOptions } from '../../src/database/database-options';
 import { LiveFoldersService } from '../../src/modules/local-folders/live-folders.service';
-import { AgentRunsService } from '../../src/modules/ai/agent-runs.service';
-import { AgentRun, AgentRunStatus } from '../../src/modules/ai/entities/agent-run.entity';
-import { CopilotMemoryService } from '../../src/modules/ai/copilot-memory.service';
+import { AgentRunsService } from '../../src/modules/assistant/agent-runs.service';
+import { AgentRun, AgentRunStatus } from '../../src/modules/assistant/entities/agent-run.entity';
+import { SavedMemoryService } from '../../src/modules/assistant/saved-memory.service';
 import {
-  CopilotMemory,
-  CopilotMemoryKind,
-} from '../../src/modules/ai/entities/copilot-memory.entity';
-import { Conversation, AiMode } from '../../src/modules/ai/entities/conversation.entity';
-import { ConversationHistoryRepository } from '../../src/modules/ai/context/conversation-history.repository';
-import { ConversationContextService } from '../../src/modules/ai/context/conversation-context.service';
+  SavedMemory,
+  SavedMemoryKind,
+} from '../../src/modules/assistant/entities/saved-memory.entity';
+import {
+  Conversation,
+  AssistantMode,
+} from '../../src/modules/assistant/entities/conversation.entity';
+import { ConversationHistoryRepository } from '../../src/modules/assistant/context/conversation-history.repository';
+import { ConversationContextService } from '../../src/modules/assistant/context/conversation-context.service';
 import {
   ChatMessage,
   MessageRole,
   MessageStatus,
-} from '../../src/modules/ai/entities/chat-message.entity';
-import { ContextAssembler } from '../../src/modules/ai/context/context-assembler';
-import { RetrievalService } from '../../src/modules/ai/retrieval/retrieval.service';
-import { AgentRuntime } from '../../src/modules/ai/runtime/runtime-contract';
+} from '../../src/modules/assistant/entities/chat-message.entity';
+import { ContextAssembler } from '../../src/modules/assistant/context/context-assembler';
+import { RetrievalService } from '../../src/modules/mavis/retrieval/retrieval.service';
+import { AgentRuntime } from '../../src/modules/assistant/runtime/runtime-contract';
 import { User, SystemRole } from '../../src/modules/users/entities/user.entity';
 import { Project, ProjectStatus } from '../../src/modules/projects/entities/project.entity';
 import {
@@ -37,7 +40,10 @@ import {
   ProjectRole,
 } from '../../src/modules/projects/entities/project-member.entity';
 import { Decision } from '../../src/modules/decisions/entities/decision.entity';
-import { AIProposal, ProposalStatus } from '../../src/modules/ai/entities/proposal.entity';
+import {
+  AssistantProposal,
+  ProposalStatus,
+} from '../../src/modules/assistant/entities/proposal.entity';
 import { AuditService } from '../../src/modules/audit/audit.service';
 import { AuditLog } from '../../src/modules/audit/entities/audit-log.entity';
 
@@ -50,6 +56,7 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
   let decision: Decision;
   const runtime: AgentRuntime = { available: () => true, execute: jest.fn() };
   const execute = runtime.execute as jest.Mock;
+  const summary = { generateAnswer: jest.fn(), generateStructuredOutput: jest.fn() };
   let retrieval: RetrievalService;
   let live: LiveFoldersService;
   let folder: string;
@@ -129,20 +136,24 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
           new ConfigService({ STORAGE_LOCAL_ROOT: path.join(folder, 'storage') }),
         ),
       ),
+      summary,
     );
   });
 
   beforeEach(async () => {
     await service.onModuleDestroy();
     await db.getRepository(AgentRun).delete({ projectId: project.id });
-    await db.getRepository(AIProposal).delete({ projectId: project.id });
-    await db.getRepository(CopilotMemory).delete({ projectId: project.id });
+    await db.getRepository(AssistantProposal).delete({ projectId: project.id });
+    await db.getRepository(SavedMemory).delete({ projectId: project.id });
     await db.getRepository(Project).update(project.id, { status: ProjectStatus.ACTIVE });
     await db.getRepository(User).update(user.id, { isActive: true });
     await db
       .getRepository(ProjectMember)
       .update({ projectId: project.id, userId: user.id }, { removedAt: null });
     execute.mockReset().mockResolvedValue('# Synthetic report');
+    summary.generateAnswer
+      .mockReset()
+      .mockRejectedValue(new Error('Synthetic unavailable summary'));
   });
   afterAll(async () => {
     if (!db?.isInitialized) return;
@@ -169,15 +180,36 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
       projectId: project.id,
       userId: owner,
       title: 'Threaded work',
-      defaultMode: AiMode.WORKSPACE,
+      defaultMode: AssistantMode.WORKSPACE,
     });
   }
+  it('has OSCAR summarize Hermes while retaining the complete artifact', async () => {
+    const conversation = await chat();
+    execute.mockResolvedValue('# Full Hermes result\nDetailed calculation: 20 * 3 = 60.');
+    summary.generateAnswer.mockResolvedValue({ content: 'Hermes reports a total of 60.' });
+    const row = await service.create(project.id, user.id, {
+      conversationId: conversation.id,
+      prompt: 'Use Hermes to calculate a total.',
+      idempotencyKey: randomUUID(),
+    });
+    const done = await settled(row.id);
+    expect(done.status).toBe(AgentRunStatus.SUCCEEDED);
+    expect(done.artifact).toContain('# Full Hermes result');
+    const message = await db
+      .getRepository(ChatMessage)
+      .findOneByOrFail({ id: done.assistantMessageId! });
+    expect(message.content).toBe('Hermes reports a total of 60.');
+    expect(message.modelName).toBe('OSCAR / Hermes');
+    expect(JSON.parse(summary.generateAnswer.mock.calls[0][0].messages[1].content).result).toBe(
+      done.artifact,
+    );
+  });
   it('persists Hermes work in its owned chat, passes bounded history and survives creation retries', async () => {
     const conversation = await chat();
     await db.getRepository(ChatMessage).save({
       conversationId: conversation.id,
       role: MessageRole.USER,
-      mode: AiMode.WORKSPACE,
+      mode: AssistantMode.WORKSPACE,
       content: 'Use the synthetic label Mercury.',
       status: MessageStatus.COMPLETED,
       citations: [],
@@ -222,7 +254,7 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
       await db.getRepository(ChatMessage).save({
         conversationId: conversation.id,
         role: MessageRole.USER,
-        mode: AiMode.WORKSPACE,
+        mode: AssistantMode.WORKSPACE,
         status: MessageStatus.COMPLETED,
         content: `Recent marker ${index}: ` + '雪'.repeat(3000),
         citations: [],
@@ -230,7 +262,7 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
     await db.getRepository(ChatMessage).save({
       conversationId: conversation.id,
       role: MessageRole.USER,
-      mode: AiMode.WORKSPACE,
+      mode: AssistantMode.WORKSPACE,
       status: MessageStatus.COMPLETED,
       content: 'Excluded synthetic marker',
       contextExcluded: true,
@@ -459,7 +491,9 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
     expect(done.status).toBe(AgentRunStatus.SUCCEEDED);
     expect(done.events).toHaveLength(3);
     expect(done.artifact).toContain('50');
-    const proposal = await db.getRepository(AIProposal).findOneByOrFail({ id: done.proposalId! });
+    const proposal = await db
+      .getRepository(AssistantProposal)
+      .findOneByOrFail({ id: done.proposalId! });
     expect(proposal).toMatchObject({
       status: ProposalStatus.PENDING,
       sourceEntityId: decision.id,
@@ -527,7 +561,7 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
       artifact: null,
       proposalId: null,
     });
-    expect(await db.getRepository(AIProposal).countBy({ projectId: project.id })).toBe(0);
+    expect(await db.getRepository(AssistantProposal).countBy({ projectId: project.id })).toBe(0);
   });
 
   it('denies tools after membership revocation and saves only a safe failure code', async () => {
@@ -610,19 +644,19 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
   });
 
   it('passes only the initiating actor’s reviewed project memories to Hermes', async () => {
-    const memories = new CopilotMemoryService(
-      db.getRepository(CopilotMemory),
+    const memories = new SavedMemoryService(
+      db.getRepository(SavedMemory),
       db.getRepository(ProjectMember),
       db.getRepository(ChatMessage),
     );
     await memories.create(project.id, user.id, {
-      kind: CopilotMemoryKind.PREFERENCE,
+      kind: SavedMemoryKind.PREFERENCE,
       content: 'Own synthetic preference',
       userConfirmed: true,
       idempotencyKey: randomUUID(),
     });
     await memories.create(project.id, other.id, {
-      kind: CopilotMemoryKind.PREFERENCE,
+      kind: SavedMemoryKind.PREFERENCE,
       content: 'Other private synthetic preference',
       userConfirmed: true,
       idempotencyKey: randomUUID(),
@@ -662,6 +696,6 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
       artifact: null,
       proposalId: null,
     });
-    expect(await db.getRepository(AIProposal).countBy({ projectId: project.id })).toBe(0);
+    expect(await db.getRepository(AssistantProposal).countBy({ projectId: project.id })).toBe(0);
   });
 });

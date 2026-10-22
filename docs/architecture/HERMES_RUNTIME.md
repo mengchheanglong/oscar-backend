@@ -1,13 +1,13 @@
 # Hermes runtime integration
 
-Current local testing uses the isolated `ai_workspace_develop` database. See
+Current local testing uses the isolated `oscar` database. See
 [Isolated local development](../operations/LOCAL_DEVELOPMENT.md) for startup, account and MCP
 configuration. The real-provider acceptance record below is historical: it ran
 before this database switch, and its report/proposal were not copied locally.
 
-The operational copilot can execute bounded project work through Hermes. The
-existing chat/provider path remains available. Select **Agent work** in the
-copilot to start a separate, private project run and inspect its report.
+OSCAR can execute bounded project work through Hermes. Select **Hermes** in the
+chat composer (or ask to use Hermes), review the task, and start the run. OSCAR
+reports its result in the same conversation and preserves the full artifact.
 
 ## Contract and boundaries
 
@@ -62,6 +62,79 @@ probe passed using the already prepared interpreter at
 The personal installation was not changed. These are machine-specific paths,
 not production container configuration. Keep the source revision and prepared
 environment compatible; repeat the probe after runtime dependency changes.
+
+### Two installations on this Windows machine
+
+`C:\Users\User\AppData\Local\hermes` is the personal Hermes home, including
+its CLI, profiles, sessions and independently updated source checkout. The
+`hermes` command resolves to its `bin\hermes.exe` launcher.
+
+`C:\Users\User\study-workspace\OSCAR\runtimes\hermes-agent` is OSCAR's clean,
+pinned source checkout. OSCAR currently imports it using the Python interpreter
+in the personal checkout's `.venv`; this shares installed Python dependencies,
+not personal profiles or sessions. Do not point `HERMES_ROOT` at the independently
+updated personal checkout: the bridge intentionally rejects other revisions and
+tracked source edits. Repeat both probes below if the shared dependencies change.
+
+On 2026-10-22 both the personal CLI version check and OSCAR's pinned runtime probe
+passed. The offline tool contract passed, and a live DeepSeek request called
+`calculate_pricing` and returned the expected operating profit of `50`. OSCAR's
+local database, API and frontend had been stopped; the local database also had
+five pending foundation/platform migrations. Those migrations were applied to
+the local development database, and the host API/frontend were restarted.
+
+For local Hermes use, start PostgreSQL with `pnpm db:up`, then run the backend on
+Windows (`pnpm start:prod` after `pnpm build`) and the frontend on port 3002.
+The Compose API deliberately sets `HERMES_ENABLED=false`: its Node-only image
+cannot run the Windows Python paths in `.env`. Starting the full Docker stack
+therefore does not enable Hermes. Check API readiness at
+`http://127.0.0.1:3001/api/v1/health/ready` and through the frontend proxy at
+`http://localhost:3002/api/v1/health/ready`.
+
+### Nous free inference — 2026-10-22
+
+The local OSCAR instance now uses `HERMES_PROVIDER=nous` and
+`HERMES_MODEL=upstage/solar-mini4:free`. A live invocation passed the pricing tool
+roundtrip and returned operating profit `50`. Step 3.7 Flash timed out during the
+first live tool-loop check; it was not selected as the default. No paid fallback
+is configured.
+
+Verification passed 32 focused unit tests, 17 PostgreSQL integration tests, two
+offline real-Hermes tool-boundary tests, TypeScript checking, scoped lint, and the
+production build. The main OSCAR account completed a live API handoff on a
+temporary loopback port: one pricing tool call, profit `50`, preserved artifact,
+same-conversation OSCAR summary, and idempotent duplicate submission. Its
+non-secret record is `var/develop/nous-workflow-verification.json`.
+
+Activation note: the original API on port 3001 still requires restart to read
+the new local configuration. Automatic approval review blocked stopping that
+process, returning only `blocked by policy`. A temporary verification API on
+port 3003 ran the updated build; this does not switch the frontend's port-3001
+proxy. Do not infer activation from the successful temporary-port test alone.
+
+`HERMES_AUTH_PYTHON`, `HERMES_AUTH_ROOT`, and `HERMES_AUTH_HOME` explicitly select
+the separately signed-in Hermes installation. A credential-only subprocess uses
+its supported Nous resolver to obtain/refresh an invocation credential. Refresh
+tokens stay in that installation's auth store. Only the short-lived invocation
+credential is passed over pipes to the unchanged pinned agent source running
+with a fresh temporary profile. Personal agent tools, history and profiles are
+not exposed to the workspace agent. Auth resolution runs in background mode;
+interactive verification must be completed separately rather than opening a
+browser from a workspace task.
+
+Every invocation requires the configured model to end in `:free` and appear in
+the current Nous Portal free-recommended list. The broker and agent bridge pin
+the Nous inference endpoint. If auth fails or a free promotion ends, the run
+fails closed with a safe error code. There is no automatic model/provider switch.
+The runtime status endpoint reports the selected provider and model, and each
+run records its model ID. Availability is a local configuration check, not a
+promise of free-provider capacity or a valid remote session.
+
+Use `HERMES_PROVIDER=deepseek` and clear `HERMES_MODEL` to deliberately restore
+the earlier DeepSeek-backed agent. Existing DeepSeek support remains tested.
+OSCAR's ordinary chat and its final report summarizer continue using the
+configured DeepSeek model; changing Hermes inference does not make those calls
+free. Paperclip's separate Flash and Pro agents are unaffected.
 
 Probe without credentials or model requests:
 

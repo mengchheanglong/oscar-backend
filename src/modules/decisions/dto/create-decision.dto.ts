@@ -24,4 +24,9 @@ export class CreateDecisionDto {
   @IsOptional()
   @IsUUID()
   supersedesDecisionId?: string;
+
+  @ApiPropertyOptional({ description: 'UUID of associated goal' })
+  @IsOptional()
+  @IsUUID()
+  goalId?: string;
 }

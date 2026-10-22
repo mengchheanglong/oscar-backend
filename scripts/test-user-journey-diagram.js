@@ -163,10 +163,10 @@ flowchart LR
 
     Intent --> FlowMCP["🔌 External MCP Agent<br/>• Cursor / Claude / Antigravity<br/>• Authenticate via PAT<br/>• Query Context & Execute Tools"]:::mcpNode
 
-    FlowCopilot --> AIProposal["📝 AI Proposal Draft<br/>• Structured JSON (Zod)<br/>• Status: PROPOSED (24h TTL)<br/>• Zero direct DB writes"]:::reviewNode
-    FlowCore -.-> AIProposal
+    FlowCopilot --> AssistantProposal["📝 AI Proposal Draft<br/>• Structured JSON (Zod)<br/>• Status: PROPOSED (24h TTL)<br/>• Zero direct DB writes"]:::reviewNode
+    FlowCore -.-> AssistantProposal
 
-    AIProposal --> HumanReview["🔍 Human Review & Edit<br/>• Checkbox Selection<br/>• Title & Estimate Tuning<br/>• Reject or Confirm"]:::reviewNode
+    AssistantProposal --> HumanReview["🔍 Human Review & Edit<br/>• Checkbox Selection<br/>• Title & Estimate Tuning<br/>• Reject or Confirm"]:::reviewNode
 
     HumanReview -- "Confirm (Idempotency Key)" --> Commit["💾 Transactional Commit<br/>• Atomic PostgreSQL Insert<br/>• Status: CONFIRMED<br/>• Append Activity Audit"]:::persistNode
 

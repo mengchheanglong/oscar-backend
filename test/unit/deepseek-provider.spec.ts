@@ -1,4 +1,4 @@
-import { DeepSeekLlmProvider } from '../../src/modules/ai/llm/deepseek-llm-provider';
+import { DeepSeekLlmProvider } from '../../src/modules/assistant/llm/deepseek-llm-provider';
 import { ServiceUnavailableException } from '@nestjs/common';
 
 describe('DeepSeek structured drafts', () => {

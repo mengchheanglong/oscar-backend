@@ -11,7 +11,7 @@
   },
   "scripts": {
     "dev": "node --watch --watch-path=src -r ts-node/register src/main.ts",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "node scripts/build.cjs",
     "verify:foundation": "node scripts/verify-foundation.cjs",
     "start:prod": "node dist/main.js",
     "lint": "eslint .",
@@ -21,7 +21,8 @@
     "test": "jest --config jest.config.cjs --selectProjects unit --runInBand",
     "test:e2e": "jest --config jest.config.cjs --selectProjects e2e --runInBand",
     "test:integration": "node scripts/run-integration.cjs",
-    "test:ai-eval": "ts-node scripts/run-ai-eval.ts",
+    "test:assistant-eval": "ts-node scripts/run-assistant-eval.ts",
+    "test:ai-eval": "pnpm test:assistant-eval",
     "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
     "migration:show": "typeorm-ts-node-commonjs migration:show -d src/database/data-source.ts",
     "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/database/data-source.ts",
@@ -33,7 +34,8 @@
     "db:up": "docker compose up -d --wait postgres",
     "db:test:up": "docker compose --profile test up -d --wait postgres-test",
     "stack:up": "docker compose --profile app up -d --build --wait",
-    "stack:stop": "docker compose --profile app --profile test stop"
+    "stack:stop": "docker compose --profile app --profile test stop",
+    "verify:workflow": "node scripts/verify-connected-workflow.cjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.31.0",

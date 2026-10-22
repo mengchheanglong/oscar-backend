@@ -6,6 +6,38 @@ const valid = {
 };
 
 describe('Environment validation', () => {
+  it('requires Nous auth paths and a free model while retaining the DeepSeek default', () => {
+    expect(validateEnvironment(valid).HERMES_PROVIDER).toBe('deepseek');
+    const nous = {
+      ...valid,
+      AI_ENABLED: 'true',
+      DEEPSEEK_API_KEY: 'synthetic',
+      AI_DAILY_PROJECT_BUDGET_USD: '25',
+      HERMES_ENABLED: 'true',
+      HERMES_PYTHON: '/python',
+      HERMES_ROOT: '/runtime',
+      HERMES_PROVIDER: 'nous',
+    };
+    expect(() => validateEnvironment(nous)).toThrow('HERMES_PROVIDER');
+    expect(() =>
+      validateEnvironment({
+        ...nous,
+        HERMES_MODEL: 'paid/model',
+        HERMES_AUTH_PYTHON: '/auth/python',
+        HERMES_AUTH_ROOT: '/auth/root',
+        HERMES_AUTH_HOME: '/auth/home',
+      }),
+    ).toThrow('HERMES_PROVIDER');
+    expect(
+      validateEnvironment({
+        ...nous,
+        HERMES_MODEL: 'stepfun/step-3.7-flash:free',
+        HERMES_AUTH_PYTHON: '/auth/python',
+        HERMES_AUTH_ROOT: '/auth/root',
+        HERMES_AUTH_HOME: '/auth/home',
+      }).HERMES_PROVIDER,
+    ).toBe('nous');
+  });
   it('allows Phase 1 without provider credentials and parses false correctly', () => {
     const config = validateEnvironment({
       ...valid,

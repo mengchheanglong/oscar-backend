@@ -1,7 +1,7 @@
-const { AiwMcpServer } = require('../dist/mcp/aiw-mcp-server.js');
+const { OscarMcpServer } = require('../dist/mcp/oscar-mcp-server.js');
 
 async function test() {
-  const mcp = new AiwMcpServer({
+  const mcp = new OscarMcpServer({
     apiUrl: 'http://localhost:3001/api/v1',
     apiKey: 'test-key',
     defaultProjectIdOrKey: 'AIW',

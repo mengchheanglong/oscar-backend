@@ -3,27 +3,30 @@ import { performance } from 'node:perf_hooks';
 import { DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { HttpException } from '@nestjs/common';
-import { AiService } from '../../src/modules/ai/ai.service';
-import { CopilotMemoryService } from '../../src/modules/ai/copilot-memory.service';
-import { HistoryRecallService } from '../../src/modules/ai/context/history-recall.service';
+import { AssistantService } from '../../src/modules/assistant/assistant.service';
+import { SavedMemoryService } from '../../src/modules/assistant/saved-memory.service';
+import { HistoryRecallService } from '../../src/modules/assistant/context/history-recall.service';
 import {
   ConversationContextService,
   ConversationScope,
-} from '../../src/modules/ai/context/conversation-context.service';
+} from '../../src/modules/assistant/context/conversation-context.service';
 import { User } from '../../src/modules/users/entities/user.entity';
 import { Project } from '../../src/modules/projects/entities/project.entity';
 import {
   ProjectMember,
   ProjectRole,
 } from '../../src/modules/projects/entities/project-member.entity';
-import { Conversation, AiMode } from '../../src/modules/ai/entities/conversation.entity';
+import {
+  Conversation,
+  AssistantMode,
+} from '../../src/modules/assistant/entities/conversation.entity';
 import {
   ChatMessage,
   MessageRole,
   MessageStatus,
-} from '../../src/modules/ai/entities/chat-message.entity';
-import { CopilotMemoryKind } from '../../src/modules/ai/entities/copilot-memory.entity';
-import { ChatCompletionMessage } from '../../src/modules/ai/llm/llm-provider.interface';
+} from '../../src/modules/assistant/entities/chat-message.entity';
+import { SavedMemoryKind } from '../../src/modules/assistant/entities/saved-memory.entity';
+import { ChatCompletionMessage } from '../../src/modules/assistant/llm/llm-provider.interface';
 
 export const ANSWER_CASES = [
   'same_chat_early_fact',
@@ -67,10 +70,10 @@ export function gradeHistoryAnswer(
   };
 }
 export interface AnswerEvaluationDependencies {
-  ai: Pick<AiService, 'postMessage'>;
+  ai: Pick<AssistantService, 'postMessage'>;
   recall: Pick<HistoryRecallService, 'indexBatch'>;
   context: Pick<ConversationContextService, 'excludeMessage'>;
-  memory: Pick<CopilotMemoryService, 'create' | 'update'>;
+  memory: Pick<SavedMemoryService, 'create' | 'update'>;
   config: ConfigService;
   trace?: () =>
     | {
@@ -135,14 +138,14 @@ export async function evaluateHistoryAnswers(
           projectId,
           userId,
           title: 'Synthetic answer evaluation',
-          defaultMode: AiMode.WORKSPACE,
+          defaultMode: AssistantMode.WORKSPACE,
         });
         return { projectId, userId, conversationId: c.id };
       };
       const put = (s: ConversationScope, content: string, role = MessageRole.USER) =>
         db
           .getRepository(ChatMessage)
-          .save({ conversationId: s.conversationId, content, role, mode: AiMode.WORKSPACE });
+          .save({ conversationId: s.conversationId, content, role, mode: AssistantMode.WORKSPACE });
       const target = await chat();
       let expected = 'CEDAR',
         query = 'What is my Juniper archive label?',
@@ -204,13 +207,13 @@ export async function evaluateHistoryAnswers(
         query = 'What private Nectar archive label did I tell you?';
       } else if (name === 'updated_preference') {
         const memory = await deps.memory.create(target.projectId, owner.id, {
-          kind: CopilotMemoryKind.PREFERENCE,
+          kind: SavedMemoryKind.PREFERENCE,
           content: 'For my personal Beacon estimates, I prefer the currency EUR.',
           idempotencyKey: randomUUID(),
           userConfirmed: true,
         });
         await deps.memory.update(target.projectId, owner.id, memory.id, {
-          kind: CopilotMemoryKind.PREFERENCE,
+          kind: SavedMemoryKind.PREFERENCE,
           content: 'For my personal Beacon estimates, I prefer the currency GBP.',
           version: memory.version,
           userConfirmed: true,
@@ -238,7 +241,7 @@ export async function evaluateHistoryAnswers(
       const started = performance.now();
       const answer = await deps.ai.postMessage(target.projectId, owner.id, target.conversationId, {
         content: `${query} Reply with only the label, mode or currency code. If I have not supplied a chosen value in the context available to you, reply UNKNOWN.`,
-        mode: AiMode.WORKSPACE,
+        mode: AssistantMode.WORKSPACE,
         includeAllWorkspaces: name === 'other_project',
       });
       const grade = gradeHistoryAnswer(
@@ -314,6 +317,6 @@ export async function evaluateHistoryAnswers(
       forbiddenMentions: results.reduce((n, r) => n + r.forbiddenMentioned.length, 0),
     },
     notes:
-      'Small synthetic English answer evaluation through AiService; exact expected-value grading, no model judge. Does not establish general accuracy, HTTP/browser behavior or production latency.',
+      'Small synthetic English answer evaluation through AssistantService; exact expected-value grading, no model judge. Does not establish general accuracy, HTTP/browser behavior or production latency.',
   };
 }

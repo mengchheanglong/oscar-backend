@@ -26,7 +26,15 @@ TOOLS = [
 
 class BridgeSmoke(unittest.TestCase):
     def test_actual_hermes_loop_exposes_only_workspace_tools(self):
+        self.exercise("deepseek")
+
+    def test_nous_loop_preserves_the_same_tool_boundary(self):
+        self.exercise("nous")
+
+    def exercise(self, provider):
         request = {"prompt": "Analyze synthetic pricing and request review.", "context": "Use workspace tools and produce an artifact.", "model": "deepseek-v4-pro", "apiKey": "synthetic-offline-only", "tools": TOOLS}
+        if provider == "nous":
+            request.update(provider="nous", baseUrl="https://inference-api.nousresearch.com/v1", model="stepfun/step-3.7-flash:free")
         responses = [
             {"id": "1", "result": [{"title": "Synthetic evidence", "sourceId": "synthetic"}]},
             {"id": "2", "result": {"operatingProfit": 50}},
@@ -50,9 +58,9 @@ class BridgeSmoke(unittest.TestCase):
         ]
 
         def fake_send(_client, http_request, **_kwargs):
-            self.assertEqual(http_request.url.host, "api.deepseek.com")
+            self.assertEqual(http_request.url.host, "inference-api.nousresearch.com" if provider == "nous" else "api.deepseek.com")
             payload = json.loads(http_request.content)
-            self.assertEqual(payload["model"], "deepseek-v4-pro")
+            self.assertEqual(payload["model"], request["model"])
             self.assertEqual({t["function"]["name"] for t in payload.get("tools", [])}, {t["name"] for t in TOOLS})
             calls.append(payload)
             index = len(calls) - 1

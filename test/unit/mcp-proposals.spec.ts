@@ -1,15 +1,15 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { AiwMcpServer } from '../../src/mcp/aiw-mcp-server';
+import { OscarMcpServer } from '../../src/mcp/oscar-mcp-server';
 
 describe('MCP reviewed proposal workflow', () => {
   let client: Client;
-  let mcp: AiwMcpServer;
+  let mcp: OscarMcpServer;
   const projectId = '2715f920-f86f-475e-864e-85862d8d64d7';
   const proposalId = '1942f626-7033-4d3b-b400-a571620738e5';
 
   beforeEach(async () => {
-    mcp = new AiwMcpServer({
+    mcp = new OscarMcpServer({
       apiUrl: 'http://localhost/api/v1',
       apiKey: 'test',
       defaultProjectIdOrKey: projectId,

@@ -13,6 +13,7 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { Project } from '../../projects/entities/project.entity';
 import { DecisionRevision } from './decision-revision.entity';
+import { Goal } from '../../goals/entities/goal.entity';
 
 export enum DecisionStatus {
   PROPOSED = 'PROPOSED',
@@ -70,6 +71,13 @@ export class Decision {
   @ManyToOne(() => Decision, { nullable: true })
   @JoinColumn({ name: 'supersedes_decision_id' })
   supersedesDecision?: Decision | null;
+
+  @Column({ name: 'goal_id', type: 'uuid', nullable: true })
+  goalId?: string | null;
+
+  @ManyToOne(() => Goal, (goal) => goal.decisions, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'goal_id' })
+  goal?: Goal | null;
 
   @Column({ name: 'created_by', type: 'uuid' })
   createdBy!: string;

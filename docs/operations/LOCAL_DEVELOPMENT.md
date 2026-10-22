@@ -8,7 +8,7 @@ deployed installation and from the automated test database.
 | Frontend                | `http://localhost:3002`                  |
 | Backend                 | `http://127.0.0.1:3001/api/v1`           |
 | PostgreSQL service      | Compose `postgres`, loopback port 55432  |
-| Development database    | `ai_workspace_develop`                   |
+| Development database    | `oscar`                                  |
 | Automated test database | `ai_workspace_test`, loopback port 55433 |
 | Uploads                 | `./var/develop/uploads`                  |
 
@@ -20,7 +20,7 @@ target. The committed environment template remains a template; the current
 machine-specific values live only in the ignored backend `.env`.
 
 The local database URL uses the Compose development role and password, targets
-`127.0.0.1:55432/ai_workspace_develop`, and has `DATABASE_SSL=false`. Cloud
+`127.0.0.1:55432/oscar`, and has `DATABASE_SSL=false`. Cloud
 Supabase settings are cleared locally and GitHub integration is disabled locally.
 The existing DeepSeek configuration and optional Hermes runtime remain available.
 Provider calls still use the configured external model service; database isolation

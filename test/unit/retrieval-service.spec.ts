@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import { RetrievalService } from '../../src/modules/ai/retrieval/retrieval.service';
+import { RetrievalService } from '../../src/modules/mavis/retrieval/retrieval.service';
 import { KnowledgeSourceType } from '../../src/modules/ingestion/entities';
 import { EmbeddingProvider } from '../../src/modules/ingestion/embedding/embedding-provider.interface';
 

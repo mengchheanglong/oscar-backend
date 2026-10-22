@@ -12,6 +12,7 @@ import { Decision, DecisionStatus } from '../../src/modules/decisions/entities/d
 import { DecisionRevision } from '../../src/modules/decisions/entities/decision-revision.entity';
 import { Project } from '../../src/modules/projects/entities/project.entity';
 import { ProjectRole } from '../../src/modules/projects/entities/project-member.entity';
+import { Goal } from '../../src/modules/goals/entities/goal.entity';
 import { AuditService } from '../../src/modules/audit/audit.service';
 import { OutboxService } from '../../src/modules/ingestion/outbox.service';
 
@@ -74,6 +75,10 @@ describe('DecisionsService', () => {
     emit: jest.fn().mockResolvedValue({}),
   };
 
+  const mockGoalRepo = {
+    findOne: jest.fn(),
+  };
+
   const mockTransactionManager = {
     query: jest.fn(),
     create: jest.fn(),
@@ -95,6 +100,7 @@ describe('DecisionsService', () => {
         { provide: getRepositoryToken(Decision), useValue: mockDecisionRepo },
         { provide: getRepositoryToken(DecisionRevision), useValue: mockRevisionRepo },
         { provide: getRepositoryToken(Project), useValue: mockProjectRepo },
+        { provide: getRepositoryToken(Goal), useValue: mockGoalRepo },
         { provide: AuditService, useValue: mockAuditService },
         { provide: OutboxService, useValue: mockOutboxService },
         { provide: DataSource, useValue: mockDataSource },
@@ -131,6 +137,30 @@ describe('DecisionsService', () => {
           title: 'Dec',
           decisionText: 'Text',
           supersedesDecisionId: DEC_ID_2,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject when goalId does not belong to the project', async () => {
+      mockGoalRepo.findOne.mockResolvedValue({ id: 'goal-other', projectId: 'other-project' });
+
+      await expect(
+        service.create(PROJECT_ID, ACTOR_ID, {
+          title: 'Dec',
+          decisionText: 'Text',
+          goalId: 'goal-other',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject when goalId is not found', async () => {
+      mockGoalRepo.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.create(PROJECT_ID, ACTOR_ID, {
+          title: 'Dec',
+          decisionText: 'Text',
+          goalId: 'nonexistent-goal',
         }),
       ).rejects.toThrow(BadRequestException);
     });
@@ -218,6 +248,38 @@ describe('DecisionsService', () => {
       expect(mockAuditService.record).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'ACCEPTED_DECISION_UPDATED' }),
       );
+    });
+
+    it('should reject update if goalId belongs to another project', async () => {
+      const dec = makeDecision({ version: 1 });
+      mockDecisionRepo.findOne.mockResolvedValue(dec);
+      mockGoalRepo.findOne.mockResolvedValue({ id: 'goal-other', projectId: 'other-project' });
+
+      await expect(
+        service.update(PROJECT_ID, DEC_ID, ACTOR_ID, {
+          version: 1,
+          goalId: 'goal-other',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should allow updating goalId when valid', async () => {
+      const dec = makeDecision({ version: 1 });
+      mockDecisionRepo.findOne.mockResolvedValue(dec);
+      mockGoalRepo.findOne.mockResolvedValue({ id: 'goal-same', projectId: PROJECT_ID });
+      mockRevisionRepo.create.mockReturnValue({});
+      mockRevisionRepo.save.mockResolvedValue({});
+      mockDecisionRepo.save.mockImplementation(async (entity: Decision) => ({
+        ...entity,
+        version: entity.version + 1,
+      }));
+
+      const result = await service.update(PROJECT_ID, DEC_ID, ACTOR_ID, {
+        version: 1,
+        goalId: 'goal-same',
+      });
+
+      expect(result.goalId).toBe('goal-same');
     });
   });
 

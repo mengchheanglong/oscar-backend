@@ -7,20 +7,23 @@ import { databaseOptions } from '../../src/database/database-options';
 import {
   ConversationContextService,
   ConversationScope,
-} from '../../src/modules/ai/context/conversation-context.service';
-import { ConversationHistoryRepository } from '../../src/modules/ai/context/conversation-history.repository';
-import { HistoryRecallService } from '../../src/modules/ai/context/history-recall.service';
-import { HistoryVectorRepository } from '../../src/modules/ai/context/history-vector.repository';
-import { historyEmbeddingIdentity } from '../../src/modules/ai/context/history-retrieval.contract';
-import { embeddingIdentity } from '../../src/modules/ai/memory/private-memory.contract';
+} from '../../src/modules/assistant/context/conversation-context.service';
+import { ConversationHistoryRepository } from '../../src/modules/assistant/context/conversation-history.repository';
+import { HistoryRecallService } from '../../src/modules/assistant/context/history-recall.service';
+import { HistoryVectorRepository } from '../../src/modules/assistant/context/history-vector.repository';
+import { historyEmbeddingIdentity } from '../../src/modules/assistant/context/history-retrieval.contract';
+import { embeddingIdentity } from '../../src/modules/assistant/memory/private-memory.contract';
 import {
   evaluateHistoryRecall,
   syntheticHistoryEmbedder,
 } from '../fixtures/history-recall-evaluation';
-import { LlmProvider } from '../../src/modules/ai/llm/llm-provider.interface';
-import { AiService } from '../../src/modules/ai/ai.service';
-import { AiMode, Conversation } from '../../src/modules/ai/entities/conversation.entity';
-import { ChatMessage, MessageRole } from '../../src/modules/ai/entities/chat-message.entity';
+import { LlmProvider } from '../../src/modules/assistant/llm/llm-provider.interface';
+import { AssistantService } from '../../src/modules/assistant/assistant.service';
+import {
+  AssistantMode,
+  Conversation,
+} from '../../src/modules/assistant/entities/conversation.entity';
+import { ChatMessage, MessageRole } from '../../src/modules/assistant/entities/chat-message.entity';
 import { User } from '../../src/modules/users/entities/user.entity';
 import { Project } from '../../src/modules/projects/entities/project.entity';
 import {
@@ -115,7 +118,7 @@ describe('Conversation history recall and privacy with PostgreSQL', () => {
   const message = (s: ConversationScope, content: string, role = MessageRole.USER) =>
     db
       .getRepository(ChatMessage)
-      .save({ conversationId: s.conversationId, role, content, mode: AiMode.WORKSPACE });
+      .save({ conversationId: s.conversationId, role, content, mode: AssistantMode.WORKSPACE });
 
   it('recovers the same durable chat turn after generation failure and lost delivery', async () => {
     let calls = 0;
@@ -130,25 +133,27 @@ describe('Conversation history recall and privacy with PostgreSQL', () => {
         completionTokens: 1,
       };
     };
-    const service = new AiService(
+    const service = new AssistantService(
       db.getRepository(Conversation),
       db.getRepository(ChatMessage),
       db.getRepository(Project),
       db.getRepository(ProjectMember),
       db.getRepository(User),
-      { retrieve: async () => [] } as unknown as ConstructorParameters<typeof AiService>[5],
-      new (await import('../../src/modules/ai/context/context-assembler')).ContextAssembler(),
+      { retrieve: async () => [] } as unknown as ConstructorParameters<typeof AssistantService>[5],
+      new (
+        await import('../../src/modules/assistant/context/context-assembler')
+      ).ContextAssembler(),
       { generateAnswer } as unknown as LlmProvider,
-      {} as ConstructorParameters<typeof AiService>[8],
-      { select: async () => [] } as unknown as ConstructorParameters<typeof AiService>[9],
+      {} as ConstructorParameters<typeof AssistantService>[8],
+      { select: async () => [] } as unknown as ConstructorParameters<typeof AssistantService>[9],
       context,
     );
     const conversation = await service.createConversation(project.id, user.id, {
-      defaultMode: AiMode.WORKSPACE,
+      defaultMode: AssistantMode.WORKSPACE,
     });
     const dto = {
       content: 'Synthetic request recovery check.',
-      mode: AiMode.WORKSPACE,
+      mode: AssistantMode.WORKSPACE,
       clientRequestId: randomUUID(),
     };
     const failed = await service.postMessage(project.id, user.id, conversation.id, dto);
@@ -167,7 +172,7 @@ describe('Conversation history recall and privacy with PostgreSQL', () => {
         db.getRepository(ChatMessage).create({
           conversationId: conversation.id,
           role: MessageRole.USER,
-          mode: AiMode.WORKSPACE,
+          mode: AssistantMode.WORKSPACE,
           clientRequestId: dto.clientRequestId,
           content: 'Duplicate',
         }),
@@ -389,7 +394,7 @@ describe('Conversation history recall and privacy with PostgreSQL', () => {
     const answer = db.getRepository(ChatMessage).create({
       conversationId: target.conversationId,
       role: MessageRole.ASSISTANT,
-      mode: AiMode.WORKSPACE,
+      mode: AssistantMode.WORKSPACE,
       content: 'Pineapple checkpoint is 2040-04-17.',
     });
     await context.commit(target, prepared, answer);
@@ -460,7 +465,7 @@ describe('Conversation history recall and privacy with PostgreSQL', () => {
     const answer = db.getRepository(ChatMessage).create({
       conversationId: target.conversationId,
       role: MessageRole.ASSISTANT,
-      mode: AiMode.WORKSPACE,
+      mode: AssistantMode.WORKSPACE,
       content: 'Stale answer.',
     });
     await expect(context.commit(target, prepared, answer)).rejects.toThrow(ConflictException);
@@ -478,7 +483,7 @@ describe('Conversation history recall and privacy with PostgreSQL', () => {
     const answer = db.getRepository(ChatMessage).create({
       conversationId: target.conversationId,
       role: MessageRole.ASSISTANT,
-      mode: AiMode.WORKSPACE,
+      mode: AssistantMode.WORKSPACE,
       content: 'Lychee launch date is tomorrow.',
     });
     await context.commit(target, prepared, answer);

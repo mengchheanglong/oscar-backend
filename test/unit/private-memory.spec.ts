@@ -1,12 +1,12 @@
-import { PrivateMemoryService } from '../../src/modules/ai/memory/private-memory.service';
-import { PrivateMemoryRepository } from '../../src/modules/ai/memory/private-memory.repository';
+import { PrivateMemoryService } from '../../src/modules/assistant/memory/private-memory.service';
+import { PrivateMemoryRepository } from '../../src/modules/assistant/memory/private-memory.repository';
 import {
   validateVectors,
   embeddingIdentity,
-} from '../../src/modules/ai/memory/private-memory.contract';
+} from '../../src/modules/assistant/memory/private-memory.contract';
 import { OpenAiEmbeddingProvider } from '../../src/modules/ingestion/embedding/openai-embedding-provider';
 import { ConfigService } from '@nestjs/config';
-import { memoryEmbedder } from '../../src/modules/ai/memory/private-memory.provider';
+import { memoryEmbedder } from '../../src/modules/assistant/memory/private-memory.provider';
 
 const vector = () => [1, ...Array<number>(1535).fill(0)];
 describe('Private memory provider boundary', () => {

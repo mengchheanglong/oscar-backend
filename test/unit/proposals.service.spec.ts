@@ -6,19 +6,20 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { ProposalsService } from '../../src/modules/ai/proposals.service';
+import { ProposalsService } from '../../src/modules/assistant/proposals.service';
 import {
-  AIProposal,
+  AssistantProposal,
   ProposalStatus,
   ProposalType,
-} from '../../src/modules/ai/entities/proposal.entity';
-import { ProposalCommit } from '../../src/modules/ai/entities/proposal-commit.entity';
+} from '../../src/modules/assistant/entities/proposal.entity';
+import { ProposalCommit } from '../../src/modules/assistant/entities/proposal-commit.entity';
 import { Task } from '../../src/modules/tasks/entities/task.entity';
+import { Goal } from '../../src/modules/goals/entities/goal.entity';
 import { Decision, DecisionStatus } from '../../src/modules/decisions/entities/decision.entity';
 import { Project, ProjectStatus } from '../../src/modules/projects/entities/project.entity';
 import { ProjectRole } from '../../src/modules/projects/entities/project-member.entity';
 import { User, SystemRole } from '../../src/modules/users/entities/user.entity';
-import { MockLlmProvider } from '../../src/modules/ai/llm/mock-llm-provider';
+import { MockLlmProvider } from '../../src/modules/assistant/llm/mock-llm-provider';
 
 import { Document } from '../../src/modules/documents/entities/document.entity';
 
@@ -282,7 +283,7 @@ describe('ProposalsService', () => {
         resultRecordIds: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as AIProposal;
+      } as AssistantProposal;
 
       mockProposalRepo.findOne.mockResolvedValue(existingProposal);
 
@@ -324,7 +325,7 @@ describe('ProposalsService', () => {
         resultRecordIds: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as AIProposal;
+      } as AssistantProposal;
 
       mockProposalRepo.findOne.mockResolvedValue(existingProposal);
 
@@ -356,7 +357,7 @@ describe('ProposalsService', () => {
         resultRecordIds: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as AIProposal;
+      } as AssistantProposal;
 
       mockProposalRepo.findOne.mockResolvedValue(existingProposal);
 
@@ -407,7 +408,7 @@ describe('ProposalsService', () => {
         resultRecordIds: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as AIProposal;
+      } as AssistantProposal;
     }
 
     it.each(['creator', 'document', 'selection', 'assignee'] as const)(
@@ -422,7 +423,7 @@ describe('ProposalsService', () => {
         const manager = {
           findOne: jest.fn((entity: unknown) =>
             Promise.resolve(
-              entity === AIProposal
+              entity === AssistantProposal
                 ? proposal
                 : entity === Decision
                   ? mockDecision
@@ -590,7 +591,7 @@ describe('ProposalsService', () => {
         resultRecordIds: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as AIProposal;
+      } as AssistantProposal;
 
       mockDataSource.transaction = jest.fn(
         async (
@@ -600,7 +601,7 @@ describe('ProposalsService', () => {
         ) => {
           const mockManager = {
             findOne: jest.fn((entityClass: unknown) => {
-              if (entityClass === AIProposal) return Promise.resolve(pendingProposal);
+              if (entityClass === AssistantProposal) return Promise.resolve(pendingProposal);
               if (entityClass === Decision) return Promise.resolve({ ...mockDecision, version: 3 }); // Decision evolved to version 3.
               return Promise.resolve(null);
             }),
@@ -615,6 +616,7 @@ describe('ProposalsService', () => {
     });
 
     it('creates selected tasks and commits the proposal', async () => {
+      const sourceDecision = { ...mockDecision, goalId: '33333333-3333-4333-8333-333333333333' };
       const pendingProposal = {
         id: 'prop-123',
         projectId: mockProjectId,
@@ -643,7 +645,7 @@ describe('ProposalsService', () => {
         resultRecordIds: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as AIProposal;
+      } as AssistantProposal;
 
       let capturedTask: Task | null = null;
       let capturedCommit: ProposalCommit | null = null;
@@ -659,8 +661,9 @@ describe('ProposalsService', () => {
         ) => {
           const mockManager = {
             findOne: jest.fn((entityClass: unknown) => {
-              if (entityClass === AIProposal) return Promise.resolve(pendingProposal);
-              if (entityClass === Decision) return Promise.resolve(mockDecision);
+              if (entityClass === AssistantProposal) return Promise.resolve(pendingProposal);
+              if (entityClass === Decision) return Promise.resolve(sourceDecision);
+              if (entityClass === Goal) return Promise.resolve({ id: sourceDecision.goalId });
               return Promise.resolve(null);
             }),
             query: jest.fn().mockResolvedValue([{ max: 5 }]),
@@ -733,7 +736,7 @@ describe('ProposalsService', () => {
         resultRecordIds: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as AIProposal;
+      } as AssistantProposal;
 
       let capturedTask: Task | null = null;
       let capturedCommit: ProposalCommit | null = null;
@@ -749,7 +752,8 @@ describe('ProposalsService', () => {
         ) => {
           const mockManager = {
             findOne: jest.fn((entityClass: unknown) => {
-              if (entityClass === AIProposal) return Promise.resolve(pendingDecisionProposal);
+              if (entityClass === AssistantProposal)
+                return Promise.resolve(pendingDecisionProposal);
               if (entityClass === Decision) return Promise.resolve(mockDecision);
               return Promise.resolve(null);
             }),
@@ -859,7 +863,7 @@ describe('ProposalsService', () => {
         resultRecordIds: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as AIProposal;
+      } as AssistantProposal;
 
       let capturedTask: Task | null = null;
 
@@ -874,7 +878,7 @@ describe('ProposalsService', () => {
         ) => {
           const mockManager = {
             findOne: jest.fn((entityClass: unknown) => {
-              if (entityClass === AIProposal) return Promise.resolve(editedProposal);
+              if (entityClass === AssistantProposal) return Promise.resolve(editedProposal);
               if (entityClass === Decision) return Promise.resolve(mockDecision);
               return Promise.resolve(null);
             }),

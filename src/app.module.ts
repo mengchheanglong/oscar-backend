@@ -17,8 +17,11 @@ import { DocumentsModule } from './modules/documents/documents.module';
 import { SearchModule } from './modules/search/search.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { OutboxModule } from './modules/ingestion/outbox.module';
-import { AiModule } from './modules/ai/ai.module';
+import { AssistantModule } from './modules/assistant/assistant.module';
 import { GitHubIntegrationModule } from './modules/integrations/github/github-integration.module';
+import { GoalsModule } from './modules/goals/goals.module';
+import { MavisModule } from './modules/mavis/mavis.module';
+import { PlatformsModule } from './modules/platforms/platforms.module';
 
 @Module({
   imports: [
@@ -56,9 +59,12 @@ import { GitHubIntegrationModule } from './modules/integrations/github/github-in
     SearchModule,
     OutboxModule,
     IngestionModule,
-    AiModule,
+    AssistantModule,
     LocalFoldersModule,
     GitHubIntegrationModule,
+    GoalsModule,
+    MavisModule,
+    PlatformsModule,
   ],
 })
 export class AppModule {}

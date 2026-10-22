@@ -4,9 +4,9 @@ import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { z } from 'zod';
 import { databaseOptions } from '../src/database/database-options';
-import { memoryEmbedder } from '../src/modules/ai/memory/private-memory.provider';
-import { PrivateMemoryRepository } from '../src/modules/ai/memory/private-memory.repository';
-import { PrivateMemoryService } from '../src/modules/ai/memory/private-memory.service';
+import { memoryEmbedder } from '../src/modules/assistant/memory/private-memory.provider';
+import { PrivateMemoryRepository } from '../src/modules/assistant/memory/private-memory.repository';
+import { PrivateMemoryService } from '../src/modules/assistant/memory/private-memory.service';
 
 async function main(): Promise<void> {
   const [projectId, userId, confirmation] = process.argv.slice(2);

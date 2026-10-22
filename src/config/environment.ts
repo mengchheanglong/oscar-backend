@@ -31,6 +31,15 @@ const schema = z
         return ['http:', 'https:'].includes(url.protocol) && url.origin === value;
       }),
     DATABASE_URL: postgresUrl,
+    PLATFORM_CREDENTIAL_KEY: emptyStringToUndefined(
+      z
+        .string()
+        .regex(/^[A-Za-z0-9+/]{43}=$/)
+        .refine((value) => Buffer.from(value, 'base64').length === 32)
+        .optional(),
+    ),
+    PLATFORM_ALLOWED_ORIGINS: z.string().optional(),
+    PLATFORM_OAUTH_CALLBACK_ORIGIN: emptyStringToUndefined(z.string().url().optional()),
     STORAGE_DRIVER: z.literal('local').default('local'),
     FOLDER_STORAGE_QUOTA_BYTES: z.coerce
       .number()
@@ -62,6 +71,11 @@ const schema = z
     HERMES_ENABLED: booleanString.default(false),
     HERMES_PYTHON: emptyStringToUndefined(z.string().optional()),
     HERMES_ROOT: emptyStringToUndefined(z.string().optional()),
+    HERMES_PROVIDER: z.enum(['deepseek', 'nous']).default('deepseek'),
+    HERMES_MODEL: emptyStringToUndefined(z.string().min(1).max(255).optional()),
+    HERMES_AUTH_PYTHON: emptyStringToUndefined(z.string().optional()),
+    HERMES_AUTH_ROOT: emptyStringToUndefined(z.string().optional()),
+    HERMES_AUTH_HOME: emptyStringToUndefined(z.string().optional()),
     GITHUB_ENABLED: booleanString.default(false),
     GITHUB_APP_ID: emptyStringToUndefined(z.string().optional()),
     GITHUB_APP_PRIVATE_KEY_FILE: emptyStringToUndefined(z.string().optional()),
@@ -123,6 +137,21 @@ const schema = z
         code: 'custom',
         path: ['HERMES_ENABLED'],
         message: 'Hermes requires AI_ENABLED, HERMES_PYTHON and HERMES_ROOT.',
+      });
+    }
+    if (
+      value.HERMES_ENABLED &&
+      value.HERMES_PROVIDER === 'nous' &&
+      (!value.HERMES_MODEL?.endsWith(':free') ||
+        !value.HERMES_AUTH_PYTHON ||
+        !value.HERMES_AUTH_ROOT ||
+        !value.HERMES_AUTH_HOME)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['HERMES_PROVIDER'],
+        message:
+          'Nous Hermes requires a :free HERMES_MODEL and prepared HERMES_AUTH_PYTHON, HERMES_AUTH_ROOT and HERMES_AUTH_HOME.',
       });
     }
     if (

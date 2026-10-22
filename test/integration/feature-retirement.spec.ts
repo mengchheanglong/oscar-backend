@@ -10,7 +10,7 @@ import {
   KnowledgeSourceStatus,
   KnowledgeSourceType,
 } from '../../src/modules/ingestion/entities';
-import { RetrievalService } from '../../src/modules/ai/retrieval/retrieval.service';
+import { RetrievalService } from '../../src/modules/mavis/retrieval/retrieval.service';
 
 describe('Retired knowledge sources with PostgreSQL', () => {
   jest.setTimeout(60000);

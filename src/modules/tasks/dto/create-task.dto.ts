@@ -51,4 +51,9 @@ export class CreateTaskDto {
   @IsString()
   @MaxLength(500)
   blockedReason?: string;
+
+  @ApiPropertyOptional({ description: 'UUID of associated goal' })
+  @IsOptional()
+  @IsUUID()
+  goalId?: string;
 }

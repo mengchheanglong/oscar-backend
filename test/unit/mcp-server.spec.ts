@@ -1,10 +1,10 @@
-import { AiwMcpServer } from '../../src/mcp/aiw-mcp-server';
+import { OscarMcpServer } from '../../src/mcp/oscar-mcp-server';
 
-describe('AiwMcpServer', () => {
-  let mcp: AiwMcpServer;
+describe('OscarMcpServer', () => {
+  let mcp: OscarMcpServer;
 
   beforeEach(() => {
-    mcp = new AiwMcpServer({
+    mcp = new OscarMcpServer({
       apiUrl: 'http://localhost:3001/api/v1',
       apiKey: 'aiw_pat_mocktesttoken123456789',
       defaultProjectIdOrKey: 'AIW',

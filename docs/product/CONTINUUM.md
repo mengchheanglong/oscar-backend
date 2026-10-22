@@ -20,11 +20,11 @@ The user approved renaming the existing private repositories to
 Package names, image tags, deployment templates, and current repository links
 now use OSCAR. This did not create a separate MAVIS repository or deploy anything.
 
-Windows currently prevents renaming the local `continuum-*` folders. Their Git
-remotes point to the renamed OSCAR repositories; the verification script supports
-either sibling-folder layout. The local `.env` selects the existing frontend
-folder for Compose. Database names, migrations, user data, and the Compose project
-identity remain unchanged.
+The local checkouts now use `OSCAR/oscar-backend` and `OSCAR/oscar-frontend`.
+The verification script also supports the former sibling-folder layout. On
+2026-10-22, the existing local development database was explicitly renamed from
+`ai_workspace_develop` to `oscar` in place, preserving its records and historical
+migrations. The Compose project and volume identities remain unchanged.
 
 ## Repository history
 
@@ -38,8 +38,8 @@ to the original AI Workspace repositories.
 
 ## Local continuity
 
-The local environment files are ignored. On the current machine they retain the
-existing isolated ai_workspace_develop database on 127.0.0.1:55432, frontend
+The local environment files are ignored. On the current machine they use the
+existing isolated `oscar` database on 127.0.0.1:55432, frontend
 port 3002, and API port 3001. Backend storage paths point to existing local files
 to keep current document records readable. User project titles and records have
 not been renamed. No database reset, seed, or schema migration is part of the split.

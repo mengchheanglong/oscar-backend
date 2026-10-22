@@ -7,10 +7,14 @@ import { Decision } from '../decisions/entities/decision.entity';
 import { Task } from '../tasks/entities/task.entity';
 import { Document } from '../documents/entities/document.entity';
 import { ProjectMember } from '../projects/entities/project-member.entity';
-import { AiModule } from '../ai/ai.module';
+import { Goal } from '../goals/entities/goal.entity';
+import { AssistantModule } from '../assistant/assistant.module';
 
 @Module({
-  imports: [AiModule, TypeOrmModule.forFeature([Project, Decision, Task, Document, ProjectMember])],
+  imports: [
+    AssistantModule,
+    TypeOrmModule.forFeature([Project, Decision, Task, Document, ProjectMember, Goal]),
+  ],
   controllers: [SearchController],
   providers: [SearchService],
   exports: [SearchService],

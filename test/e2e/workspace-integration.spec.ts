@@ -752,6 +752,7 @@ describe('Workspace search API (E2E)', () => {
         GITHUB_ISSUE: 0,
         GITHUB_PR: 0,
         GITHUB_CODE: 0,
+        GOAL: 0,
       });
 
       // Check key formats

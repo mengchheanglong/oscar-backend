@@ -23,7 +23,7 @@ import {
   ProjectMember,
   ProjectRole,
 } from '../../src/modules/projects/entities/project-member.entity';
-import { RetrievalService } from '../../src/modules/ai/retrieval/retrieval.service';
+import { RetrievalService } from '../../src/modules/mavis/retrieval/retrieval.service';
 import { KnowledgeSource, KnowledgeSourceStatus } from '../../src/modules/ingestion/entities';
 describe('Persistent private folder uploads', () => {
   let db: DataSource,

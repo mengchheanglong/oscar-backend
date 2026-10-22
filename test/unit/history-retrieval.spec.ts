@@ -1,8 +1,8 @@
 import {
   fuseHistory,
   historyEmbeddingIdentity,
-} from '../../src/modules/ai/context/history-retrieval.contract';
-import { HistoryExcerpt } from '../../src/modules/ai/context/conversation-history.repository';
+} from '../../src/modules/assistant/context/history-retrieval.contract';
+import { HistoryExcerpt } from '../../src/modules/assistant/context/conversation-history.repository';
 
 const row = (id: string, content = 'Synthetic excerpt.'): HistoryExcerpt => ({
   messageId: id,

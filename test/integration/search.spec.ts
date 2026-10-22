@@ -18,7 +18,7 @@ import {
   KnowledgeSourceType,
 } from '../../src/modules/ingestion/entities';
 import { LocalFolder } from '../../src/modules/local-folders/entities/local-folder.entity';
-import { RetrievalService } from '../../src/modules/ai/retrieval/retrieval.service';
+import { RetrievalService } from '../../src/modules/mavis/retrieval/retrieval.service';
 import { SearchService } from '../../src/modules/search/search.service';
 import { SearchEntityType } from '../../src/modules/search/dto/search.dto';
 
