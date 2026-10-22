@@ -38,6 +38,24 @@ T3 additionally requires `remoteProjectId`, `providerInstanceId`, and `model`. P
 
 Hermes retains `/projects/:projectId/ai/runs` and its conversation-linked message IDs, source checks, cancellation, and pending proposal contracts. Its raw artifact is returned separately from the OSCAR summary stored in the chat message.
 
+## Tasks and navigation — 2026-10-22
+
+OSCAR's Tasks page now includes Agent work alongside the task board. It combines
+the signed-in user's recent Hermes runs and T3/Paperclip handoffs, keeps the sidebar's
+project scope, and links results and reviews to their original chats. Native agent
+approvals stay in their respective platforms. A completed run is not a measured goal outcome.
+
+`GET /projects/:projectId/ai/handoffs` accepts an optional `conversationId`.
+Omitting it returns up to 100 recent handoffs owned by the actor in that project.
+The conversation-specific route behavior is preserved. The query rechecks live
+membership, active users, conversation ownership, project scope, and non-deleted chats.
+The existing Hermes list returns up to 30 recent runs per project. Partial provider
+load failures remain visible in the UI; no work is dispatched by viewing or refreshing it.
+
+Frontend navigation consolidates files and reviewed memory under Knowledge,
+moves platform setup to Settings → Integrations, and exposes decisions through
+project menus and search. This does not retire backend features or delete records.
+
 ## Validation — 2026-10-20
 
 A real local Paperclip installation and OSCAR roundtrip were subsequently

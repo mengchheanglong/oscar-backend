@@ -5111,9 +5111,11 @@
           },
           {
             "name": "conversationId",
-            "required": true,
+            "required": false,
             "in": "query",
+            "description": "Limit to an owned chat. Omit to list recent owned work in this project.",
             "schema": {
+              "format": "uuid",
               "type": "string"
             }
           }

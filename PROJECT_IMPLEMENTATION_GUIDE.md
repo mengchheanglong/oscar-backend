@@ -1843,3 +1843,19 @@ Provider generation was not exercised. No remote push or hosted deployment.
   `ai_workspace_develop` is absent. The existing external Compose volume was
   reused, PostgreSQL is healthy, and API plus frontend-proxy readiness both
   returned HTTP 200 after restart.
+
+### 2026-10-22 — Simplify navigation and expose delegated work
+
+- The frontend's main navigation is Chat, Goals, Tasks, and Knowledge. Knowledge
+  groups files and memories; project menus retain decisions; integration setup
+  moves into Settings. Existing file and memory URLs remain usable.
+- Tasks includes the actor's recent Hermes, T3, and Paperclip work. Handoff listing
+  supports an optional conversation filter while rechecking ownership, active
+  membership, and non-deleted chats. No database migration or data removal.
+- Checkpoint verification before refinement: 407 backend unit tests, 159 HTTP
+  end-to-end tests, 119 database integration tests, 26 frontend tests, lint,
+  typechecks, and both production builds passed.
+- Refinement verification: 19 handoff integration tests (including a new
+  cross-chat isolation case) and 29 frontend tests passed. Backend lint,
+  typecheck, build, and formatting passed. Browser QA uses synthetic data on
+  an isolated frontend preview; it does not establish live agent execution.

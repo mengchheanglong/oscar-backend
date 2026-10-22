@@ -8,7 +8,13 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiCookieAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SessionAuthGuard } from '../../common/guards/session-auth.guard';
 import { CsrfGuard } from '../../common/guards/csrf.guard';
@@ -48,10 +54,17 @@ export class PlatformHandoffsController {
   }
   @Get()
   @ApiOkResponse({ type: [PlatformHandoffResponseDto] })
+  @ApiQuery({
+    name: 'conversationId',
+    required: false,
+    type: String,
+    format: 'uuid',
+    description: 'Limit to an owned chat. Omit to list recent owned work in this project.',
+  })
   list(
     @CurrentUser() user: User,
     @Param('projectId', ParseUUIDPipe) projectId: string,
-    @Query('conversationId', ParseUUIDPipe) conversationId: string,
+    @Query('conversationId', new ParseUUIDPipe({ optional: true })) conversationId?: string,
   ) {
     return this.service.list(projectId, user.id, conversationId);
   }

@@ -207,6 +207,56 @@ describe('Durable OSCAR platform handoffs', () => {
     prompt: 'Create a small fixture and report checks.',
     idempotencyKey: randomUUID(),
   });
+  it('lists owned work across chats without exposing another user or deleted chat', async () => {
+    const first = await service.create(project.id, user.id, input());
+    const secondChat = await db.getRepository(Conversation).save({
+      projectId: project.id,
+      userId: user.id,
+    });
+    const second = await service.create(project.id, user.id, {
+      ...input(),
+      conversationId: secondChat.id,
+    });
+    const other = await db.getRepository(User).save({
+      email: `${randomUUID()}@handoff.test`,
+      displayName: 'Other owner',
+      passwordHash: 'synthetic',
+      isActive: true,
+    });
+    try {
+      await db.getRepository(ProjectMember).save({
+        projectId: project.id,
+        userId: other.id,
+        accessRole: ProjectRole.CONTRIBUTOR,
+      });
+      const otherChat = await db.getRepository(Conversation).save({
+        projectId: project.id,
+        userId: other.id,
+      });
+      await db.getRepository(PlatformHandoff).save({
+        ...first,
+        id: randomUUID(),
+        userId: other.id,
+        conversationId: otherChat.id,
+        idempotencyKey: randomUUID(),
+      });
+      const all = await service.list(project.id, user.id);
+      expect(all.map((r) => r.id)).toEqual(expect.arrayContaining([first.id, second.id]));
+      expect(all.every((r) => r.userId === user.id && r.projectId === project.id)).toBe(true);
+      expect((await service.list(project.id, user.id, conversation.id)).map((r) => r.id)).toEqual([
+        first.id,
+      ]);
+      await db.getRepository(Conversation).update(secondChat.id, { deletedAt: new Date() });
+      expect((await service.list(project.id, user.id)).some((r) => r.id === second.id)).toBe(false);
+      expect(await service.list(randomUUID(), user.id)).toEqual([]);
+      await db
+        .getRepository(ProjectMember)
+        .update({ projectId: project.id, userId: other.id }, { removedAt: new Date() });
+      expect(await service.list(project.id, other.id)).toEqual([]);
+    } finally {
+      await db.getRepository(User).delete(other.id);
+    }
+  });
   async function refresh(status: string, items: object[] = []) {
     t3.readThread.mockImplementation(async (_connection, threadId) => ({
       thread: { threadId, projectId: 'remote-project', status },

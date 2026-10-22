@@ -61,13 +61,21 @@ export class PlatformHandoffsService implements OnModuleInit, OnModuleDestroy {
   private type(row: Pick<PlatformHandoff, 'platformType'>) {
     return row.platformType === 'paperclip' ? PlatformType.PAPERCLIP : PlatformType.T3;
   }
-  async list(projectId: string, userId: string, conversationId: string) {
-    await this.context.assertAccess({ projectId, userId, conversationId });
-    return this.runs.find({
-      where: { projectId, userId, conversationId },
-      order: { createdAt: 'DESC' },
-      take: 100,
-    });
+  async list(projectId: string, userId: string, conversationId?: string) {
+    if (conversationId) await this.context.assertAccess({ projectId, userId, conversationId });
+    // The Tasks view spans owned conversations, while chat requests retain their
+    // existing conversation scope. Recheck membership and deleted chats here too.
+    const query = this.runs
+      .createQueryBuilder('r')
+      .where('r.projectId = :projectId AND r.userId = :userId', { projectId, userId })
+      .andWhere(`EXISTS (SELECT 1 FROM ai_conversations c
+        JOIN project_members pm ON pm.project_id = c.project_id AND pm.user_id = c.user_id
+        JOIN users u ON u.id = c.user_id
+        WHERE c.id = r.conversation_id AND c.project_id = r.project_id
+        AND c.user_id = r.user_id AND c.deleted_at IS NULL
+        AND pm.removed_at IS NULL AND u.is_active = true)`);
+    if (conversationId) query.andWhere('r.conversationId = :conversationId', { conversationId });
+    return query.orderBy('r.createdAt', 'DESC').take(100).getMany();
   }
   async create(projectId: string, userId: string, dto: CreatePlatformHandoffDto) {
     const prompt = dto.prompt.trim();
