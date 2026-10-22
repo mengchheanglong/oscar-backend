@@ -13,8 +13,8 @@ deployed installation and from the automated test database.
 | Uploads                 | `./var/develop/uploads`                  |
 
 Start only this project's PostgreSQL service with `pnpm db:up`. On the current
-machine the separate development database has already been created and all 18
-migrations applied. Do not reset it or rerun creation as a cleanup operation.
+machine the separate development database has already been created. Run pending
+migrations explicitly; do not reset it or rerun creation as a cleanup operation.
 Future schema changes require explicit migration execution against the local
 target. The committed environment template remains a template; the current
 machine-specific values live only in the ignored backend `.env`.
@@ -29,6 +29,30 @@ does not make model execution offline.
 Start the backend with `pnpm start:prod` after building, or `pnpm dev` when editing
 its source. Start the frontend with `pnpm dev`. Verify readiness and the frontend
 API proxy before testing. Do not start another process on an occupied port.
+
+### Start the installed local workspace on Windows
+
+After building both repositories, run `pnpm workspace:start` in the backend.
+It verifies the database target is `127.0.0.1:55432/oscar`, starts only the local
+Compose PostgreSQL service, runs pending migrations, reuses healthy services,
+and starts missing backend/frontend/Paperclip/T3 processes in hidden windows.
+It does not rebuild or restart an already-running process after code changes.
+Use `pnpm workspace:status` for live HTTP readiness; add `-- -SkipAgents` when
+intentionally running only the core app.
+
+This machine's Paperclip runtime is under `../runtimes/paperclip`, and T3 uses
+the installed desktop application's bundled CLI. Startup preserves stale
+Paperclip PostgreSQL lock files when Windows has recycled their PID for a
+non-Postgres process and no listener exists on the configured database port.
+It never stops that unrelated process or recreates the database. Private process
+logs go to `%LOCALAPPDATA%/OSCAR/logs`, outside the repositories.
+
+Readiness does not create OAuth grants or prove model inference. In Settings,
+Paperclip/T3 connections probe live while their page is visible, show the last
+check, and stop treating saved health as current after 60 seconds. T3 browser
+authorization returns through the validated OSCAR frontend origin so its session
+cookie works on either local hostname. Runtime permissions and execution still
+require their own checks.
 
 ## Test account and data
 

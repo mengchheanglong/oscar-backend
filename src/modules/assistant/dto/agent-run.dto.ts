@@ -4,6 +4,7 @@ import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-valid
 import { AgentRun, AgentRunStatus } from '../entities/agent-run.entity';
 
 export class CreateAgentRunDto {
+  @ApiPropertyOptional({ format: 'uuid' }) @IsOptional() @IsUUID() goalId?: string;
   @ApiPropertyOptional({ format: 'uuid', description: 'Owned conversation for inline work.' })
   @IsOptional()
   @IsUUID()
@@ -22,6 +23,7 @@ export class CreateAgentRunDto {
 }
 
 export class AgentRunResponseDto {
+  @ApiPropertyOptional({ nullable: true }) goalId!: string | null;
   @ApiProperty() id!: string;
   @ApiProperty() projectId!: string;
   @ApiPropertyOptional({ nullable: true }) conversationId!: string | null;
@@ -40,6 +42,7 @@ export class AgentRunResponseDto {
   @ApiProperty() updatedAt!: string;
   static fromEntity(r: AgentRun): AgentRunResponseDto {
     return {
+      goalId: r.goalId,
       id: r.id,
       projectId: r.projectId,
       prompt: r.prompt,

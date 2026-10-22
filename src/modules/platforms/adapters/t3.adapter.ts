@@ -31,6 +31,7 @@ import { platformFetch, platformUrl, records } from '../platform-http';
 export const T3_CAPABILITIES = ['read_workspaces', 'read_threads', 'read_runs'];
 export const T3_MIN_API_VERSION = 'mcp-read-v1';
 interface Credentials {
+  frontendOrigin?: string;
   client?: OAuthClientInformationMixed;
   tokens?: OAuthTokens;
   verifier?: string;
@@ -52,6 +53,7 @@ export class T3Adapter implements PlatformAdapter {
   private provider(
     connection: PlatformConnection,
     interactive = false,
+    frontendOrigin?: string,
   ): {
     provider: OAuthClientProvider;
     redirect: () => string | undefined;
@@ -63,12 +65,17 @@ export class T3Adapter implements PlatformAdapter {
     } catch {
       throw new BadRequestException('T3 requires OAuth. Reconnect this installation.');
     }
+    if (interactive && frontendOrigin && credentials.frontendOrigin !== frontendOrigin) {
+      delete credentials.client;
+      credentials.frontendOrigin = frontendOrigin;
+    }
     let redirect: string | undefined;
     const persist = async () => {
       connection.authToken = JSON.stringify(credentials);
       await this.connections.update(connection.id, { authToken: connection.authToken });
     };
     const callbackOrigin =
+      credentials.frontendOrigin ??
       process.env.PLATFORM_OAUTH_CALLBACK_ORIGIN ??
       `http://localhost:${process.env.PORT || '3001'}`;
     const callback = `${callbackOrigin}/api/v1/platforms/connections/${connection.id}/oauth/callback`;
@@ -197,8 +204,11 @@ export class T3Adapter implements PlatformAdapter {
       });
     });
   }
-  async startAuthorization(connection: PlatformConnection): Promise<{ authorizationUrl: string }> {
-    const state = this.provider(connection, true);
+  async startAuthorization(
+    connection: PlatformConnection,
+    frontendOrigin?: string,
+  ): Promise<{ authorizationUrl: string }> {
+    const state = this.provider(connection, true, frontendOrigin);
     // Authorize is an explicit reconnect, including when a previous consent granted
     // only read access to a connection configured for supervised work.
     delete state.credentials.tokens;
@@ -221,7 +231,7 @@ export class T3Adapter implements PlatformAdapter {
     connection: PlatformConnection,
     code: string,
     expectedState: string,
-  ): Promise<void> {
+  ): Promise<string | undefined> {
     const { provider, credentials } = this.provider(connection);
     if (
       !credentials.state ||
@@ -242,6 +252,7 @@ export class T3Adapter implements PlatformAdapter {
     });
     if (result !== 'AUTHORIZED')
       throw new UnauthorizedException('T3 authorization was not completed.');
+    return credentials.frontendOrigin;
   }
   private async withClient<T>(
     connection: PlatformConnection,

@@ -45,6 +45,10 @@ export class PlatformsService {
   private publicConnection(conn: PlatformConnection): PlatformConnection {
     return {
       ...conn,
+      healthFresh:
+        !!conn.lastHealthCheckAt &&
+        Date.now() - new Date(conn.lastHealthCheckAt).getTime() >= 0 &&
+        Date.now() - new Date(conn.lastHealthCheckAt).getTime() < 60_000,
       authToken: conn.authToken ? '[configured]' : null,
       user: undefined,
       externalLinks: undefined,
@@ -147,6 +151,8 @@ export class PlatformsService {
         connection.authToken = null;
         connection.status = PlatformConnectionStatus.DISCONNECTED;
         connection.capabilities = [];
+        connection.lastHealthCheckAt = null;
+        connection.healthError = null;
       }
       connection.baseUrl = origin;
     }
@@ -154,6 +160,10 @@ export class PlatformsService {
       if (connection.platformType === PlatformType.T3)
         throw new BadRequestException('Use T3 OAuth authorization.');
       connection.authToken = dto.authToken.trim() || null;
+      connection.status = PlatformConnectionStatus.DISCONNECTED;
+      connection.lastHealthCheckAt = null;
+      connection.healthError = null;
+      connection.capabilities = [];
     }
     if (dto.metadata !== undefined) {
       if (
@@ -163,6 +173,7 @@ export class PlatformsService {
         connection.authToken = null;
         connection.status = PlatformConnectionStatus.DISCONNECTED;
         connection.capabilities = [];
+        connection.lastHealthCheckAt = null;
       }
       connection.metadata = dto.metadata;
     }
@@ -182,26 +193,52 @@ export class PlatformsService {
       lastHealthCheckAt: new Date(),
       healthError: health.error ?? null,
     });
-    await this.connectionRepo.save(connection);
+    // Probe results must not overwrite credentials changed by a concurrent OAuth reconnect.
+    await this.connectionRepo.save({
+      id: connection.id,
+      status: connection.status,
+      capabilities: connection.capabilities,
+      versionInfo: connection.versionInfo,
+      lastHealthCheckAt: connection.lastHealthCheckAt,
+      healthError: connection.healthError,
+    });
     return this.publicConnection(connection);
   }
-  async authorize(actorId: string, id: string): Promise<{ authorizationUrl: string }> {
+  async authorize(
+    actorId: string,
+    id: string,
+    frontendOrigin?: string,
+  ): Promise<{ authorizationUrl: string }> {
     const connection = await this.owned(actorId, id, true);
     if (connection.platformType !== PlatformType.T3)
       throw new BadRequestException('This connection uses a Paperclip bearer token.');
-    return this.t3Adapter.startAuthorization(connection);
+    if (frontendOrigin) {
+      const configured = process.env.APP_ORIGIN || 'http://localhost:3002';
+      const local = ['http://localhost:3002', 'http://127.0.0.1:3002'];
+      if (
+        frontendOrigin !== configured &&
+        !(
+          process.env.NODE_ENV !== 'production' &&
+          local.includes(configured) &&
+          local.includes(frontendOrigin)
+        )
+      )
+        throw new BadRequestException('Use the configured OSCAR origin to authorize T3.');
+    }
+    return this.t3Adapter.startAuthorization(connection, frontendOrigin);
   }
   async completeAuthorization(
     actorId: string,
     id: string,
     code: string,
     state: string,
-  ): Promise<void> {
+  ): Promise<string | undefined> {
     const connection = await this.owned(actorId, id, true);
     if (connection.platformType !== PlatformType.T3)
       throw new BadRequestException('Wrong connection type.');
-    await this.t3Adapter.completeAuthorization(connection, code, state);
+    const frontendOrigin = await this.t3Adapter.completeAuthorization(connection, code, state);
     await this.testConnection(actorId, id);
+    return frontendOrigin;
   }
   async getEntities(actorId: string, id: string) {
     const connection = await this.owned(actorId, id);
@@ -326,7 +363,14 @@ export class PlatformsService {
             healthError: health.error ?? null,
             lastHealthCheckAt: new Date(),
           });
-          await this.connectionRepo.save(connection);
+          await this.connectionRepo.save({
+            id: connection.id,
+            status: connection.status,
+            capabilities: connection.capabilities,
+            versionInfo: connection.versionInfo,
+            lastHealthCheckAt: connection.lastHealthCheckAt,
+            healthError: connection.healthError,
+          });
           if (health.status !== PlatformConnectionStatus.HEALTHY)
             throw new Error('Read access unavailable.');
           const result = await this.adapter(connection.platformType).fetchEntities(connection);

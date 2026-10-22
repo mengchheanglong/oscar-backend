@@ -21,6 +21,7 @@ import { AssistantMode } from './entities/assistant-mode.enum';
 import { ConversationContextService } from './context/conversation-context.service';
 import { CreatePlatformHandoffDto } from './dto/platform-handoff.dto';
 import { LlmProvider } from './llm/llm-provider.interface';
+import { assertExecutionGoal } from './execution-goal';
 
 const ACTIVE = ['QUEUED', 'DISPATCHING', 'RUNNING', 'WAITING'] as const;
 const TERMINAL = ['SUCCEEDED', 'FAILED', 'CANCELLED'];
@@ -95,6 +96,7 @@ export class PlatformHandoffsService implements OnModuleInit, OnModuleDestroy {
       if (previous) {
         if (
           previous.projectId !== projectId ||
+          (previous.goalId ?? null) !== (dto.goalId ?? null) ||
           previous.conversationId !== dto.conversationId ||
           previous.connectionId !== dto.connectionId ||
           (previous.remoteProjectId ?? null) !== (dto.remoteProjectId ?? null) ||
@@ -111,6 +113,7 @@ export class PlatformHandoffsService implements OnModuleInit, OnModuleDestroy {
       }
       // Revalidate after waiting for the lock, before persisting user content.
       await this.context.assertAccess(scope);
+      await assertExecutionGoal(tx, projectId, dto.goalId);
       const connection = await this.platforms.executionConnection(
         userId,
         dto.connectionId,
@@ -146,6 +149,7 @@ export class PlatformHandoffsService implements OnModuleInit, OnModuleDestroy {
       const row = await repo.save(
         repo.create({
           ...scope,
+          goalId: dto.goalId ?? null,
           platformType,
           remoteAgentId: platformType === 'paperclip' ? (dto.remoteAgentId ?? null) : null,
           remoteCompanyId:

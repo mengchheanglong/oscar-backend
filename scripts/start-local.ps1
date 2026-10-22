@@ -1,0 +1,96 @@
+param([switch]$CheckOnly, [switch]$SkipAgents)
+$ErrorActionPreference = 'Stop'
+$backendRoot = Split-Path -Parent $PSScriptRoot
+$workspaceRoot = Split-Path -Parent $backendRoot
+$frontendRoot = Join-Path $workspaceRoot 'oscar-frontend'
+$runtimeRoot = Join-Path $workspaceRoot 'runtimes'
+$logRoot = Join-Path $env:LOCALAPPDATA 'OSCAR\logs'
+
+function Test-Endpoint([string]$Url) {
+  try { return (Invoke-WebRequest -Uri $Url -TimeoutSec 3 -UseBasicParsing).StatusCode -eq 200 } catch { return $false }
+}
+function Wait-Endpoint([string]$Name, [string]$Url) {
+  $deadline = (Get-Date).AddSeconds(90)
+  while ((Get-Date) -lt $deadline) {
+    if (Test-Endpoint $Url) { Write-Output "$Name ready: $Url"; return }
+    Start-Sleep -Milliseconds 750
+  }
+  throw "$Name did not become ready. Check its private logs in $logRoot. Existing data and processes were preserved."
+}
+function Start-LocalProcess([string]$Name, [string]$File, [string[]]$Arguments, [string]$Directory) {
+  New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
+  $stamp = Get-Date -Format 'yyyyMMdd-HHmmss-fff'
+  $quoted = ($Arguments | ForEach-Object { '"' + $_ + '"' }) -join ' '
+  $process = Start-Process -FilePath $File -ArgumentList $quoted -WorkingDirectory $Directory -WindowStyle Hidden -PassThru `
+    -RedirectStandardOutput (Join-Path $logRoot "$Name-$stamp.out.log") -RedirectStandardError (Join-Path $logRoot "$Name-$stamp.err.log")
+  Write-Output "$Name started (PID $($process.Id))."
+}
+function Assert-FreePort([int]$Port) {
+  if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue) {
+    throw "Port $Port is occupied by a service that failed its readiness check. Inspect it before starting another process."
+  }
+}
+
+$endpoints = [ordered]@{ Backend = 'http://127.0.0.1:3001/api/v1/health/ready'; Frontend = 'http://127.0.0.1:3002/api/v1/health/ready'; Paperclip = 'http://127.0.0.1:3100/api/health'; T3 = 'http://127.0.0.1:3773/.well-known/t3/environment' }
+if ($CheckOnly) {
+  $failed = $false
+  foreach ($entry in $endpoints.GetEnumerator()) {
+    if ($SkipAgents -and $entry.Key -in 'Paperclip','T3') { continue }
+    $ready = Test-Endpoint $entry.Value
+    Write-Output "$($entry.Key): $(if ($ready) { 'ready' } else { 'unavailable' })"
+    if (-not $ready) { $failed = $true }
+  }
+  if ($failed) { exit 1 }; exit 0
+}
+$node = (Get-Command node.exe).Source
+Push-Location $backendRoot
+try {
+  & $node (Join-Path $PSScriptRoot 'verify-local-target.cjs')
+  if ($LASTEXITCODE -ne 0) { throw 'Refusing to start against an unexpected database.' }
+  & docker compose up -d --wait postgres
+  if ($LASTEXITCODE -ne 0) { throw 'Local PostgreSQL did not become ready.' }
+  # The application explicitly migrates the existing local database; no seeds or resets.
+  & pnpm migration:run
+  if ($LASTEXITCODE -ne 0) { throw 'Migration failed. Existing data was preserved.' }
+} finally { Pop-Location }
+if (-not (Test-Endpoint $endpoints.Backend)) {
+  Assert-FreePort 3001
+  if (-not (Test-Path (Join-Path $backendRoot 'dist\main.js'))) { throw 'Build the backend with pnpm build first.' }
+  Start-LocalProcess 'backend' $node @((Join-Path $backendRoot 'dist\main.js')) $backendRoot
+}
+Wait-Endpoint 'Backend' $endpoints.Backend
+if (-not (Test-Endpoint $endpoints.Frontend)) {
+  Assert-FreePort 3002
+  if (-not (Test-Path (Join-Path $frontendRoot '.next\BUILD_ID'))) { throw 'Build the frontend with pnpm build first.' }
+  Start-LocalProcess 'frontend' $node @((Join-Path $frontendRoot 'node_modules\next\dist\bin\next'), 'start','--port','3002','--hostname','127.0.0.1') $frontendRoot
+}
+Wait-Endpoint 'Frontend' $endpoints.Frontend
+if (-not $SkipAgents) {
+  $paperclipRoot = Join-Path $runtimeRoot 'paperclip'
+  if (-not (Test-Endpoint $endpoints.Paperclip)) {
+    Assert-FreePort 3100
+    $pidFile = Join-Path $paperclipRoot 'data\instances\default\db\postmaster.pid'
+    if (Test-Path -LiteralPath $pidFile) {
+      $ownerId = [int](Get-Content -LiteralPath $pidFile -TotalCount 1)
+      $owner = Get-Process -Id $ownerId -ErrorAction SilentlyContinue
+      $listener = Get-NetTCPConnection -LocalPort 54329 -State Listen -ErrorAction SilentlyContinue
+      # Windows can recycle a dead Postgres PID for another process. Preserve the stale lock instead of stopping that process.
+      if (-not $listener -and (-not $owner -or $owner.ProcessName -ne 'postgres')) {
+        Move-Item -LiteralPath $pidFile -Destination ($pidFile + '.stale-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
+      }
+    }
+    Start-LocalProcess 'paperclip' $node @((Join-Path $paperclipRoot 'start.cjs')) $paperclipRoot
+  }
+  Wait-Endpoint 'Paperclip' $endpoints.Paperclip
+  if (-not (Test-Endpoint $endpoints.T3)) {
+    Assert-FreePort 3773
+    $t3Root = Join-Path $env:LOCALAPPDATA 'Programs\t3code'
+    $oldElectronMode = $env:ELECTRON_RUN_AS_NODE
+    try {
+      $env:ELECTRON_RUN_AS_NODE = '1'
+      Start-LocalProcess 't3' (Join-Path $t3Root 'T3 Code (Beta).exe') @((Join-Path $t3Root 'resources\server.asar\apps\server\dist\bin.mjs'), 'start','--host','127.0.0.1','--port','3773','--no-browser') $workspaceRoot
+    } finally { $env:ELECTRON_RUN_AS_NODE = $oldElectronMode }
+  }
+  Wait-Endpoint 'T3' $endpoints.T3
+}
+Write-Output 'OSCAR is ready at http://127.0.0.1:3002/. OAuth and agent execution permissions remain configured in OSCAR settings.'

@@ -1,4 +1,5 @@
 import { LocalFoldersModule } from './modules/local-folders/local-folders.module';
+import { ChiefModule } from './modules/chief-of-staff/chief.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
@@ -65,6 +66,7 @@ import { PlatformsModule } from './modules/platforms/platforms.module';
     GoalsModule,
     MavisModule,
     PlatformsModule,
+    ChiefModule,
   ],
 })
 export class AppModule {}

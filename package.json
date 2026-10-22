@@ -10,6 +10,8 @@
     "pnpm": "10.32.1"
   },
   "scripts": {
+    "workspace:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-local.ps1",
+    "workspace:status": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-local.ps1 -CheckOnly",
     "dev": "node --watch --watch-path=src -r ts-node/register src/main.ts",
     "build": "node scripts/build.cjs",
     "verify:foundation": "node scripts/verify-foundation.cjs",

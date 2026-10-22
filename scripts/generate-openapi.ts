@@ -66,8 +66,11 @@ import { MavisController } from '../src/modules/mavis/mavis.controller';
 import { MavisService } from '../src/modules/mavis/mavis.service';
 import { PlatformsController } from '../src/modules/platforms/platforms.controller';
 import { PlatformsService } from '../src/modules/platforms/platforms.service';
+import { ChiefController } from '../src/modules/chief-of-staff/chief.controller';
+import { ChiefService } from '../src/modules/chief-of-staff/chief.service';
 
 export const OPENAPI_CONTROLLERS = [
+  ChiefController,
   UploadedFoldersController,
   LocalFoldersController,
   HealthController,
@@ -101,6 +104,7 @@ export const OPENAPI_CONTROLLERS = [
 @Module({
   controllers: OPENAPI_CONTROLLERS,
   providers: [
+    { provide: ChiefService, useValue: {} },
     { provide: UploadedFoldersService, useValue: {} },
     { provide: LocalFoldersService, useValue: {} },
     { provide: LiveFoldersService, useValue: {} },

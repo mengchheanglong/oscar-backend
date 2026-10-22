@@ -22,6 +22,12 @@ The [shared agent handoff guide](docs/product/OSCAR_AGENT_HANDOFFS.md) covers He
 T3 and Paperclip execution, result summaries and configuration. The inherited
 implementation guide remains a record of the foundation and its verification history.
 
+The [chief-of-staff workflow](docs/product/CHIEF_OF_STAFF_WORKFLOW.md) adds goal-linked
+execution, human outcome reviews, proposed MAVIS lessons, opt-in recurring
+briefings and user-reported execution spending. Windows startup and live readiness
+are available through `pnpm workspace:start` and `pnpm workspace:status`; see
+[local development](docs/operations/LOCAL_DEVELOPMENT.md).
+
 The [documentation map](docs/README.md) groups the product, architecture, memory,
 evaluation, operations, and API references by topic.
 

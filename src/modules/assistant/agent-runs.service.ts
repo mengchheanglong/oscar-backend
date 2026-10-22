@@ -1,4 +1,5 @@
 import { UploadedFoldersService } from '../local-folders/uploaded-folders.service';
+import { assertExecutionGoal } from './execution-goal';
 import {
   BadRequestException,
   ConflictException,
@@ -170,6 +171,7 @@ export class AgentRunsService implements OnModuleDestroy {
       await this.threadAccess(this.database.manager, projectId, userId, dto.conversationId);
     const hash = createHash('sha256')
       .update(dto.conversationId ? JSON.stringify([dto.conversationId, prompt]) : prompt)
+      .update(dto.goalId ? `:goal:${dto.goalId}` : '')
       .digest('hex');
     await this.expire(projectId, userId);
     const lookup = () =>
@@ -258,12 +260,14 @@ export class AgentRunsService implements OnModuleDestroy {
           };
         }
         // Insert the run and its canonical chat turn atomically. Retry keys never create duplicate messages.
+        await assertExecutionGoal(tx, projectId, dto.goalId);
         const result = await tx
           .createQueryBuilder()
           .insert()
           .into(AgentRun)
           .values({
             projectId,
+            goalId: dto.goalId ?? null,
             userId,
             prompt,
             idempotencyKey: dto.idempotencyKey,

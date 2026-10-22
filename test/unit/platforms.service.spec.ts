@@ -395,6 +395,35 @@ describe('PlatformsService', () => {
       expect(result.id).toBe(CONN_ID);
       expect(result.authToken).toBe('[configured]');
     });
+    it('does not treat a stale or missing successful probe as fresh health', async () => {
+      for (const lastHealthCheckAt of [
+        null,
+        new Date(Date.now() - 61_000),
+        new Date(Date.now() + 60_000),
+      ]) {
+        inMemoryConnections.length = 0;
+        inMemoryConnections.push(makeConnection({ lastHealthCheckAt }));
+        expect((await service.getConnection(USER_ID, CONN_ID)).healthFresh).toBe(false);
+      }
+      inMemoryConnections.length = 0;
+      inMemoryConnections.push(makeConnection());
+      expect((await service.getConnection(USER_ID, CONN_ID)).healthFresh).toBe(true);
+    });
+    it('preserves concurrently changed credentials when a probe finishes', async () => {
+      inMemoryConnections.push(makeConnection());
+      jest.spyOn(paperclipAdapter, 'checkHealth').mockImplementationOnce(async () => {
+        inMemoryConnections[0] = makeConnection({ authToken: 'reconnected-token' });
+        return { status: PlatformConnectionStatus.HEALTHY, capabilities: [], versionInfo: {} };
+      });
+      await service.testConnection(USER_ID, CONN_ID);
+      expect(inMemoryConnections[0]!.authToken).toBe('reconnected-token');
+    });
+    it('rejects untrusted browser callback origins before requesting T3 authorization', async () => {
+      inMemoryConnections.push(makeConnection({ platformType: PlatformType.T3 }));
+      await expect(
+        service.authorize(USER_ID, CONN_ID, 'https://untrusted.example'),
+      ).rejects.toThrow('configured OSCAR origin');
+    });
 
     it('rejects connection access for non-member user', async () => {
       inMemoryConnections.push(makeConnection());

@@ -1,4 +1,5 @@
 import { credentialTransformer } from '../credential-vault';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Column,
   CreateDateColumn,
@@ -44,6 +45,12 @@ export interface PlatformVersionInfo {
 
 @Entity('platform_connections')
 export class PlatformConnection {
+  @ApiPropertyOptional({
+    readOnly: true,
+    description:
+      'Whether the saved probe is less than 60 seconds old. A saved HEALTHY status alone is not a live check.',
+  })
+  healthFresh?: boolean;
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

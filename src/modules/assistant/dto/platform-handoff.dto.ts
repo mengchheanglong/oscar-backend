@@ -2,6 +2,7 @@ import { IsIn, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreatePlatformHandoffDto {
+  @ApiPropertyOptional({ format: 'uuid' }) @IsOptional() @IsUUID() goalId?: string;
   @ApiPropertyOptional({ enum: ['t3', 'paperclip'], default: 't3' })
   @IsIn(['t3', 'paperclip'])
   platformType?: 't3' | 'paperclip' = 't3';

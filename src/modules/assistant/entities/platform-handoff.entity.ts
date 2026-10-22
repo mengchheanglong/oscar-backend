@@ -20,6 +20,7 @@ export type HandoffStatus =
 @Entity('platform_handoffs')
 @Index(['userId', 'idempotencyKey'], { unique: true })
 export class PlatformHandoff {
+  @Column({ name: 'goal_id', type: 'uuid', nullable: true }) goalId!: string | null;
   @Column({ name: 'platform_type', type: 'varchar', length: 30, default: 't3' }) platformType!:
     't3' | 'paperclip';
   @Column({ name: 'remote_agent_id', type: 'varchar', length: 255, nullable: true })

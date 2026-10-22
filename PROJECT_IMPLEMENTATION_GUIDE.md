@@ -1859,3 +1859,35 @@ Provider generation was not exercised. No remote push or hosted deployment.
   cross-chat isolation case) and 29 frontend tests passed. Backend lint,
   typecheck, build, and formatting passed. Browser QA uses synthetic data on
   an isolated frontend preview; it does not establish live agent execution.
+
+### 2026-10-22 — Startup, live connections and chief-of-staff continuity
+
+- Added Windows `workspace:start` / `workspace:status` commands for the installed
+  local app and runtimes. Startup verifies the isolated database target, applies
+  pending migrations without seeding/resetting, reuses ready services, preserves
+  unrelated processes, and writes private process logs outside Git.
+- Fixed stale platform-health presentation, added bounded visible-page probes,
+  and prevented a health write from replacing concurrently changed credentials.
+  Browser OAuth callbacks now retain the validated frontend origin/session.
+- Paperclip recovered from a recycled stale PostgreSQL PID without changing its
+  database. Main-account Paperclip and supervised T3 connections pass live probes.
+  Live discovery returned 19 T3 models and three Paperclip agents. The complete
+  T3 browser approval/callback flow was verified through the frontend.
+- Added goal-linked execution, idempotent human outcome reviews, atomic proposed
+  MAVIS lessons, opt-in recurring structured briefings, and a workspace monthly
+  USD reporting threshold. No automatic memory approval, goal-progress update,
+  recurring agent execution, provider invoice synchronization or hard spending
+  enforcement. See [workflow boundaries](docs/product/CHIEF_OF_STAFF_WORKFLOW.md).
+- Applied the additive continuity migration to the existing local `oscar`
+  database. Backend and frontend now run from the new production builds using
+  the startup command. Main-account recurrence stays off and its budget unset.
+- Verification: full checkpoints passed 412 backend unit, 165 HTTP E2E,
+  130 PostgreSQL integration and 29 frontend tests. Subsequent affected checks
+  passed 20 platform unit tests (including two additional regression cases),
+  11 continuity integration tests (including nullable cost), and the offline
+  OpenAPI contract test. Lint, typechecks, production builds, generated OpenAPI
+  and formatting passed. Desktop/mobile browser QA confirmed the briefing,
+  schedule dialog, outcome-review dialog and live connection status without
+  approving existing production outcomes/memories. The continuity/recall tests
+  use synthetic execution fixtures; this change does not claim new provider
+  inference runs or verified provider billing.

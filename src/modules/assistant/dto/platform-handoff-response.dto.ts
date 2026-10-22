@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PlatformHandoffResponseDto {
+  @ApiPropertyOptional({ nullable: true }) goalId!: string | null;
   @ApiProperty({ enum: ['t3', 'paperclip'] }) platformType!: string;
   @ApiPropertyOptional({ nullable: true }) remoteAgentId!: string | null;
   @ApiPropertyOptional({ nullable: true }) externalUrl!: string | null;

@@ -6,6 +6,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Param,
@@ -104,8 +105,12 @@ export class PlatformsController {
   }
 
   @Post('connections/:id/authorize')
-  async authorize(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
-    return this.platformsService.authorize(user.id, id);
+  async authorize(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Headers('origin') origin?: string,
+  ) {
+    return this.platformsService.authorize(user.id, id, origin);
   }
 
   @Get('connections/:id/oauth/callback')
@@ -118,8 +123,15 @@ export class PlatformsController {
   ) {
     if (!code || !state || code.length > 4096 || state.length > 128)
       throw new BadRequestException('Authorization was cancelled or expired.');
-    await this.platformsService.completeAuthorization(user.id, id, code, state);
-    response.redirect(`${process.env.APP_ORIGIN || 'http://localhost:3002'}/platforms?connected=1`);
+    const frontendOrigin = await this.platformsService.completeAuthorization(
+      user.id,
+      id,
+      code,
+      state,
+    );
+    response.redirect(
+      `${frontendOrigin || process.env.APP_ORIGIN || 'http://localhost:3002'}/settings?section=integrations&app=t3&connected=1`,
+    );
   }
 
   @Post('connections/:id/test')

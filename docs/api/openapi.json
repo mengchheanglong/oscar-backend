@@ -1,6 +1,198 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/chief/briefing": {
+      "get": {
+        "operationId": "ChiefController_briefing",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChiefBriefingResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Current scoped goals, blockers, execution reviews and reported spending. Rebuilt with current permissions.",
+        "tags": [
+          "Chief of staff"
+        ]
+      }
+    },
+    "/api/v1/chief/preferences": {
+      "get": {
+        "operationId": "ChiefController_preferences",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChiefPreferencesResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Chief of staff"
+        ]
+      },
+      "put": {
+        "operationId": "ChiefController_preferencesUpdate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChiefPreferencesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChiefPreferencesResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Chief of staff"
+        ]
+      }
+    },
+    "/api/v1/chief/executions/{platform}/{id}/review": {
+      "post": {
+        "operationId": "ChiefController_review",
+        "parameters": [
+          {
+            "name": "platform",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewExecutionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionReviewResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Review a terminal owned execution. Optional lessons create proposed memories, never approved memories or goal progress.",
+        "tags": [
+          "Chief of staff"
+        ]
+      },
+      "get": {
+        "operationId": "ChiefController_getReview",
+        "parameters": [
+          {
+            "name": "platform",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionReviewEnvelopeDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Chief of staff"
+        ]
+      }
+    },
     "/api/v1/projects/{projectId}/uploaded-folders/settings": {
       "get": {
         "operationId": "UploadedFoldersController_settings",
@@ -7571,6 +7763,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "origin",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -7879,6 +8079,389 @@
       }
     },
     "schemas": {
+      "ChiefPreferencesResponseDto": {
+        "type": "object",
+        "properties": {
+          "cadence": {
+            "type": "string",
+            "enum": [
+              "OFF",
+              "DAILY",
+              "WEEKLY"
+            ]
+          },
+          "hourUtc": {
+            "type": "number"
+          },
+          "monthlyBudgetUsd": {
+            "type": "string",
+            "nullable": true
+          },
+          "nextBriefingAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastBriefingAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "cadence",
+          "hourUtc",
+          "monthlyBudgetUsd",
+          "nextBriefingAt",
+          "lastBriefingAt"
+        ]
+      },
+      "BriefingGoalDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string"
+          },
+          "measuredProgress": {
+            "type": "number"
+          },
+          "targetDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "risks": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "title",
+          "measuredProgress",
+          "targetDate",
+          "risks"
+        ]
+      },
+      "BriefingTaskDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "title",
+          "status",
+          "dueDate"
+        ]
+      },
+      "BriefingWorkReviewDto": {
+        "type": "object",
+        "properties": {
+          "verdict": {
+            "type": "string"
+          },
+          "observation": {
+            "type": "string"
+          },
+          "memoryId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "verdict",
+          "observation",
+          "memoryId"
+        ]
+      },
+      "BriefingWorkDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "goalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "conversationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "platform": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "review": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BriefingWorkReviewDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "goalId",
+          "conversationId",
+          "platform",
+          "status",
+          "review"
+        ]
+      },
+      "BriefingBudgetDto": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "reportedUsd": {
+            "type": "number"
+          },
+          "unknownRuns": {
+            "type": "number"
+          },
+          "trackedRuns": {
+            "type": "number"
+          },
+          "monthlyBudgetUsd": {
+            "type": "number",
+            "nullable": true
+          },
+          "overBudget": {
+            "type": "boolean"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "costSource": {
+            "type": "string"
+          },
+          "notice": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "period",
+          "currency",
+          "reportedUsd",
+          "unknownRuns",
+          "trackedRuns",
+          "monthlyBudgetUsd",
+          "overBudget",
+          "scope",
+          "costSource",
+          "notice"
+        ]
+      },
+      "ChiefBriefingResponseDto": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string"
+          },
+          "preferences": {
+            "$ref": "#/components/schemas/ChiefPreferencesResponseDto"
+          },
+          "goals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BriefingGoalDto"
+            }
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BriefingTaskDto"
+            }
+          },
+          "work": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BriefingWorkDto"
+            }
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BriefingBudgetDto"
+          }
+        },
+        "required": [
+          "generatedAt",
+          "preferences",
+          "goals",
+          "tasks",
+          "work",
+          "budget"
+        ]
+      },
+      "ChiefPreferencesDto": {
+        "type": "object",
+        "properties": {
+          "cadence": {
+            "type": "string",
+            "enum": [
+              "OFF",
+              "DAILY",
+              "WEEKLY"
+            ]
+          },
+          "hourUtc": {
+            "type": "number"
+          },
+          "monthlyBudgetUsd": {
+            "type": "number",
+            "nullable": true,
+            "description": "Reporting threshold in USD; does not enforce provider spending."
+          }
+        },
+        "required": [
+          "cadence",
+          "hourUtc",
+          "monthlyBudgetUsd"
+        ]
+      },
+      "ReviewExecutionDto": {
+        "type": "object",
+        "properties": {
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "ACCEPTED",
+              "NEEDS_WORK",
+              "REJECTED"
+            ]
+          },
+          "observation": {
+            "type": "string",
+            "description": "What you checked, observed evidence, and remaining gaps."
+          },
+          "lesson": {
+            "type": "string",
+            "description": "Optional lesson, saved as a proposed MAVIS memory for separate approval."
+          },
+          "reportedCostUsd": {
+            "type": "number",
+            "nullable": true,
+            "description": "User-reported USD cost. Omit when unknown."
+          }
+        },
+        "required": [
+          "idempotencyKey",
+          "verdict",
+          "observation"
+        ]
+      },
+      "ExecutionReviewResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "runId": {
+            "type": "string"
+          },
+          "goalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "ACCEPTED",
+              "NEEDS_WORK",
+              "REJECTED"
+            ]
+          },
+          "observation": {
+            "type": "string"
+          },
+          "reportedCostUsd": {
+            "type": "string",
+            "nullable": true
+          },
+          "memoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "platform",
+          "runId",
+          "goalId",
+          "verdict",
+          "observation",
+          "reportedCostUsd",
+          "memoryId",
+          "createdAt"
+        ]
+      },
+      "ExecutionReviewEnvelopeDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExecutionReviewResponseDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
       "UploadedFolderSettingsResponse": {
         "type": "object",
         "properties": {
@@ -10035,6 +10618,10 @@
       "AgentRunResponseDto": {
         "type": "object",
         "properties": {
+          "goalId": {
+            "type": "object",
+            "nullable": true
+          },
           "id": {
             "type": "string"
           },
@@ -10119,6 +10706,10 @@
       "CreateAgentRunDto": {
         "type": "object",
         "properties": {
+          "goalId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "conversationId": {
             "type": "string",
             "format": "uuid",
@@ -10200,6 +10791,10 @@
       "PlatformHandoffResponseDto": {
         "type": "object",
         "properties": {
+          "goalId": {
+            "type": "object",
+            "nullable": true
+          },
           "platformType": {
             "type": "string",
             "enum": [
@@ -10292,6 +10887,10 @@
       "CreatePlatformHandoffDto": {
         "type": "object",
         "properties": {
+          "goalId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "platformType": {
             "type": "string",
             "enum": [
@@ -11100,7 +11699,13 @@
       },
       "PlatformConnection": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "healthFresh": {
+            "type": "boolean",
+            "readOnly": true,
+            "description": "Whether the saved probe is less than 60 seconds old. A saved HEALTHY status alone is not a live check."
+          }
+        }
       },
       "UpdateConnectionDto": {
         "type": "object",

@@ -189,6 +189,23 @@ describe('read-only platform transports', () => {
     await expect(adapter.fetchEntities(connection)).rejects.toThrow();
     expect(calls).toHaveLength(0);
   });
+  it('keeps a browser-initiated OAuth callback on the saved OSCAR frontend origin', async () => {
+    const { authorizationUrl } = await adapter.startAuthorization(
+      connection,
+      'http://127.0.0.1:3002',
+    );
+    const url = new URL(authorizationUrl);
+    expect(url.searchParams.get('redirect_uri')).toBe(
+      `http://127.0.0.1:3002/api/v1/platforms/connections/${connection.id}/oauth/callback`,
+    );
+    expect(
+      await adapter.completeAuthorization(
+        connection,
+        'synthetic-code',
+        url.searchParams.get('state')!,
+      ),
+    ).toBe('http://127.0.0.1:3002');
+  });
   it('rejects unapproved origins before sending credentials and disables redirects', async () => {
     expect(() => platformUrl('https://unapproved.example')).toThrow();
     expect(() => platformUrl(`${origin}/?token=secret`)).toThrow();
