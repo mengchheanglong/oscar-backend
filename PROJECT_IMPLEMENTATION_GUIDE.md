@@ -1968,3 +1968,16 @@ Provider generation was not exercised. No remote push or hosted deployment.
   assumption wording. A temporary Rentify chat completed a source-backed plan from
   a newly supplied event date and was deleted through the normal API. These checks
   sample model behavior; they do not guarantee every future reply's judgment.
+
+### 2026-10-23 — Docker Compose group renamed to OSCAR
+
+- Changed the Compose project name to `oscar` and recreated its five containers
+  under that group. Reused the ignored local override's external PostgreSQL volume;
+  did not rename or remove the persistent volume. Took a private custom-format
+  database backup before the short PostgreSQL restart.
+- PostgreSQL is healthy; API, frontend, Redis and test containers remain stopped
+  (created) while host development services run. Available local application images
+  were aliased to OSCAR tags; this rename did not rebuild application images.
+- Verified Compose configuration, project labels and volume identity. Before/after
+  counts matched: 4 projects, 7 users, 23 documents and 34 messages. Host backend,
+  frontend, Paperclip and T3 readiness passed; unrelated Docker projects stayed up.

@@ -47,7 +47,7 @@
 
 - Node version is pinned in `.node-version`; pnpm is pinned in `package.json`.
 - API defaults to `http://localhost:3000`; development PostgreSQL uses `127.0.0.1:55432`; test PostgreSQL uses `127.0.0.1:55433`.
-- Do not stop unrelated Docker containers or processes. The Compose project is `continuum-backend`.
+- Do not stop unrelated Docker containers or processes. The Compose project is `oscar`.
 - Docker Compose here is for local development/demo only. Production secrets, TLS, database roles, backups, and hosting require deployment-specific configuration.
 
 ## Continuum repository split

@@ -1,5 +1,5 @@
-# Preserve the existing Compose project/volume identity across the repository rename.
-name: continuum-backend
+# Local upgrades retain their existing database through compose.override.yaml.
+name: oscar
 
 services:
   postgres:
