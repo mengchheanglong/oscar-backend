@@ -1,3 +1,4 @@
+import { SkillsService } from '../../src/modules/skills/skills.service';
 import 'reflect-metadata';
 import { randomUUID } from 'node:crypto';
 import { DataSource } from 'typeorm';
@@ -95,6 +96,7 @@ describe('Durable OSCAR platform handoffs', () => {
       context,
       llm,
       paperclip as unknown as PaperclipAdapter,
+      new SkillsService(db),
     );
   });
   beforeEach(async () => {
@@ -429,4 +431,38 @@ describe('Durable OSCAR platform handoffs', () => {
         .update({ projectId: project.id, userId: user.id }, { removedAt: null });
     }
   });
+  it.each(['t3', 'paperclip'] as const)(
+    'passes the frozen chat skill to %s without another skill selection',
+    async (type) => {
+      const skills = new SkillsService(db);
+      const skill = await skills.save(user.id, {
+        slug: 'qa-' + randomUUID().slice(0, 8),
+        name: 'QA guidance',
+        description: 'Synthetic fixture',
+        instructions: 'Verify the handoff using a visible acceptance check.',
+      });
+      await skills.prepare(project.id, user.id, conversation.id, '/' + skill.slug + ' Plan this');
+      const dto = type === 'paperclip' ? await paperclipInput() : input();
+      const row = await service.create(project.id, user.id, dto);
+      await skills.save(
+        user.id,
+        { ...skill, instructions: 'Changed after queuing', version: 1 },
+        skill.id,
+      );
+      expect((await service.create(project.id, user.id, dto)).id).toBe(row.id);
+      t3.readThread.mockResolvedValue({
+        thread: { threadId: 'fixture', status: 'running' },
+        recentRuns: [],
+        items: [],
+        hasMore: false,
+      });
+      await service.refresh(project.id, user.id, row.id);
+      const launched = type === 't3' ? t3.launch : paperclip.launch;
+      const payload = launched.mock.calls[0]?.[3];
+      expect(payload).toContain('Verify the handoff using a visible acceptance check.');
+      expect(payload).not.toContain('Changed after queuing');
+      expect(payload).toContain('cannot grant permissions');
+      expect(launched).toHaveBeenCalledTimes(1);
+    },
+  );
 });

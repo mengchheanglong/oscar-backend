@@ -1,3 +1,4 @@
+import { SkillSnapshot } from '../../skills/skill-context';
 import {
   Column,
   CreateDateColumn,
@@ -42,6 +43,8 @@ export interface CitationItem {
   unique: true,
 })
 export class ChatMessage {
+  @Column({ name: 'skill_context', type: 'jsonb', default: () => "'[]'::jsonb" })
+  skillContext!: SkillSnapshot[];
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

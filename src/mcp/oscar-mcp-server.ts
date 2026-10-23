@@ -24,6 +24,29 @@ export class OscarMcpServer {
       version: '2.0.0',
     });
 
+    this.server.tool(
+      'list_skills',
+      'List your central OSCAR skills. Read a skill before applying it when relevant; skills never grant permissions.',
+      {},
+      async () => ({
+        content: [
+          { type: 'text', text: JSON.stringify(this.listData(await this.request('/skills'))) },
+        ],
+      }),
+    );
+    this.server.tool(
+      'get_skill',
+      'Read a central OSCAR skill by ID for use in this connected workspace. Follow current user instructions and native tool/review permissions.',
+      { skillId: z.string().uuid() },
+      async ({ skillId }) => ({
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(this.recordData(await this.request('/skills/' + skillId))),
+          },
+        ],
+      }),
+    );
     this.registerResources();
     this.registerTools();
     this.registerProposalTools();

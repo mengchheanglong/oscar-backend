@@ -1891,3 +1891,34 @@ Provider generation was not exercised. No remote push or hosted deployment.
   approving existing production outcomes/memories. The continuity/recall tests
   use synthetic execution fixtures; this change does not claim new provider
   inference runs or verified provider billing.
+
+### 2026-10-23 — Customize and shared agent skills
+
+- Added a private central skill library with versioned text instructions and owned
+  conversation attachments. Leading `/skill-name` commands attach up to four skills;
+  subsequent turns retain them. Edits require the current version; re-invoking a
+  command selects its latest version. Detach/delete affect future sends, while
+  saved turns and queued executions preserve their original snapshots.
+- OSCAR generation, Hermes runtime context, and T3/Paperclip task instructions
+  consume the same saved skill guidance. Existing native approvals, permissions,
+  and proposal review remain enforced. Added authenticated `list_skills` and
+  `get_skill` MCP tools for other connected workspaces. No executable bundles,
+  filesystem imports, or remote marketplace installation are claimed.
+- Added Customize navigation, automatic main-sidebar collapse, a secondary
+  Plugins/Skills sidebar, the five existing integration controls, skill editing,
+  slash suggestions, attachment chips, and responsive mobile navigation. Existing
+  Settings integration URLs remain supported. Saved the optional Clear plan sample
+  through the main-account UI; no other personal skills or domain data were seeded.
+- Applied migration `1792980000000-SharedSkills` additively to local `oscar`.
+  Consulted accepted AIW decisions through OSCAR MCP (none were present).
+- Verification passed: 416 unit tests, 168 HTTP E2E tests, 141 PostgreSQL integration
+  tests, 29 frontend tests, lint/typechecks, production builds, generated OpenAPI
+  coverage, and formatting. PostgreSQL tests used a temporary OSCAR-owned server
+  on 55434 because an unrelated project's database occupied 55433; the search test
+  guard now validates the configured loopback test port and `_test` database.
+- Browser QA checked desktop/mobile Customize, editor and slash picker, restoring
+  main navigation, attachment persistence after reopening a chat, and detachment.
+  Live DeepSeek OSCAR replies passed an invocation and a later follow-up. The actual
+  stdio MCP CLI listed/read the saved sample through the local API. Hermes/T3/
+  Paperclip payload checks used real persistence with runtime/adapter fixtures,
+  not new live provider runs. See [shared skills](docs/product/SHARED_SKILLS.md).

@@ -1,3 +1,8 @@
+import {
+  SkillsController,
+  ConversationSkillsController,
+} from '../src/modules/skills/skills.controller';
+import { SkillsService } from '../src/modules/skills/skills.service';
 import { UploadedFoldersController } from '../src/modules/local-folders/uploaded-folders.controller';
 import { UploadedFoldersService } from '../src/modules/local-folders/uploaded-folders.service';
 import 'reflect-metadata';
@@ -70,6 +75,8 @@ import { ChiefController } from '../src/modules/chief-of-staff/chief.controller'
 import { ChiefService } from '../src/modules/chief-of-staff/chief.service';
 
 export const OPENAPI_CONTROLLERS = [
+  SkillsController,
+  ConversationSkillsController,
   ChiefController,
   UploadedFoldersController,
   LocalFoldersController,
@@ -104,6 +111,7 @@ export const OPENAPI_CONTROLLERS = [
 @Module({
   controllers: OPENAPI_CONTROLLERS,
   providers: [
+    { provide: SkillsService, useValue: {} },
     { provide: ChiefService, useValue: {} },
     { provide: UploadedFoldersService, useValue: {} },
     { provide: LocalFoldersService, useValue: {} },

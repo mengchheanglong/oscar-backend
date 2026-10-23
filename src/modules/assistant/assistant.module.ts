@@ -1,3 +1,4 @@
+import { SkillsModule } from '../skills/skills.module';
 import { PlatformsModule } from '../platforms/platforms.module';
 import { PlatformHandoff } from './entities/platform-handoff.entity';
 import { PlatformHandoffsService } from './platform-handoffs.service';
@@ -49,6 +50,7 @@ import {
 
 @Module({
   imports: [
+    SkillsModule,
     TypeOrmModule.forFeature([
       Conversation,
       PlatformHandoff,

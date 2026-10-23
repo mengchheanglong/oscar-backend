@@ -1,3 +1,4 @@
+import { SkillSnapshot } from '../../skills/skill-context';
 import {
   Column,
   CreateDateColumn,
@@ -20,6 +21,8 @@ export type HandoffStatus =
 @Entity('platform_handoffs')
 @Index(['userId', 'idempotencyKey'], { unique: true })
 export class PlatformHandoff {
+  @Column({ name: 'skill_context', type: 'jsonb', default: () => "'[]'::jsonb" })
+  skillContext!: SkillSnapshot[];
   @Column({ name: 'goal_id', type: 'uuid', nullable: true }) goalId!: string | null;
   @Column({ name: 'platform_type', type: 'varchar', length: 30, default: 't3' }) platformType!:
     't3' | 'paperclip';

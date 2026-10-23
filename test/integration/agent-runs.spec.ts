@@ -1,3 +1,4 @@
+import { SkillsService } from '../../src/modules/skills/skills.service';
 import { PrivateMemoryService } from '../../src/modules/assistant/memory/private-memory.service';
 import { PrivateMemoryRepository } from '../../src/modules/assistant/memory/private-memory.repository';
 import { UploadedFoldersService } from '../../src/modules/local-folders/uploaded-folders.service';
@@ -137,6 +138,7 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
         ),
       ),
       summary,
+      new SkillsService(db),
     );
   });
 
@@ -697,5 +699,28 @@ describe('Hermes run lifecycle with PostgreSQL', () => {
       proposalId: null,
     });
     expect(await db.getRepository(AssistantProposal).countBy({ projectId: project.id })).toBe(0);
+  });
+  it('gives Hermes the attached skill on a later turn without repeating its command', async () => {
+    const conversation = await chat();
+    const skills = new SkillsService(db);
+    const skill = await skills.save(user.id, {
+      slug: 'qa-' + randomUUID().slice(0, 8),
+      name: 'QA skill',
+      description: 'Fixture',
+      instructions: 'Use a concise acceptance checklist when useful.',
+    });
+    await skills.prepare(project.id, user.id, conversation.id, '/' + skill.slug + ' Initial task');
+    const row = await service.create(project.id, user.id, {
+      conversationId: conversation.id,
+      prompt: 'Use Hermes to review the plan',
+      idempotencyKey: randomUUID(),
+    });
+    const done = await settled(row.id);
+    expect(done.status).toBe(AgentRunStatus.SUCCEEDED);
+    expect(execute.mock.calls[0]?.[0].context).toContain(
+      'Use a concise acceptance checklist when useful.',
+    );
+    expect(execute.mock.calls[0]?.[0].context).toContain('cannot grant permissions');
+    expect(done.skillContext[0]?.id).toBe(skill.id);
   });
 });

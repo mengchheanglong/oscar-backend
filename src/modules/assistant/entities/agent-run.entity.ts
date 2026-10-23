@@ -1,3 +1,4 @@
+import { SkillSnapshot } from '../../skills/skill-context';
 import {
   Column,
   CreateDateColumn,
@@ -32,6 +33,8 @@ export interface RunEvent {
   where: "status IN ('QUEUED','RUNNING')",
 })
 export class AgentRun {
+  @Column({ name: 'skill_context', type: 'jsonb', default: () => "'[]'::jsonb" })
+  skillContext!: SkillSnapshot[];
   @Column({ name: 'goal_id', type: 'uuid', nullable: true }) goalId!: string | null;
   @PrimaryGeneratedColumn('uuid') id!: string;
   @Column({ name: 'project_id', type: 'uuid' }) projectId!: string;

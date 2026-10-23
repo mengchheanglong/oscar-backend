@@ -7,6 +7,7 @@ import {
   NotFoundException,
   OnModuleDestroy,
   OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
@@ -21,6 +22,8 @@ import { AssistantMode } from './entities/assistant-mode.enum';
 import { ConversationContextService } from './context/conversation-context.service';
 import { CreatePlatformHandoffDto } from './dto/platform-handoff.dto';
 import { LlmProvider } from './llm/llm-provider.interface';
+import { SkillsService } from '../skills/skills.service';
+import { skillContext } from '../skills/skill-context';
 import { assertExecutionGoal } from './execution-goal';
 
 const ACTIVE = ['QUEUED', 'DISPATCHING', 'RUNNING', 'WAITING'] as const;
@@ -40,6 +43,7 @@ export class PlatformHandoffsService implements OnModuleInit, OnModuleDestroy {
     private readonly context: ConversationContextService,
     @Inject('LLM_PROVIDER') private readonly llm: LlmProvider,
     private readonly paperclip: PaperclipAdapter,
+    @Optional() private readonly skills?: SkillsService,
   ) {}
   onModuleInit() {
     this.timer = setInterval(() => {
@@ -146,6 +150,9 @@ export class PlatformHandoffsService implements OnModuleInit, OnModuleDestroy {
         if (dto.remoteProjectId && !targets.projects.some((p) => p.id === dto.remoteProjectId))
           throw new BadRequestException('Choose an accessible Paperclip project.');
       }
+      const selectedSkills = this.skills
+        ? await this.skills.prepare(projectId, userId, dto.conversationId, prompt, tx)
+        : [];
       const row = await repo.save(
         repo.create({
           ...scope,
@@ -159,6 +166,7 @@ export class PlatformHandoffsService implements OnModuleInit, OnModuleDestroy {
           idempotencyKey: dto.idempotencyKey,
           remoteProjectId: dto.remoteProjectId ?? null,
           prompt,
+          skillContext: selectedSkills,
           modelSelection,
           status: 'QUEUED',
         }),
@@ -340,7 +348,7 @@ export class PlatformHandoffsService implements OnModuleInit, OnModuleDestroy {
               connection,
               row.remoteProjectId,
               this.title(row),
-              row.prompt,
+              row.prompt + skillContext(row.skillContext),
               row.modelSelection,
             );
             if (
@@ -467,7 +475,7 @@ export class PlatformHandoffsService implements OnModuleInit, OnModuleDestroy {
           connection,
           row.id,
           this.title(row),
-          row.prompt,
+          row.prompt + skillContext(row.skillContext),
           row.remoteAgentId,
           row.remoteProjectId,
         );

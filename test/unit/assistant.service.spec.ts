@@ -1,3 +1,4 @@
+import { SkillsService } from '../../src/modules/skills/skills.service';
 import { ConversationContextService } from '../../src/modules/assistant/context/conversation-context.service';
 import { NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
@@ -24,6 +25,7 @@ import { SystemRole, User } from '../../src/modules/users/entities/user.entity';
 
 describe('AssistantService', () => {
   let service: AssistantService;
+  const skills = { prepare: jest.fn() };
   let mockConversationRepo: {
     create: jest.Mock;
     save: jest.Mock;
@@ -63,6 +65,7 @@ describe('AssistantService', () => {
   const mockUserId = 'user-2222-2222';
 
   beforeEach(() => {
+    skills.prepare.mockReset().mockResolvedValue([]);
     mockConversationRepo = {
       create: jest.fn((dto) => ({
         id: 'conv-1',
@@ -141,6 +144,10 @@ describe('AssistantService', () => {
           await mockMessageRepo.save(answer);
         },
       } as unknown as ConversationContextService,
+      undefined,
+      undefined,
+      undefined,
+      skills as unknown as SkillsService,
     );
   });
 
@@ -202,6 +209,39 @@ describe('AssistantService', () => {
 
   describe('postMessage', () => {
     describe('durable request recovery', () => {
+      it('uses the saved skill snapshot on retry and retains skills on later turns', async () => {
+        const selected = [
+          {
+            id: 'qa-skill',
+            slug: 'qa',
+            name: 'QA',
+            version: 1,
+            instructions: 'Check the outcome before claiming success.',
+          },
+        ];
+        skills.prepare.mockResolvedValue(selected);
+        mockLlmProvider.generateAnswer.mockRejectedValueOnce(new Error('Synthetic outage'));
+        const dto = {
+          content: '/qa Build a plan',
+          clientRequestId: 'fab6420e-dee7-4ae6-84d6-82db7819af65',
+        };
+        await service.postMessage(mockProjectId, mockUserId, 'conv-1', dto);
+        skills.prepare.mockResolvedValue([]);
+        await service.postMessage(mockProjectId, mockUserId, 'conv-1', dto);
+        expect(skills.prepare).toHaveBeenCalledTimes(1);
+        expect(
+          JSON.stringify(mockLlmProvider.generateAnswer.mock.calls[1]?.[0].messages),
+        ).toContain(selected[0]!.instructions);
+        expect(saved.find((m) => m.role === 'user')?.skillContext).toEqual(selected);
+        skills.prepare.mockResolvedValue(selected);
+        await service.postMessage(mockProjectId, mockUserId, 'conv-1', {
+          content: 'Continue',
+          clientRequestId: '065bc3de-54c3-4ca9-b21c-cb08a678c7b6',
+        });
+        expect(
+          JSON.stringify(mockLlmProvider.generateAnswer.mock.calls[2]?.[0].messages),
+        ).toContain(selected[0]!.instructions);
+      });
       const requestId = 'a329389a-cc68-40f6-8a85-51101f78ed46';
       const request = {
         content: 'Synthetic reliability question',

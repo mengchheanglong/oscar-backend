@@ -35,7 +35,9 @@ describe('Search against PostgreSQL', () => {
     if (
       process.env.NODE_ENV !== 'test' ||
       !url ||
-      new URL(url).port !== '55433' ||
+      !['127.0.0.1', 'localhost'].includes(new URL(url).hostname) ||
+      new URL(url).port !==
+        new URL(process.env.TEST_DATABASE_URL || 'http://localhost:55433').port ||
       !new URL(url).pathname.endsWith('_test')
     )
       throw new Error('Dedicated local test database required.');

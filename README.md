@@ -31,6 +31,9 @@ are available through `pnpm workspace:start` and `pnpm workspace:status`; see
 The [documentation map](docs/README.md) groups the product, architecture, memory,
 evaluation, operations, and API references by topic.
 
+The [shared skills guide](docs/product/SHARED_SKILLS.md) documents Customize, the
+central personal skill library, persistent chat commands, and agent/MCP access.
+
 ## Existing foundation
 
 Current scope: Meetings, Requirements, and Dashboard functionality have been
