@@ -1946,3 +1946,25 @@ Provider generation was not exercised. No remote push or hosted deployment.
   and a live `/founder-board` generation with its persistent attachment. This was
   solo model guidance, not independent buyer/board agents or executed Python.
   See [Founder installation](docs/product/FOUNDER_SKILLS.md).
+
+### 2026-10-23 — Conversational collaboration instead of document-only answers
+
+- Replaced the mandatory insufficient-evidence response with guidance that uses
+  current user updates, eligible dialogue, general knowledge, calculations and
+  recommendations alongside retrieved sources. Unknown recorded facts remain
+  unknown; document text still cannot authorize actions or override permissions.
+- Added a fresh UTC server clock to each assembled turn. Missing date components
+  require explicit assumptions, and user-reported dates can guide planning without
+  being silently persisted as verified project records. Source forecasts,
+  simulations and targets must retain their qualifiers.
+- Scoped citations to source-supported claims and softened forced strategic
+  reviews. Removed the frontend warning inferred from response keywords; actual
+  generation failures and source inspection remain available.
+- Verification: 417 unit tests and 169 HTTP tests passed, as did backend lint,
+  typecheck, formatting and both production builds. Twelve context tests passed
+  again after final prompt refinement. Six synthetic live DeepSeek cases exercised
+  date updates, arithmetic, brainstorming, unknown facts, valid citations and
+  injected deployment claims; the ambiguous-date case was rerun after tightening
+  assumption wording. A temporary Rentify chat completed a source-backed plan from
+  a newly supplied event date and was deleted through the normal API. These checks
+  sample model behavior; they do not guarantee every future reply's judgment.

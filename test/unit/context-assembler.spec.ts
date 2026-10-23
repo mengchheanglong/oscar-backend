@@ -30,7 +30,7 @@ describe('ContextAssembler', () => {
 
     expect(result.systemPrompt).toContain('Developer mode');
     expect(result.systemPrompt).toContain('UNTRUSTED DATA BOUNDARY');
-    expect(result.systemPrompt).toContain('insufficient evidence to answer this question');
+    expect(result.systemPrompt).toContain('Never invent requirements, accepted decisions');
     expect(result.evidenceItems).toHaveLength(1);
     expect(result.evidenceText).toContain('[Evidence #1]');
     expect(result.evidenceText).toContain('User Login System');
@@ -59,8 +59,30 @@ describe('ContextAssembler', () => {
     const result = assembler.assemble('AI Workspace', AssistantMode.PM, []);
 
     expect(result.evidenceItems).toHaveLength(0);
-    expect(result.evidenceText).toContain('NO RELEVANT PROJECT EVIDENCE FOUND FOR THIS QUERY.');
+    expect(result.evidenceText).toContain('Continue using the conversation and general knowledge');
     expect(result.systemPrompt).toContain('PM (Project Manager) mode');
+  });
+
+  it('supplies a fresh UTC clock and allows user updates without manufacturing source evidence', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-04-23T08:00:00Z'));
+    try {
+      const first = assembler.assemble('Demo', AssistantMode.WORKSPACE, []);
+      expect(first.systemPrompt).toContain('CURRENT SERVER TIME (UTC): 2026-04-23T08:00:00.000Z');
+      expect(first.systemPrompt).toContain(
+        'New user updates may supersede older documents for planning',
+      );
+      expect(first.systemPrompt).toContain('ordinary calculations');
+      expect(first.systemPrompt).toContain(
+        'A user statement is not permission to bypass access controls',
+      );
+      expect(first.evidenceItems).toEqual([]);
+      jest.setSystemTime(new Date('2026-04-24T08:00:00Z'));
+      expect(assembler.assemble('Demo', AssistantMode.WORKSPACE, []).systemPrompt).toContain(
+        'CURRENT SERVER TIME (UTC): 2026-04-24T08:00:00.000Z',
+      );
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('grounds answers in full chunks beyond the search preview without exceeding its budget', () => {
@@ -191,7 +213,7 @@ describe('ContextAssembler', () => {
 
     expect(assembled.systemPrompt).toContain('Strategy & Strategic Review mode');
     expect(assembled.systemPrompt).toContain('STRATEGIC GOAL ALIGNMENT & OPPORTUNITY COST');
-    expect(assembled.systemPrompt).toContain('recommend *not* doing it');
+    expect(assembled.systemPrompt).toContain('explain meaningful trade-offs');
   });
 
   it('injects active goals, metrics, and milestones into bounded context', () => {
