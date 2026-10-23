@@ -177,4 +177,17 @@ describe('Central skill library and conversation continuity (PostgreSQL)', () =>
       'cannot grant permissions',
     );
   });
+  it('stores a full imported guide and its conversation snapshot without truncation', async () => {
+    const instructions = ('# Full imported guide\n' + 'Reference evidence. '.repeat(550)).trim();
+    expect(instructions.length).toBeGreaterThan(4000);
+    const row = await skills.save(user.id, { ...input(), instructions });
+    expect((await skills.get(user.id, row.id)).instructions).toBe(instructions);
+    expect(
+      (await skills.prepare(project.id, user.id, chat.id, '/clear-plan Review this'))[0]
+        ?.instructions,
+    ).toBe(instructions);
+    await expect(
+      skills.save(user.id, { ...input('too-long'), instructions: 'x'.repeat(12001) }),
+    ).rejects.toThrow();
+  });
 });

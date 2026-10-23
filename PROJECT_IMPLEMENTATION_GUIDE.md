@@ -1922,3 +1922,27 @@ Provider generation was not exercised. No remote push or hosted deployment.
   stdio MCP CLI listed/read the saved sample through the local API. Hermes/T3/
   Paperclip payload checks used real persistence with runtime/adapter fixtures,
   not new live provider runs. See [shared skills](docs/product/SHARED_SKILLS.md).
+
+### 2026-10-23 — First community skill pack: Founder
+
+- Installed the 11 modes from `Jakeschincariol/founder-skill` into the main
+  OSCAR account, pinned to `fd9385b0cfe1b96bebce3898fbd506d73eff5a9d`.
+  Preserved complete upstream SKILL.md texts, board/offer lens references,
+  relevant example inputs, attribution, and the MIT license in each entry.
+- Raised the bounded instruction size from 4,000 to 12,000 characters in the
+  API, editor, and additive database migration. A full guide and its saved chat
+  attachment survive without truncation. Existing skill entries were preserved.
+- Added a reproducible local installer that reads exact Git objects, validates all
+  content before writes, skips identical entries on retry, and preserves modified
+  or user-authored command collisions. No source scripts are executed by install.
+- Added compatibility guidance for instruction-mode use: native Python helpers,
+  filesystem actions and sub-agent panels require actual host tools/authorization.
+  This installation does not expose new shell/agent tools in OSCAR or Hermes.
+- Verification passed: 3 installer tests, 4 affected HTTP tests, 8 PostgreSQL skill
+  tests on a separate OSCAR-owned test server at 55434, 2 MCP/OpenAPI tests,
+  backend lint/typecheck, both production builds, generated OpenAPI and formatting.
+  Live stdio MCP read all 11 entries byte-for-byte against the package builder;
+  an installer retry made zero changes. Browser QA confirmed the library entries
+  and a live `/founder-board` generation with its persistent attachment. This was
+  solo model guidance, not independent buyer/board agents or executed Python.
+  See [Founder installation](docs/product/FOUNDER_SKILLS.md).

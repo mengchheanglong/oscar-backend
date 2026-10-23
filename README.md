@@ -33,6 +33,8 @@ evaluation, operations, and API references by topic.
 
 The [shared skills guide](docs/product/SHARED_SKILLS.md) documents Customize, the
 central personal skill library, persistent chat commands, and agent/MCP access.
+The [Founder pack installation](docs/product/FOUNDER_SKILLS.md) describes the 11
+imported business modes, pinned source, and instruction-mode boundaries.
 
 ## Existing foundation
 

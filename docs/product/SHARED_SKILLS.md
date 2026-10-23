@@ -9,7 +9,7 @@ skills or chat attachments, even to a project manager.
 
 Open **Customize → Skills**, choose **Add skill**, and enter a name, slash command,
 description, and instructions. The empty library offers an optional **Clear plan**
-example; nothing is installed or seeded automatically. Each skill allows 4,000
+example; nothing is installed or seeded automatically. Each skill allows 12,000
 characters. Commands start with a lowercase letter and may contain lowercase
 letters, numbers, hyphens, and underscores (48 characters maximum).
 
@@ -76,3 +76,7 @@ version changes, detach/delete, command bounds, atomic rollback, retries, HTTP
 validation/CSRF, MCP transport, and the actual instruction payloads delivered to
 runtime/adapter fixtures. Those adapter checks verify OSCAR’s delivery contract;
 they are not claims that live provider models always follow every instruction.
+
+The [Founder pack](FOUNDER_SKILLS.md) is the first installed community collection.
+Its 11 entries preserve upstream instructions and references with explicit host
+capability boundaries.

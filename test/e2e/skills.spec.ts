@@ -77,7 +77,7 @@ describe('Skills HTTP boundary', () => {
   it('validates skill commands and instruction bounds before saving', async () => {
     for (const invalid of [
       { ...body, slug: '../escape' },
-      { ...body, instructions: 'x'.repeat(4001) },
+      { ...body, instructions: 'x'.repeat(12001) },
       { ...body, extra: true },
     ])
       await request(app.getHttpServer())
@@ -93,5 +93,18 @@ describe('Skills HTTP boundary', () => {
       .send(body)
       .expect(201);
     expect(service.save).toHaveBeenCalledWith('owner', expect.objectContaining(body));
+  });
+  it('accepts a complete imported skill at the 12,000 character bound', async () => {
+    const instructions = 'x'.repeat(12000);
+    await request(app.getHttpServer())
+      .post('/api/v1/skills')
+      .set('x-test-session', 'yes')
+      .set('x-csrf-token', 'valid-csrf')
+      .send({ ...body, instructions })
+      .expect(201);
+    expect(service.save).toHaveBeenLastCalledWith(
+      'owner',
+      expect.objectContaining({ instructions }),
+    );
   });
 });

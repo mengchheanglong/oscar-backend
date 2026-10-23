@@ -8379,7 +8379,7 @@
           },
           "instructions": {
             "type": "string",
-            "maxLength": 4000
+            "maxLength": 12000
           },
           "id": {
             "type": "string",
@@ -8413,7 +8413,7 @@
           },
           "instructions": {
             "type": "string",
-            "maxLength": 4000
+            "maxLength": 12000
           }
         },
         "required": [
@@ -8438,7 +8438,7 @@
           },
           "instructions": {
             "type": "string",
-            "maxLength": 4000
+            "maxLength": 12000
           },
           "version": {
             "type": "number"

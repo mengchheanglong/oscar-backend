@@ -7,10 +7,10 @@ export class SaveSkillDto {
   slug!: string;
   @ApiProperty() @IsString() @IsNotEmpty() @MaxLength(80) name!: string;
   @ApiProperty() @IsString() @MaxLength(300) description!: string;
-  @ApiProperty({ maxLength: 4000 })
+  @ApiProperty({ maxLength: 12000 })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(4000)
+  @MaxLength(12000)
   instructions!: string;
 }
 export class UpdateSkillDto extends SaveSkillDto {
