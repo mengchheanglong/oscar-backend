@@ -10,6 +10,7 @@
     "pnpm": "10.32.1"
   },
   "scripts": {
+    "t3:open": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/open-t3-browser.ps1",
     "workspace:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-local.ps1",
     "workspace:status": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-local.ps1 -CheckOnly",
     "dev": "node --watch --watch-path=src -r ts-node/register src/main.ts",

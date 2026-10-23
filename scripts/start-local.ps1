@@ -88,7 +88,7 @@ if (-not $SkipAgents) {
     $oldElectronMode = $env:ELECTRON_RUN_AS_NODE
     try {
       $env:ELECTRON_RUN_AS_NODE = '1'
-      Start-LocalProcess 't3' (Join-Path $t3Root 'T3 Code (Beta).exe') @((Join-Path $t3Root 'resources\server.asar\apps\server\dist\bin.mjs'), 'start','--host','127.0.0.1','--port','3773','--no-browser') $workspaceRoot
+      Start-LocalProcess 't3' (Join-Path $t3Root 'T3 Code (Beta).exe') @((Join-Path $PSScriptRoot 't3-cli.cjs'), (Join-Path $t3Root 'resources\server.asar\apps\server\dist'), 'start','--host','127.0.0.1','--port','3773','--no-browser') $workspaceRoot
     } finally { $env:ELECTRON_RUN_AS_NODE = $oldElectronMode }
   }
   Wait-Endpoint 'T3' $endpoints.T3

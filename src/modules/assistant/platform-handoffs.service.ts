@@ -25,6 +25,7 @@ import { LlmProvider } from './llm/llm-provider.interface';
 import { SkillsService } from '../skills/skills.service';
 import { skillContext } from '../skills/skill-context';
 import { assertExecutionGoal } from './execution-goal';
+import { PlatformHandoffResponseDto } from './dto/platform-handoff-response.dto';
 
 const ACTIVE = ['QUEUED', 'DISPATCHING', 'RUNNING', 'WAITING'] as const;
 const TERMINAL = ['SUCCEEDED', 'FAILED', 'CANCELLED'];
@@ -59,6 +60,14 @@ export class PlatformHandoffsService implements OnModuleInit, OnModuleDestroy {
   }
   private title(row: PlatformHandoff) {
     return `OSCAR ${row.id}: ${row.prompt.slice(0, 90)}`;
+  }
+  async response(row: PlatformHandoff) {
+    return PlatformHandoffResponseDto.fromEntity(
+      row,
+      row.platformType === 't3'
+        ? await this.t3.threadUrl(row.connectionOrigin, row.threadId)
+        : row.externalUrl,
+    );
   }
   private name(row: PlatformHandoff) {
     return row.platformType === 'paperclip' ? 'Paperclip' : 'T3';
@@ -532,8 +541,7 @@ export class PlatformHandoffsService implements OnModuleInit, OnModuleDestroy {
   }
   private async finish(row: PlatformHandoff) {
     const label = this.name(row);
-    const link =
-      row.platformType === 'paperclip' ? row.externalUrl : `t3-thread://v1/${row.threadId}`;
+    const link = (await this.response(row)).externalUrl;
     let content =
       row.status === 'SUCCEEDED'
         ? `${label} reported:\n\n${row.result}`
@@ -567,7 +575,9 @@ export class PlatformHandoffsService implements OnModuleInit, OnModuleDestroy {
         /* Preserve the exact T3 result if summarization is unavailable. */
       }
     }
-    content += `\n\n[Open ${label}${row.platformType === 't3' ? ' thread' : ' issue'}](${link})${row.notice ? `\n\n${row.notice}` : ''}`;
+    if (link)
+      content += `\n\n[Open ${label}${row.platformType === 't3' ? ' thread' : ' issue'}](${link})`;
+    if (row.notice) content += `\n\n${row.notice}`;
     await this.context.assertAccess(this.scope(row));
     if (!row.connectionId) throw new NotFoundException('Connection removed.');
     await this.platforms.executionConnection(

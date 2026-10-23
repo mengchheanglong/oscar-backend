@@ -32,6 +32,9 @@ describe('Durable OSCAR platform handoffs', () => {
     project: Project,
     connection: PlatformConnection;
   const t3 = {
+    threadUrl: jest.fn(async (origin: string, thread: string | null) =>
+      thread ? `${origin}/environment/${encodeURIComponent(thread)}` : null,
+    ),
     requireExecution: jest.fn(),
     models: jest.fn(),
     fetchEntities: jest.fn(),

@@ -47,6 +47,27 @@ non-Postgres process and no listener exists on the configured database port.
 It never stops that unrelated process or recreates the database. Private process
 logs go to `%LOCALAPPDATA%/OSCAR/logs`, outside the repositories.
 
+### Opening the T3 server without a second runtime
+
+OSCAR's T3 links open the connected server's web interface, including the project
+and thread route. The browser route uses the server's environment ID discovered
+from its public descriptor, not the selected project ID. They do not launch
+`t3-thread://` desktop links, which can start
+a second server against the background server's home and trigger a data-directory
+ownership error. Keep the existing server running; do not delete its lock or data.
+
+For one-time pairing in your default browser, run `pnpm t3:open` from this backend
+folder. It uses T3's own pairing CLI, opens a five-minute pairing link, and removes
+the temporary credential output without printing tokens. The resulting browser
+session has thread read/operate, file read, terminal read and diagnostic read scopes;
+it does not approve pending commands. Review approvals in T3 yourself. The helper
+can also accept `-ThreadUrl` when invoked directly as a PowerShell script.
+
+The bundled CLI bridge discovers the installed CLI entry and invokes its exported
+runner. This handles Electron versions whose `import.meta.main` prevents the normal
+CLI entrypoint from running. Workspace startup uses this bridge as well. The helper
+does not stop servers, create another T3 home, or move existing threads.
+
 Readiness does not create OAuth grants or prove model inference. In Settings,
 Paperclip/T3 connections probe live while their page is visible, show the last
 check, and stop treating saved health as current after 60 seconds. T3 browser

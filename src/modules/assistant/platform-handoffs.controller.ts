@@ -61,38 +61,42 @@ export class PlatformHandoffsController {
     format: 'uuid',
     description: 'Limit to an owned chat. Omit to list recent owned work in this project.',
   })
-  list(
+  async list(
     @CurrentUser() user: User,
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Query('conversationId', new ParseUUIDPipe({ optional: true })) conversationId?: string,
   ) {
-    return this.service.list(projectId, user.id, conversationId);
+    return Promise.all(
+      (await this.service.list(projectId, user.id, conversationId)).map((row) =>
+        this.service.response(row),
+      ),
+    );
   }
   @Post()
   @ApiCreatedResponse({ type: PlatformHandoffResponseDto })
-  create(
+  async create(
     @CurrentUser() user: User,
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Body() dto: CreatePlatformHandoffDto,
   ) {
-    return this.service.create(projectId, user.id, dto);
+    return this.service.response(await this.service.create(projectId, user.id, dto));
   }
   @Post(':id/refresh')
   @ApiOkResponse({ type: PlatformHandoffResponseDto })
-  refresh(
+  async refresh(
     @CurrentUser() user: User,
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.service.refresh(projectId, user.id, id);
+    return this.service.response(await this.service.refresh(projectId, user.id, id));
   }
   @Post(':id/cancel')
   @ApiOkResponse({ type: PlatformHandoffResponseDto })
-  cancel(
+  async cancel(
     @CurrentUser() user: User,
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.service.cancel(projectId, user.id, id);
+    return this.service.response(await this.service.cancel(projectId, user.id, id));
   }
 }

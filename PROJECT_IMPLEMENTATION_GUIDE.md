@@ -1981,3 +1981,25 @@ Provider generation was not exercised. No remote push or hosted deployment.
 - Verified Compose configuration, project labels and volume identity. Before/after
   counts matched: 4 projects, 7 users, 23 documents and 34 messages. Host backend,
   frontend, Paperclip and T3 readiness passed; unrelated Docker projects stayed up.
+
+### 2026-10-23 — T3 links target the existing server
+
+- Replaced newly generated native desktop deep links with HTTP(S) URLs for the
+  handoff's connected server, environment and thread. Existing handoff API
+  responses derive the URL without rewriting records or rerunning work. Activity
+  links and completion summaries use the same routing. Paperclip links are kept.
+- Added credential-free link validation tests and a browser-pairing helper using
+  T3's official CLI. Browser pairing does not start another T3 server or approve
+  commands. Startup now uses a bundled CLI bridge to handle Electron entrypoint
+  detection while preserving the installed server and data home.
+- Verification: 169 HTTP tests, affected unit tests, backend lint/typecheck,
+  formatting, OpenAPI generation and both builds passed. The full unit run had
+  420 passes and one obsolete native-link expectation; that expectation was updated
+  and passed in the affected rerun. Environment discovery is cached per server and
+  uses a credential-free, redirect-blocked descriptor request; failed discovery
+  falls back to the connected server's home. The installed CLI bridge passed its help check;
+  PowerShell helper syntax passed. Browser QA reached the existing approval screen
+  through an authenticated session without approving or stopping the task.
+- Automatic approval review blocked opening the paired default-browser session.
+  The helper was prepared for the user to run explicitly; its browser-launch path
+  was not automatically executed. Core and agent readiness remained healthy.

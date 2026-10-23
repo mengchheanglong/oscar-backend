@@ -1,4 +1,5 @@
 import { OAuthError } from '@modelcontextprotocol/sdk/server/auth/errors.js';
+import { t3ThreadUrl } from '../t3-thread-url';
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -43,6 +44,32 @@ interface Credentials {
 @Injectable()
 export class T3Adapter implements PlatformAdapter {
   readonly platformType = PlatformType.T3;
+  private readonly environments = new Map<
+    string,
+    { expires: number; value: Promise<string | null> }
+  >();
+  async threadUrl(baseUrl: string, threadId: string | null) {
+    if (!threadId) return null;
+    const origin = platformUrl(baseUrl).origin;
+    let entry = this.environments.get(origin);
+    if (!entry || entry.expires < Date.now()) {
+      const value = fetch(new URL('/.well-known/t3/environment', origin), {
+        signal: AbortSignal.timeout(3000),
+        redirect: 'error',
+      })
+        .then(async (response) => {
+          if (!response.ok) return null;
+          const body = (await response.json()) as { environmentId?: unknown };
+          return typeof body.environmentId === 'string' && /^[\w-]{1,100}$/.test(body.environmentId)
+            ? body.environmentId
+            : null;
+        })
+        .catch(() => null);
+      entry = { expires: Date.now() + 60000, value };
+      this.environments.set(origin, entry);
+    }
+    return t3ThreadUrl(origin, await entry.value, threadId);
+  }
   constructor(
     @InjectRepository(PlatformConnection)
     private readonly connections: Repository<PlatformConnection>,
@@ -356,7 +383,9 @@ export class T3Adapter implements PlatformAdapter {
             throw new BadRequestException('Project exceeds the 100-thread snapshot limit.');
           for (const item of records(page, 'threads')) {
             const threadId = String(item.threadId),
-              url = `t3-thread://v1/${threadId}`;
+              url =
+                (await this.threadUrl(connection.baseUrl, threadId)) ??
+                platformUrl(connection.baseUrl).origin;
             data.threads.push({
               id: threadId,
               title: String(item.title),

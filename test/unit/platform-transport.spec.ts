@@ -58,6 +58,8 @@ describe('read-only platform transports', () => {
         body,
         authorization: new Headers(init?.headers).get('Authorization') || undefined,
       });
+      if (url.endsWith('/.well-known/t3/environment'))
+        return response({ environmentId: 'environment-1' });
       if (url.includes('/.well-known/oauth-protected-resource'))
         return response({
           resource: `${origin}/mcp`,
@@ -173,7 +175,7 @@ describe('read-only platform transports', () => {
     expect(snapshot.data.threads[0]).toMatchObject({
       id: 'thread-1',
       status: 'running',
-      url: 't3-thread://v1/thread-1',
+      url: 'https://platform-fixture.example/environment-1/thread-1',
     });
     expect(snapshot.data.runs[0]).toMatchObject({ id: 'run-1', threadId: 'thread-1' });
     const tools = calls
