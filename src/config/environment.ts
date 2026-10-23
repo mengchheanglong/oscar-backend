@@ -15,7 +15,7 @@ const emptyStringToUndefined = <T extends z.ZodTypeAny>(schema: T) =>
 const schema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-    PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+    PORT: z.coerce.number().int().min(1).max(65535).default(43101),
     HOST: z
       .string()
       .min(1)
@@ -83,7 +83,7 @@ const schema = z
     GITHUB_CLIENT_SECRET: emptyStringToUndefined(z.string().optional()),
     GITHUB_CALLBACK_STATE_SECRET: emptyStringToUndefined(z.string().optional()),
     GITHUB_USE_MOCK: booleanString.default(false),
-    REDIS_URL: z.string().default('redis://127.0.0.1:56379'),
+    REDIS_URL: z.string().default('redis://127.0.0.1:43106'),
     AI_LLM_PROVIDER: emptyStringToUndefined(z.literal('deepseek').default('deepseek')),
     AI_CONTEXT_INPUT_BUDGET: z.coerce.number().int().min(16000).max(512000).default(128000),
     AI_HISTORY_MAX_COSINE_DISTANCE: z.coerce.number().min(0).max(2).default(0.65),

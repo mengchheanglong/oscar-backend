@@ -10,7 +10,7 @@ and secrets live under this runtime's `data/` directory. They are separate from
 OSCAR's database. Keep that directory private and backed up.
 
 Start with `npm start` in the runtime directory. The server listens at
-`http://127.0.0.1:3100` in trusted local mode, restricted to loopback. No Windows
+`http://127.0.0.1:43103` in trusted local mode, restricted to loopback. No Windows
 service was installed. Its health endpoint is `/api/health`.
 
 The initial Git clone stalled; installation uses npm packages rather than that

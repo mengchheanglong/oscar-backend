@@ -10,7 +10,7 @@ interface TestResult {
 }
 
 const results: TestResult[] = [];
-const BASE_URL = 'http://127.0.0.1:3001/api/v1';
+const BASE_URL = 'http://127.0.0.1:43101/api/v1';
 
 async function request(
   method: string,

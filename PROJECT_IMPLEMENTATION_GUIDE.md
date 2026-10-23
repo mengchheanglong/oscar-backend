@@ -2003,3 +2003,10 @@ Provider generation was not exercised. No remote push or hosted deployment.
 - Automatic approval review blocked opening the paired default-browser session.
   The helper was prepared for the user to run explicitly; its browser-launch path
   was not automatically executed. Core and agent readiness remained healthy.
+
+### 2026-10-24 — Dedicated local OSCAR ports
+
+- Moved host services to 43100–43107: frontend, API, T3, Paperclip, development PostgreSQL, isolated test PostgreSQL, optional Redis, and Paperclip embedded PostgreSQL respectively. Updated Compose, local launcher, environment examples, MCP defaults, platform origins, frontend proxy, verification scripts and active operations documentation. Historical acceptance notes retain the ports used at their original verification time.
+- Backed up the existing local database before recreating its container on the new host port; preserved its external volume and verified unchanged counts (4 projects, 7 users, 23 documents). Updated only saved loopback integration endpoint fields and private runtime configuration; provider credentials, remote task identifiers, and user content were preserved.
+- Development CORS admits OSCAR origins and rejects former common frontend ports; covered by HTTP tests. Launcher waits for a cold Paperclip startup without duplicating its existing process.
+- Verification: backend lint, typecheck, build, 423 unit tests, 173 HTTP tests, and 142 isolated PostgreSQL integration tests passed; frontend production build (including lint/typecheck) and 32 tests passed. OpenAPI generation produced no contract changes. Live API/proxy readiness and MCP list_decisions/list_tasks succeeded on the new endpoints; accepted AIW decisions were empty. All four workspace readiness checks passed on the new endpoints, both saved T3/Paperclip connections passed live health probes, and Redis returned PONG. Browser smoke verified the new frontend origin. Other projects remained untouched.

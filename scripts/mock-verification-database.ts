@@ -11,12 +11,12 @@ export function mockVerificationDatabaseUrl(env: NodeJS.ProcessEnv = process.env
     !url ||
     !['postgres:', 'postgresql:'].includes(url.protocol) ||
     !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
-    url.port !== '55433' ||
+    url.port !== '43105' ||
     url.pathname !== '/ai_workspace_test' ||
     value === env.DATABASE_URL
   ) {
     throw new Error(
-      'Mock verification requires a separate local TEST_DATABASE_URL on port 55433 for ai_workspace_test.',
+      'Mock verification requires a separate local TEST_DATABASE_URL on port 43105 for ai_workspace_test.',
     );
   }
   return value;

@@ -78,7 +78,7 @@ describe('Durable OSCAR platform handoffs', () => {
       userId: user.id,
       projectId: project.id,
       name: 'T3 fixture',
-      baseUrl: 'http://localhost:3773',
+      baseUrl: 'http://localhost:43102',
       platformType: PlatformType.T3,
       metadata: { t3Access: 'supervised' },
     });

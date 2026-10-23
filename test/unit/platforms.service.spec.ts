@@ -497,7 +497,7 @@ describe('PlatformsService', () => {
         id: 't3-conn-1',
         platformType: PlatformType.T3,
         name: 'T3 Local',
-        baseUrl: 'http://localhost:3100',
+        baseUrl: 'http://localhost:43103',
       });
       inMemoryConnections.push(t3Conn);
 
@@ -589,7 +589,7 @@ describe('PlatformsService', () => {
         id: 'conn-t',
         platformType: PlatformType.T3,
         name: 'T3 Code Local',
-        baseUrl: 'http://localhost:3100',
+        baseUrl: 'http://localhost:43103',
       });
       inMemoryConnections.push(pConn, tConn);
 
@@ -622,7 +622,7 @@ describe('PlatformsService', () => {
               id: 'thread-201',
               title: 'Phase 3 Platform Registry',
               status: 'ACTIVE',
-              url: 'http://localhost:3100/threads/thread-201',
+              url: 'http://localhost:43103/threads/thread-201',
             },
           ],
           runs: [
@@ -631,7 +631,7 @@ describe('PlatformsService', () => {
               threadId: 'thread-201',
               status: 'RUNNING',
               startedAt: '2026-10-19T06:00:00Z',
-              url: 'http://localhost:3100/runs/run-301',
+              url: 'http://localhost:43103/runs/run-301',
             },
           ],
         },
@@ -653,7 +653,7 @@ describe('PlatformsService', () => {
       expect(overview.t3.workspaces).toHaveLength(1);
       expect(overview.t3.threads).toHaveLength(1);
       expect(overview.t3.runs).toHaveLength(1);
-      expect(overview.t3.threads[0]!.nativeUrl).toBe('http://localhost:3100/threads/thread-201');
+      expect(overview.t3.threads[0]!.nativeUrl).toBe('http://localhost:43103/threads/thread-201');
 
       // Check narrative answer
       expect(overview.oscarAnswer).toContain('2/2 connections');

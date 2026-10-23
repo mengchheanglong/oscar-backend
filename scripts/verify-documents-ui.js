@@ -11,14 +11,14 @@ async function main() {
   page.on('console', (msg) => console.log('BROWSER LOG:', msg.type(), msg.text()));
 
   console.log('Logging in...');
-  await page.goto('http://localhost:3002/login', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:43100/login', { waitUntil: 'networkidle' });
   await page.fill('input[type="email"]', 'admin@example.com');
   await page.fill('input[type="password"]', 'Password123!');
   await page.click('button[type="submit"]');
 
   await page.waitForTimeout(2000);
   console.log('Navigating to /documents...');
-  await page.goto('http://localhost:3002/documents', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:43100/documents', { waitUntil: 'networkidle' });
   await page.waitForTimeout(3000);
 
   const artifactDir = path.resolve(

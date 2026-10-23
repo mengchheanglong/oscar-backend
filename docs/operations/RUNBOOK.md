@@ -17,7 +17,7 @@ The **Continuum Backend** is a workspace engine built with **NestJS**, **TypeScr
                          │       Reverse Proxy / Ingress     │
                          │       (TLS Termination, Helmet)   │
                          └─────────────────┬─────────────────┘
-                                           │ HTTP (Port 3000)
+                                           │ HTTP (port 43101)
                                            ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ NestJS Application Container                                                │
@@ -57,10 +57,10 @@ All environment variables are validated at boot against the Zod schema in `src/c
 | Variable Name            | Type / Format                                                | Default                    | Description & Operational Notes                                                           |
 | ------------------------ | ------------------------------------------------------------ | -------------------------- | ----------------------------------------------------------------------------------------- |
 | `NODE_ENV`               | `development \| production \| test`                          | `development`              | Setting to `production` enforces `__Host-` cookie prefixes, TLS cookies, and strict CORS. |
-| `PORT`                   | Integer (1–65535)                                            | `3000`                     | HTTP listen port.                                                                         |
-| `APP_ORIGIN`             | URL                                                          | `http://localhost:3000`    | Allowed frontend origin for CORS and CSRF header validation.                              |
+| `PORT`                   | Integer (1–65535)                                            | `43101`                    | HTTP listen port.                                                                         |
+| `APP_ORIGIN`             | URL                                                          | `http://localhost:43100`   | Allowed frontend origin for CORS and CSRF header validation.                              |
 | `DATABASE_HOST`          | Hostname / IP                                                | `127.0.0.1`                | PostgreSQL database host.                                                                 |
-| `DATABASE_PORT`          | Integer                                                      | `55432`                    | PostgreSQL database port (Local dev: `55432`, Test: `55433`, Prod: `5432`).               |
+| `DATABASE_PORT`          | Integer                                                      | `43104`                    | PostgreSQL database port (Local dev: `43104`, Test: `43105`, Prod: `5432`).               |
 | `DATABASE_NAME`          | String                                                       | `ai_workspace`             | PostgreSQL database name.                                                                 |
 | `DATABASE_USER`          | String                                                       | `ai_workspace_app`         | Dedicated least-privilege PostgreSQL user.                                                |
 | `DATABASE_PASSWORD`      | String                                                       | _Required_                 | Strong database user password.                                                            |
@@ -115,7 +115,7 @@ All environment variables are validated at boot against the Zod schema in `src/c
    ```
 5. **Verify Readiness Probe**:
    ```bash
-   curl -f http://localhost:3000/api/v1/health/ready
+   curl -f http://localhost:43101/api/v1/health/ready
    # Expected: {"data":{"status":"ok"}}
    ```
 
@@ -134,7 +134,7 @@ All environment variables are validated at boot against the Zod schema in `src/c
 # Create binary compressed backup with BLOBs
 pg_dump \
   -h "${DATABASE_HOST:-127.0.0.1}" \
-  -p "${DATABASE_PORT:-55432}" \
+  -p "${DATABASE_PORT:-43104}" \
   -U "${DATABASE_USER:-ai_workspace_app}" \
   -d "${DATABASE_NAME:-ai_workspace}" \
   -Fc \
@@ -156,7 +156,7 @@ psql -h "${DATABASE_HOST}" -U postgres -d ai_workspace -c "CREATE EXTENSION IF N
 # 3. Restore snapshot
 pg_restore \
   -h "${DATABASE_HOST:-127.0.0.1}" \
-  -p "${DATABASE_PORT:-55432}" \
+  -p "${DATABASE_PORT:-43104}" \
   -U "${DATABASE_USER:-ai_workspace_app}" \
   -d "${DATABASE_NAME:-ai_workspace}" \
   --no-owner \
@@ -218,7 +218,7 @@ Follow this step-by-step procedure to demonstrate the full capabilities of the A
 Log in with test credentials to obtain an authenticated session cookie and CSRF token:
 
 ```bash
-curl -i -X POST http://localhost:3000/api/v1/auth/login \
+curl -i -X POST http://localhost:43101/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@example.com","password":"Password123!"}'
 ```
@@ -228,7 +228,7 @@ _Verify: Returns HTTP 200, `Set-Cookie: aiws_session=...; HttpOnly; SameSite=Lax
 ### Step 2: Create a Collaborative Project
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/projects \
+curl -X POST http://localhost:43101/api/v1/projects \
   -b "aiws_session=$SESSION_COOKIE" \
   -H "x-csrf-token: $CSRF_TOKEN" \
   -H "Content-Type: application/json" \
@@ -242,7 +242,7 @@ _Verify: Returns HTTP 201 with project ID and key `FLEET`._
 Upload a system architecture specification document (`PDF`, `DOCX`, or `TXT`):
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/projects/$PROJECT_ID/documents \
+curl -X POST http://localhost:43101/api/v1/projects/$PROJECT_ID/documents \
   -b "aiws_session=$SESSION_COOKIE" \
   -H "x-csrf-token: $CSRF_TOKEN" \
   -F "file=@spec.pdf" \
@@ -256,7 +256,7 @@ _Verify: Returns HTTP 201 with document ID and status `PENDING`. Background work
 Search indexed project documents and active workspace records:
 
 ```bash
-curl "http://localhost:3000/api/v1/projects/$PROJECT_ID/search?q=telemetry+protocol" \
+curl "http://localhost:43101/api/v1/projects/$PROJECT_ID/search?q=telemetry+protocol" \
   -b "aiws_session=$SESSION_COOKIE"
 ```
 
@@ -267,7 +267,7 @@ _Verify: Returns HTTP 200 with aggregated results and `countsByType`._
 Create an AI conversation and send a grounded question:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/projects/$PROJECT_ID/ai/conversations \
+curl -X POST http://localhost:43101/api/v1/projects/$PROJECT_ID/ai/conversations \
   -b "aiws_session=$SESSION_COOKIE" \
   -H "x-csrf-token: $CSRF_TOKEN" \
   -H "Content-Type: application/json" \
@@ -277,7 +277,7 @@ curl -X POST http://localhost:3000/api/v1/projects/$PROJECT_ID/ai/conversations 
 ### Step 6: Query AI with Citations
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/projects/$PROJECT_ID/ai/conversations/$CONV_ID/messages \
+curl -X POST http://localhost:43101/api/v1/projects/$PROJECT_ID/ai/conversations/$CONV_ID/messages \
   -b "aiws_session=$SESSION_COOKIE" \
   -H "x-csrf-token: $CSRF_TOKEN" \
   -H "Content-Type: application/json" \
@@ -291,7 +291,7 @@ _Verify: Returns synthesized response with valid Markdown citation badges refere
 Create a decision in the project:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/projects/$PROJECT_ID/decisions \
+curl -X POST http://localhost:43101/api/v1/projects/$PROJECT_ID/decisions \
   -b "aiws_session=$SESSION_COOKIE" \
   -H "x-csrf-token: $CSRF_TOKEN" \
   -H "Content-Type: application/json" \
@@ -305,7 +305,7 @@ _Verify: Returns HTTP 201 with the new decision ID. Save it as [36m[1m$DECISIO
 Generate an editable proposal from that decision:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/projects/$PROJECT_ID/ai/decisions/$DECISION_ID/task-proposals \
+curl -X POST http://localhost:43101/api/v1/projects/$PROJECT_ID/ai/decisions/$DECISION_ID/task-proposals \
   -b "aiws_session=$SESSION_COOKIE" \
   -H "x-csrf-token: $CSRF_TOKEN"
 ```
@@ -317,7 +317,7 @@ Review or edit the returned pending proposal before confirming it. Generation al
 Confirm only after reviewing the task draft. Use a fresh idempotency key for this confirmation and reuse it for retries:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/projects/$PROJECT_ID/ai/proposals/$PROPOSAL_ID/confirm \
+curl -X POST http://localhost:43101/api/v1/projects/$PROJECT_ID/ai/proposals/$PROPOSAL_ID/confirm \
   -b "aiws_session=$SESSION_COOKIE" \
   -H "x-csrf-token: $CSRF_TOKEN" \
   -H "Idempotency-Key: demo-key-001" \
@@ -330,7 +330,7 @@ _Verify: Returns HTTP 200 with the proposal and created task IDs. Replaying with
 ### Step 10: Verify the Project Task Board
 
 ```bash
-curl "http://localhost:3000/api/v1/projects/$PROJECT_ID/tasks" \
+curl "http://localhost:43101/api/v1/projects/$PROJECT_ID/tasks" \
   -b "aiws_session=$SESSION_COOKIE"
 ```
 

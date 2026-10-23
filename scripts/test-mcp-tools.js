@@ -2,7 +2,7 @@ const { OscarMcpServer } = require('../dist/mcp/oscar-mcp-server.js');
 
 async function test() {
   const mcp = new OscarMcpServer({
-    apiUrl: 'http://localhost:3001/api/v1',
+    apiUrl: 'http://localhost:43101/api/v1',
     apiKey: 'test-key',
     defaultProjectIdOrKey: 'AIW',
   });

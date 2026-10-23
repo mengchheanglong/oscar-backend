@@ -138,7 +138,7 @@ async function main() {
     DATABASE_URL: testUrl.toString(),
     PORT: '3101',
     HOST: '127.0.0.1',
-    APP_ORIGIN: 'http://localhost:3002',
+    APP_ORIGIN: 'http://localhost:43100',
     INITIAL_ADMIN_EMAIL: '',
     INITIAL_ADMIN_PASSWORD: '',
     AI_ENABLED: String(live),
@@ -153,7 +153,7 @@ async function main() {
     LOG_LEVEL: 'silent',
     AI_DAILY_PROJECT_BUDGET_USD: '1',
     PLATFORM_ALLOWED_ORIGINS:
-      'http://127.0.0.1:3773,http://localhost:3773,http://127.0.0.1:3102,http://127.0.0.1:3103',
+      'http://127.0.0.1:43102,http://localhost:43102,http://127.0.0.1:3102,http://127.0.0.1:3103',
     PLATFORM_OAUTH_CALLBACK_ORIGIN: apiOrigin,
   });
   const { DataSource } = require('typeorm');
@@ -491,7 +491,7 @@ async function main() {
   const connection = await api('/platforms/connections', 'POST', {
     name: 'Installed T3 workflow',
     platformType: 't3',
-    baseUrl: 'http://127.0.0.1:3773',
+    baseUrl: 'http://127.0.0.1:43102',
     projectId: project.id,
   });
   state.t3ConnectionId = connection.id;

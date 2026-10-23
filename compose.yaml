@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: local_dev_only
       POSTGRES_DB: oscar
     ports:
-      - '127.0.0.1:55432:5432'
+      - '127.0.0.1:43104:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -26,7 +26,7 @@ services:
       POSTGRES_PASSWORD: local_test_only
       POSTGRES_DB: ai_workspace_test
     ports:
-      - '127.0.0.1:55433:5432'
+      - '127.0.0.1:43105:5432'
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
@@ -39,7 +39,7 @@ services:
     profiles: ['app', 'redis']
     image: redis:7-alpine
     ports:
-      - '127.0.0.1:56379:6379'
+      - '127.0.0.1:43106:6379'
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
@@ -69,9 +69,9 @@ services:
         required: false
     environment:
       NODE_ENV: development
-      PORT: '3001'
+      PORT: '43101'
       HOST: 0.0.0.0
-      APP_ORIGIN: http://localhost:3002
+      APP_ORIGIN: http://localhost:43100
       DATABASE_URL: postgresql://ai_workspace:local_dev_only@postgres:5432/oscar
       FOLDER_STORAGE_QUOTA_BYTES: ${FOLDER_STORAGE_QUOTA_BYTES:-21474836480}
       FOLDER_MAX_FILE_BYTES: ${FOLDER_MAX_FILE_BYTES:-1073741824}
@@ -84,7 +84,7 @@ services:
       HERMES_ENABLED: 'false'
       LOCAL_FILES_ENABLED: 'false'
     ports:
-      - '127.0.0.1:3001:3001'
+      - '127.0.0.1:43101:43101'
     volumes:
       - upload-data:/app/var/uploads
     depends_on:
@@ -96,7 +96,7 @@ services:
           'CMD',
           'node',
           '-e',
-          "fetch('http://127.0.0.1:3001/api/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+          "fetch('http://127.0.0.1:43101/api/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
         ]
       interval: 10s
       timeout: 5s
@@ -109,14 +109,14 @@ services:
       context: ${OSCAR_FRONTEND_PATH:-../oscar-frontend}
       args:
         NEXT_PUBLIC_API_URL: /api/v1
-        BACKEND_INTERNAL_URL: http://api:3001
+        BACKEND_INTERNAL_URL: http://api:43101
     image: oscar-frontend:local
     environment:
       PORT: '3000'
       HOSTNAME: 0.0.0.0
-      BACKEND_INTERNAL_URL: http://api:3001
+      BACKEND_INTERNAL_URL: http://api:43101
     ports:
-      - '127.0.0.1:3002:3000'
+      - '127.0.0.1:43100:3000'
     depends_on:
       api:
         condition: service_healthy

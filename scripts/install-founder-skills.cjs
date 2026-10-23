@@ -119,7 +119,7 @@ async function main() {
   const skills = buildSkills((file) => readPinned(checkout, file)); // Validate everything before any API write.
   const apiKey = process.env.OSCAR_API_KEY;
   if (!apiKey) throw Error('Set OSCAR_API_KEY privately before installing.');
-  const base = new URL(process.env.OSCAR_API_URL || 'http://127.0.0.1:3001/api/v1');
+  const base = new URL(process.env.OSCAR_API_URL || 'http://127.0.0.1:43101/api/v1');
   if (
     !['127.0.0.1', 'localhost'].includes(base.hostname) ||
     base.protocol !== 'http:' ||
@@ -127,7 +127,7 @@ async function main() {
     base.password ||
     base.search ||
     base.hash ||
-    !['3001', '3002'].includes(base.port) ||
+    !['43101', '43100'].includes(base.port) ||
     base.pathname !== '/api/v1'
   )
     throw Error('Use the local OSCAR API for this installation.');

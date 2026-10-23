@@ -5,11 +5,11 @@ deployed installation and from the automated test database.
 
 | Component               | Local target                             |
 | ----------------------- | ---------------------------------------- |
-| Frontend                | `http://localhost:3002`                  |
-| Backend                 | `http://127.0.0.1:3001/api/v1`           |
-| PostgreSQL service      | Compose `postgres`, loopback port 55432  |
+| Frontend                | `http://localhost:43100`                 |
+| Backend                 | `http://127.0.0.1:43101/api/v1`          |
+| PostgreSQL service      | Compose `postgres`, loopback port 43104  |
 | Development database    | `oscar`                                  |
-| Automated test database | `ai_workspace_test`, loopback port 55433 |
+| Automated test database | `ai_workspace_test`, loopback port 43105 |
 | Uploads                 | `./var/develop/uploads`                  |
 
 Start only this project's PostgreSQL service with `pnpm db:up`. On the current
@@ -20,7 +20,7 @@ target. The committed environment template remains a template; the current
 machine-specific values live only in the ignored backend `.env`.
 
 The local database URL uses the Compose development role and password, targets
-`127.0.0.1:55432/oscar`, and has `DATABASE_SSL=false`. Cloud
+`127.0.0.1:43104/oscar`, and has `DATABASE_SSL=false`. Cloud
 Supabase settings are cleared locally and GitHub integration is disabled locally.
 The existing DeepSeek configuration and optional Hermes runtime remain available.
 Provider calls still use the configured external model service; database isolation
@@ -33,7 +33,7 @@ API proxy before testing. Do not start another process on an occupied port.
 ### Start the installed local workspace on Windows
 
 After building both repositories, run `pnpm workspace:start` in the backend.
-It verifies the database target is `127.0.0.1:55432/oscar`, starts only the local
+It verifies the database target is `127.0.0.1:43104/oscar`, starts only the local
 Compose PostgreSQL service, runs pending migrations, reuses healthy services,
 and starts missing backend/frontend/Paperclip/T3 processes in hidden windows.
 It does not rebuild or restart an already-running process after code changes.
@@ -111,7 +111,7 @@ target and loads the new local PAT from the ignored backend `.env`, overriding a
 inherited deployment PAT only within that MCP child process. Neither credentials
 nor this machine-specific launcher are tracked. The global environment and
 deployment token were not changed. The launcher calls the existing compiled MCP
-server at loopback port 3001.
+server at loopback port 43101.
 
 A fresh stdio client passed project access and accepted-decision queries against
 local AIW. The existing Codex connection still holds the former token and returned
@@ -126,3 +126,23 @@ The local AIW runtime status reports Hermes available. No new model request was
 needed for isolation. Dedicated automated PostgreSQL tests passed: three suites,
 16 tests. The development database is persistent in the Compose volume; the
 automated test database remains separate.
+
+## Dedicated OSCAR host ports (2026-10-24)
+
+| Service                            | Loopback host port |
+| ---------------------------------- | ------------------ |
+| Web app                            | 43100              |
+| API                                | 43101              |
+| T3 server                          | 43102              |
+| Paperclip                          | 43103              |
+| PostgreSQL (existing oscar volume) | 43104              |
+| Isolated test PostgreSQL           | 43105              |
+| Optional Redis                     | 43106              |
+| Paperclip embedded PostgreSQL      | 43107              |
+
+Run `pnpm workspace:start` from the backend, then open <http://localhost:43100>.
+These fixed ports avoid common app defaults; the launcher refuses occupied ports rather than stopping unrelated services. Keep internal container ports (Postgres 5432, Redis 6379, frontend 3000) unchanged.
+
+For an existing installation, preserve the PostgreSQL volume and update only host mappings and private local endpoints: backend `.env`, frontend `.env.local`, MCP `OSCAR_API_URL`, and saved local T3/Paperclip connection origins. Set Paperclip `server.port` to 43103 and `database.embeddedPostgresPort` to 43107 in its existing instance config before restarting it. Keep the existing T3 home and pass `--port 43102` to its server. Rebuild both app bundles because Next.js bakes the proxy destination into its production build.
+
+Browser storage is scoped by origin, so sign in again on port 43100. GitHub OAuth applications must register the new callback shown in OSCAR; existing provider grants do not update external callback settings automatically.

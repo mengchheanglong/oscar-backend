@@ -40,7 +40,8 @@ describe('HTTP foundation', () => {
         {
           provide: ConfigService,
           useValue: new ConfigService({
-            APP_ORIGIN: 'http://localhost:3001',
+            NODE_ENV: 'development',
+            APP_ORIGIN: 'http://localhost:43100',
             STORAGE_LOCAL_ROOT: storageRoot,
           }),
         },
@@ -111,4 +112,27 @@ describe('HTTP foundation', () => {
     expect(result.headers['access-control-allow-origin']).not.toBe('https://untrusted.example');
     expect(result.headers['access-control-allow-origin']).not.toBe('*');
   });
+
+  it.each(['http://localhost:43100', 'http://127.0.0.1:43100'])(
+    'permits the dedicated local frontend origin %s',
+    async (origin) => {
+      const result = await request(app.getHttpServer())
+        .get('/api/v1/health/live')
+        .set('Origin', origin)
+        .expect(200);
+      expect(result.headers['access-control-allow-origin']).toBe(origin);
+      expect(result.headers['access-control-allow-credentials']).toBe('true');
+    },
+  );
+
+  it.each(['http://localhost:3000', 'http://localhost:3002'])(
+    'does not grant credentialed CORS to another app on %s',
+    async (origin) => {
+      const result = await request(app.getHttpServer())
+        .get('/api/v1/health/live')
+        .set('Origin', origin)
+        .expect(200);
+      expect(result.headers['access-control-allow-origin']).toBeUndefined();
+    },
+  );
 });

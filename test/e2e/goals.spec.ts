@@ -599,7 +599,7 @@ describe('Goals API (E2E)', () => {
           useValue: new ConfigService({
             NODE_ENV: 'development',
             PORT: 3000,
-            APP_ORIGIN: 'http://localhost:3001',
+            APP_ORIGIN: 'http://localhost:43101',
             SESSION_IDLE_HOURS: 8,
             SESSION_ABSOLUTE_DAYS: 7,
             STORAGE_LOCAL_ROOT: './var/uploads',

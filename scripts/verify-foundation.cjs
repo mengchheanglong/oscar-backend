@@ -126,16 +126,16 @@ async function main() {
     run('backend:test:integration', backend, ['test:integration'], {
       ...process.env,
       TEST_DATABASE_URL:
-        'postgresql://ai_workspace_test:local_test_only@127.0.0.1:55433/ai_workspace_test',
+        'postgresql://ai_workspace_test:local_test_only@127.0.0.1:43105/ai_workspace_test',
     });
   }
   for (const command of ['lint', 'typecheck', 'test', 'build']) {
     run(`frontend:${command}`, frontend, [command]);
   }
   if (flags.has('--live')) {
-    await live('live:web', 'http://127.0.0.1:3002/');
-    await live('live:api', 'http://127.0.0.1:3001/api/v1/health/ready');
-    await live('live:proxy', 'http://127.0.0.1:3002/api/v1/health/ready');
+    await live('live:web', 'http://127.0.0.1:43100/');
+    await live('live:api', 'http://127.0.0.1:43101/api/v1/health/ready');
+    await live('live:proxy', 'http://127.0.0.1:43100/api/v1/health/ready');
   }
 }
 

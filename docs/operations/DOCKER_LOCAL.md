@@ -11,21 +11,21 @@ and `oscar-frontend:local`; rebuild them with `pnpm stack:up` before app startup
 
 ## Development with Hermes
 
-1. `pnpm db:up` starts PostgreSQL on `127.0.0.1:55432`.
+1. `pnpm db:up` starts PostgreSQL on `127.0.0.1:43104`.
 2. In the backend folder, use `pnpm dev`, or `pnpm build` then
-   `pnpm start:prod`. The local `.env` sets port 3001 and the isolated
+   `pnpm start:prod`. The local `.env` sets port 43101 and the isolated
    `oscar` database.
-3. In the frontend folder, use `pnpm dev` and open `http://localhost:3002`.
+3. In the frontend folder, use `pnpm dev` and open `http://localhost:43100`.
 
-The frontend proxies `/api/v1` to `http://127.0.0.1:3001`. Hermes uses its existing
+The frontend proxies `/api/v1` to `http://127.0.0.1:43101`. Hermes uses its existing
 host Python/runtime paths in the ignored backend `.env`.
 
 ## Full Docker app
 
 `pnpm stack:up` builds and starts PostgreSQL, Redis, API, and frontend. The web app
-is at `http://localhost:3002` and API at `http://127.0.0.1:3001/api/v1`.
+is at `http://localhost:43100` and API at `http://127.0.0.1:43101/api/v1`.
 Stop host frontend/backend processes on those ports before starting this profile.
-The frontend image builds its API rewrite to the Compose service `http://api:3001`.
+The frontend image builds its API rewrite to the Compose service `http://api:43101`.
 Provider credentials are passed to the API through its ignored `.env`; environment
 files and machine MCP settings are excluded from image build contexts.
 

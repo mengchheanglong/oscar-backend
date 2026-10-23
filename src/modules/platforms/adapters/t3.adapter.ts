@@ -104,7 +104,7 @@ export class T3Adapter implements PlatformAdapter {
     const callbackOrigin =
       credentials.frontendOrigin ??
       process.env.PLATFORM_OAUTH_CALLBACK_ORIGIN ??
-      `http://localhost:${process.env.PORT || '3001'}`;
+      `http://localhost:${process.env.PORT || '43101'}`;
     const callback = `${callbackOrigin}/api/v1/platforms/connections/${connection.id}/oauth/callback`;
     const provider: OAuthClientProvider = {
       redirectUrl: callback,

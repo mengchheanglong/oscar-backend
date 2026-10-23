@@ -130,7 +130,7 @@ export class PlatformsController {
       state,
     );
     response.redirect(
-      `${frontendOrigin || process.env.APP_ORIGIN || 'http://localhost:3002'}/settings?section=integrations&app=t3&connected=1`,
+      `${frontendOrigin || process.env.APP_ORIGIN || 'http://localhost:43100'}/settings?section=integrations&app=t3&connected=1`,
     );
   }
 

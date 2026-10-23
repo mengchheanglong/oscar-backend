@@ -15,7 +15,7 @@ async function main() {
   );
 
   console.log('Navigating to login...');
-  await page.goto('http://localhost:3002/login', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:43100/login', { waitUntil: 'networkidle' });
 
   // Fill login
   await page.fill('input[type="email"]', 'admin@example.com');
@@ -27,7 +27,7 @@ async function main() {
 
   // 1. Apps Directory View
   console.log('Navigating to /integrations (App Directory)...');
-  await page.goto('http://localhost:3002/integrations', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:43100/integrations', { waitUntil: 'networkidle' });
   await page.waitForTimeout(2000);
 
   console.log('Capturing integrations_apps_directory.png...');
@@ -67,7 +67,7 @@ async function main() {
 
   // 4. MCP App View
   console.log('Navigating to MCP App View (?app=mcp)...');
-  await page.goto('http://localhost:3002/integrations?app=mcp', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:43100/integrations?app=mcp', { waitUntil: 'networkidle' });
   await page.waitForTimeout(1500);
 
   console.log('Capturing integrations_mcp_app_view.png...');
@@ -78,7 +78,7 @@ async function main() {
 
   // 5. GitHub App View
   console.log('Navigating to GitHub App View (?app=github)...');
-  await page.goto('http://localhost:3002/integrations?app=github', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:43100/integrations?app=github', { waitUntil: 'networkidle' });
   await page.waitForTimeout(1500);
 
   console.log('Capturing integrations_github_app_view.png...');

@@ -43,7 +43,7 @@ describe('Platforms layer (PostgreSQL integration)', () => {
   const userIds: string[] = [];
 
   beforeAll(async () => {
-    process.env.PLATFORM_ALLOWED_ORIGINS = 'https://paperclip.internal,http://localhost:3100';
+    process.env.PLATFORM_ALLOWED_ORIGINS = 'https://paperclip.internal,http://localhost:43103';
     const url = process.env.DATABASE_URL;
     if (process.env.NODE_ENV !== 'test' || !url || !new URL(url).pathname.endsWith('_test')) {
       throw new Error(
@@ -258,7 +258,7 @@ describe('Platforms layer (PostgreSQL integration)', () => {
     const conn = await service.createConnection(userA.id, {
       name: 'Alpha T3 Dev',
       platformType: PlatformType.T3,
-      baseUrl: 'http://localhost:3100',
+      baseUrl: 'http://localhost:43103',
       authType: PlatformAuthType.BEARER,
       projectId: projectA.id,
     });

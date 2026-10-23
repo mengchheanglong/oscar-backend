@@ -370,7 +370,7 @@ describe('Platforms API (E2E)', () => {
           useValue: new ConfigService({
             NODE_ENV: 'development',
             PORT: 3000,
-            APP_ORIGIN: 'http://localhost:3001',
+            APP_ORIGIN: 'http://localhost:43101',
             SESSION_IDLE_HOURS: 8,
             SESSION_ABSOLUTE_DAYS: 7,
             STORAGE_LOCAL_ROOT: './var/uploads',
@@ -562,7 +562,7 @@ describe('Platforms API (E2E)', () => {
     sessionCookie = extractCookies(loginRes);
     csrfToken = loginRes.body.data.csrfToken;
     process.env.PLATFORM_ALLOWED_ORIGINS =
-      'https://paperclip.test,https://t3.test,http://localhost:3100';
+      'https://paperclip.test,https://t3.test,http://localhost:43103';
   });
 
   afterAll(async () => {
@@ -611,7 +611,7 @@ describe('Platforms API (E2E)', () => {
         .send({
           name: 'T3 Code Local',
           platformType: PlatformType.T3,
-          baseUrl: 'http://localhost:3100',
+          baseUrl: 'http://localhost:43103',
           authType: PlatformAuthType.BEARER,
           projectId: testProject.id,
         })

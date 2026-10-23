@@ -45,7 +45,7 @@ foundation-era feature inventory below.
 
 For host development and the full Docker app, see
 [Running Continuum locally](docs/operations/DOCKER_LOCAL.md). The Docker app profile includes
-the sibling frontend repository and uses ports 3002 (web) and 3001 (API).
+the sibling frontend repository and uses ports 43100 (web) and 43101 (API).
 
 Continuum is a personal, chat-first workspace for business, finance, research,
 project files, tasks, decisions, and AI-assisted work. This is an independent
@@ -55,7 +55,7 @@ preserved. The original AI Workspace repositories remain separate.
 - Frontend: https://github.com/mengchheanglong/oscar-frontend
 - Backend: https://github.com/mengchheanglong/oscar-backend
 - Working branch: `develop`; GitHub default branch: `main`.
-- Local frontend: `http://localhost:3002`; local API: `http://127.0.0.1:3001`.
+- Local frontend: `http://localhost:43100`; local API: `http://127.0.0.1:43101`.
 - Environment files, access tokens, uploaded content, and machine MCP settings
   stay local and are not part of this repository.
 
@@ -143,12 +143,12 @@ pnpm dev
 
 On macOS/Linux, use `cp .env.example .env`. Do not overwrite an existing configured `.env` during later updates. The initial setup task already creates the local `.env` and installs dependencies.
 
-- API liveness: [http://localhost:3000/api/v1/health/live](http://localhost:3000/api/v1/health/live)
-- API readiness: [http://localhost:3000/api/v1/health/ready](http://localhost:3000/api/v1/health/ready)
-- Swagger UI (local development): [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
-- Runtime OpenAPI JSON: [http://localhost:3000/api/docs-json](http://localhost:3000/api/docs-json)
+- API liveness: [http://localhost:43101/api/v1/health/live](http://localhost:43101/api/v1/health/live)
+- API readiness: [http://localhost:43101/api/v1/health/ready](http://localhost:43101/api/v1/health/ready)
+- Swagger UI (local development): [http://localhost:43101/api/docs](http://localhost:43101/api/docs)
+- Runtime OpenAPI JSON: [http://localhost:43101/api/docs-json](http://localhost:43101/api/docs-json)
 
-The project defaults to port **3000**. Host development PostgreSQL is on **55432**. Update `.env` deliberately if local ports change; Compose has explicit mappings and does not inherit all `.env` runtime values.
+The project defaults to port **43101**. Host development PostgreSQL is on **43104**. Update `.env` deliberately if local ports change; Compose has explicit mappings and does not inherit all `.env` runtime values.
 
 There is no root `/` page; use the routes above. A successful response is `{"data":{"status":"ok"}}`. Readiness checks PostgreSQL and a temporary write/delete probe under local upload storage; it returns a generic 503 if either is unavailable. The API currently requires the database at startup. After startup, database failure causes readiness to fail while liveness remains available.
 
@@ -158,7 +158,7 @@ There is no root `/` page; use the routes above. A successful response is `{"dat
 pnpm stack:up
 ```
 
-This builds the API image, starts PostgreSQL, runs migrations in a one-shot release container, then starts the API on port 3000. Do not run `pnpm dev` on the same port simultaneously. To switch to host development:
+This builds the API image, starts PostgreSQL, runs migrations in a one-shot release container, then starts the API on port 43101. Do not run `pnpm dev` on the same port simultaneously. To switch to host development:
 
 ```powershell
 docker compose --profile app stop api
@@ -181,7 +181,7 @@ Compose is a **local demo/development configuration**: credentials are public lo
 | `pnpm format:check` / `pnpm format`          | Check/apply Prettier                                              |
 | `pnpm test`                                  | Unit tests, no database                                           |
 | `pnpm test:e2e`                              | HTTP infrastructure tests with fake database, no Docker required  |
-| `pnpm db:test:up`                            | Start isolated PostgreSQL test service on 55433                   |
+| `pnpm db:test:up`                            | Start isolated PostgreSQL test service on 43105                   |
 | `pnpm test:integration`                      | Real PostgreSQL/pgvector migration tests                          |
 | `pnpm migration:run` / `pnpm migration:show` | Explicitly apply/list development migrations                      |
 | `pnpm migration:run:prod`                    | Apply compiled migrations in release environment                  |
@@ -253,7 +253,7 @@ curl -sSL https://raw.githubusercontent.com/mengchheanglong/AI-Workspace-backend
 
 - **Docker connection failure:** start Docker Desktop/the Docker engine, then rerun `pnpm db:up`.
 - **Port already allocated:** inspect the owner; stop only this project's API if switching execution mode, or choose another local port. Do not terminate unrelated work.
-- **Database connection refused:** confirm `pnpm db:up` passed and `.env` uses port 55432 for host execution; container execution uses hostname `postgres` and port 5432.
+- **Database connection refused:** confirm `pnpm db:up` passed and `.env` uses port 43104 for host execution; container execution uses hostname `postgres` and port 5432.
 - **Invalid environment configuration:** the error identifies invalid fields without printing their values. Check exact `true`/`false`, valid URLs/ports, and keep Phase 2 flags false.
 - **Migration permission denied:** extension setup needs an appropriate migration role; do not enable `synchronize` to bypass migrations.
 - **Readiness 503:** check database availability and local storage permissions. Detailed credentials/paths are intentionally omitted from public responses.
@@ -323,7 +323,7 @@ Runtime pages and MCP tools use saved workspace records. The current workspace h
 
 To enable real semantic search, configure `AI_EMBEDDING_PROVIDER=openai` with a separate `OPENAI_API_KEY`, then reindex the project sources. Migration `1790985600000-RemoveMockEmbeddings` makes vectors nullable and clears only vectors labeled `mock-*`, retaining text, provenance and real vectors. Apply migrations explicitly; never reset a persistent database for this cleanup.
 
-The legacy mock verification scripts (`verify-p2-01-ingestion.ts`, `verify-retrieval-chat.ts`, `verify-ai-task-flow.ts`) require a separate local `TEST_DATABASE_URL` targeting `ai_workspace_test` on port 55433. They ignore the application's `DATABASE_URL` so they cannot populate the live workspace with test data.
+The legacy mock verification scripts (`verify-p2-01-ingestion.ts`, `verify-retrieval-chat.ts`, `verify-ai-task-flow.ts`) require a separate local `TEST_DATABASE_URL` targeting `ai_workspace_test` on port 43105. They ignore the application's `DATABASE_URL` so they cannot populate the live workspace with test data.
 
 ## Complete GitHub code indexing
 
@@ -373,7 +373,7 @@ remain downloadable. Larger UTF-8 originals can be read by Hermes in bounded
 
 Run migrations explicitly against the isolated develop DB before testing.
 The normal browser flow needs no PowerShell. Development UI/API use matching
-`127.0.0.1` hosts (3002/3001) to avoid another app's IPv6 localhost listener.
+`127.0.0.1` hosts (43100/43101) to avoid another app's IPv6 localhost listener.
 Hosting, TLS and cloud object storage are not provisioned. Cross-device access
 still needs a reachable authenticated backend and persistent storage. Hard
 crashes may leave orphan/temp blobs; automatic blob reconciliation is future

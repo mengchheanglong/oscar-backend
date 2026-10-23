@@ -17,7 +17,7 @@ async function main() {
   page.on('pageerror', (err) => console.log('PAGE ERROR:', err.message));
 
   console.log('Navigating to login...');
-  await page.goto('http://localhost:3002/login', { waitUntil: 'domcontentloaded' });
+  await page.goto('http://localhost:43100/login', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(1000);
 
   // Check if we need to login
@@ -32,7 +32,7 @@ async function main() {
 
   // Nav to Documents
   console.log('Navigating to /documents...');
-  await page.goto('http://localhost:3002/documents', { waitUntil: 'domcontentloaded' });
+  await page.goto('http://localhost:43100/documents', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(3000);
 
   // Click Upload button (it says "Upload Document")

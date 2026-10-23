@@ -5,7 +5,7 @@ describe('OscarMcpServer', () => {
 
   beforeEach(() => {
     mcp = new OscarMcpServer({
-      apiUrl: 'http://localhost:3001/api/v1',
+      apiUrl: 'http://localhost:43101/api/v1',
       apiKey: 'aiw_pat_mocktesttoken123456789',
       defaultProjectIdOrKey: 'AIW',
     });

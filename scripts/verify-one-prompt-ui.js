@@ -13,7 +13,7 @@ async function main() {
   );
 
   console.log('Navigating to login...');
-  await page.goto('http://localhost:3002/login', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:43100/login', { waitUntil: 'networkidle' });
 
   // Fill login
   await page.fill('input[type="email"]', 'admin@example.com');
@@ -25,7 +25,7 @@ async function main() {
 
   // Nav to MCP App View
   console.log('Navigating to /integrations?app=mcp...');
-  await page.goto('http://localhost:3002/integrations?app=mcp', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:43100/integrations?app=mcp', { waitUntil: 'networkidle' });
   await page.waitForTimeout(2000);
 
   console.log('Capturing top view integrations_mcp_app_view.png...');

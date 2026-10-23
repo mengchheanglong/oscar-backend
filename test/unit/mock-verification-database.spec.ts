@@ -1,6 +1,6 @@
 import { mockVerificationDatabaseUrl } from '../../scripts/mock-verification-database';
 
-const testUrl = 'postgresql://test:test@127.0.0.1:55433/ai_workspace_test';
+const testUrl = 'postgresql://test:test@127.0.0.1:43105/ai_workspace_test';
 
 describe('mock verification database isolation', () => {
   it('uses the explicitly configured isolated database', () => {
@@ -10,7 +10,7 @@ describe('mock verification database isolation', () => {
     {},
     { DATABASE_URL: testUrl },
     { TEST_DATABASE_URL: testUrl, DATABASE_URL: testUrl },
-    { TEST_DATABASE_URL: testUrl.replace('55433', '55432') },
+    { TEST_DATABASE_URL: testUrl.replace('43105', '43104') },
     { TEST_DATABASE_URL: testUrl.replace('127.0.0.1', 'remote.example.com') },
     { TEST_DATABASE_URL: testUrl.replace('ai_workspace_test', 'ai_workspace') },
   ])('rejects missing or non-isolated configuration without printing credentials', (env) => {

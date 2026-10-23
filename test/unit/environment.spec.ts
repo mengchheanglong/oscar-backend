@@ -1,7 +1,7 @@
 import { validateEnvironment } from '../../src/config/environment';
 
 const valid = {
-  APP_ORIGIN: 'http://localhost:3001',
+  APP_ORIGIN: 'http://localhost:43101',
   DATABASE_URL: 'postgresql://user:private@localhost:5432/dev',
 };
 
@@ -62,7 +62,7 @@ describe('Environment validation', () => {
     { GITHUB_ENABLED: 'true' },
     { AI_CHAT_MODEL: 'another-model' },
     { HERMES_ENABLED: 'true' },
-    { APP_ORIGIN: 'http://localhost:3001/path' },
+    { APP_ORIGIN: 'http://localhost:43101/path' },
     { NODE_ENV: 'production', SWAGGER_ENABLED: 'true' },
   ])('rejects invalid or unsupported configuration %j', (override) => {
     expect(() => validateEnvironment({ ...valid, ...override })).toThrow(

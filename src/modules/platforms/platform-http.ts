@@ -9,7 +9,7 @@ export function platformUrl(value: string): URL {
     throw new BadRequestException('Enter a valid platform URL.');
   }
   const defaults =
-    'http://localhost:3100,http://127.0.0.1:3100,http://localhost:3773,http://127.0.0.1:3773';
+    'http://localhost:43103,http://127.0.0.1:43103,http://localhost:43102,http://127.0.0.1:43102';
   const allowed = (process.env.PLATFORM_ALLOWED_ORIGINS ?? defaults)
     .split(',')
     .map((s) => s.trim())

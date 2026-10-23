@@ -53,7 +53,7 @@ export class MockGitHubClientService implements IGitHubClient {
       id: 1004,
       number: 4,
       title: 'Improve Docker Compose test database startup and cleanup speed',
-      body: 'Running integration tests against postgres-test port 55433 should spin up and tear down cleanly without zombie containers.',
+      body: 'Running integration tests against postgres-test port 43105 should spin up and tear down cleanly without zombie containers.',
       state: 'closed',
       html_url: 'https://github.com/example/repo/issues/4',
       user: { login: 'alice-dev' },

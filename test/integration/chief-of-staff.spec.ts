@@ -212,7 +212,7 @@ describe('Chief-of-staff continuity (PostgreSQL)', () => {
         conversationId: chat.id,
         goalId: goal.id,
         platformType: platform,
-        connectionOrigin: 'http://127.0.0.1:3773',
+        connectionOrigin: 'http://127.0.0.1:43102',
         idempotencyKey: randomUUID(),
         prompt: 'Fixture',
         status: 'SUCCEEDED',

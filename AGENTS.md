@@ -43,10 +43,10 @@
 
 ## Local environment
 
-- Local development and manual testing use `oscar` on `127.0.0.1:55432`, with the local frontend on port 3002 and backend on port 3001. Do not point local tests or this development server at the deployment database. Keep deployment configuration separate; do not copy its records into local testing or run demo seeds. See `docs/operations/LOCAL_DEVELOPMENT.md`.
+- Local development and manual testing use `oscar` on `127.0.0.1:43104`, with the local frontend on port 43100 and backend on port 43101. Do not point local tests or this development server at the deployment database. Keep deployment configuration separate; do not copy its records into local testing or run demo seeds. See `docs/operations/LOCAL_DEVELOPMENT.md`.
 
 - Node version is pinned in `.node-version`; pnpm is pinned in `package.json`.
-- API defaults to `http://localhost:3000`; development PostgreSQL uses `127.0.0.1:55432`; test PostgreSQL uses `127.0.0.1:55433`.
+- API defaults to `http://localhost:43101`; development PostgreSQL uses `127.0.0.1:43104`; test PostgreSQL uses `127.0.0.1:43105`.
 - Do not stop unrelated Docker containers or processes. The Compose project is `oscar`.
 - Docker Compose here is for local development/demo only. Production secrets, TLS, database roles, backups, and hosting require deployment-specific configuration.
 

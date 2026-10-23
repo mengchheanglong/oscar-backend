@@ -213,8 +213,8 @@ export class PlatformsService {
     if (connection.platformType !== PlatformType.T3)
       throw new BadRequestException('This connection uses a Paperclip bearer token.');
     if (frontendOrigin) {
-      const configured = process.env.APP_ORIGIN || 'http://localhost:3002';
-      const local = ['http://localhost:3002', 'http://127.0.0.1:3002'];
+      const configured = process.env.APP_ORIGIN || 'http://localhost:43100';
+      const local = ['http://localhost:43100', 'http://127.0.0.1:43100'];
       if (
         frontendOrigin !== configured &&
         !(

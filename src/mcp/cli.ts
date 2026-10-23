@@ -3,7 +3,9 @@ import { OscarMcpServer } from './oscar-mcp-server';
 
 async function main() {
   const apiUrl =
-    process.env.OSCAR_API_URL || process.env.AI_WORKSPACE_API_URL || 'http://localhost:3001/api/v1';
+    process.env.OSCAR_API_URL ||
+    process.env.AI_WORKSPACE_API_URL ||
+    'http://localhost:43101/api/v1';
   const apiKey = process.env.OSCAR_API_KEY || process.env.AI_WORKSPACE_API_KEY;
   const defaultProjectIdOrKey = process.env.OSCAR_PROJECT_ID || process.env.AI_WORKSPACE_PROJECT_ID;
 

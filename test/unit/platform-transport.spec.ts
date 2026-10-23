@@ -28,7 +28,7 @@ describe('read-only platform transports', () => {
   }>;
   beforeEach(() => {
     process.env.PLATFORM_ALLOWED_ORIGINS = origin;
-    process.env.PLATFORM_OAUTH_CALLBACK_ORIGIN = 'http://localhost:3001';
+    process.env.PLATFORM_OAUTH_CALLBACK_ORIGIN = 'http://localhost:43101';
     calls = [];
     connection = {
       id: '11111111-1111-4111-8111-111111111111',
@@ -194,11 +194,11 @@ describe('read-only platform transports', () => {
   it('keeps a browser-initiated OAuth callback on the saved OSCAR frontend origin', async () => {
     const { authorizationUrl } = await adapter.startAuthorization(
       connection,
-      'http://127.0.0.1:3002',
+      'http://127.0.0.1:43100',
     );
     const url = new URL(authorizationUrl);
     expect(url.searchParams.get('redirect_uri')).toBe(
-      `http://127.0.0.1:3002/api/v1/platforms/connections/${connection.id}/oauth/callback`,
+      `http://127.0.0.1:43100/api/v1/platforms/connections/${connection.id}/oauth/callback`,
     );
     expect(
       await adapter.completeAuthorization(
@@ -206,7 +206,7 @@ describe('read-only platform transports', () => {
         'synthetic-code',
         url.searchParams.get('state')!,
       ),
-    ).toBe('http://127.0.0.1:3002');
+    ).toBe('http://127.0.0.1:43100');
   });
   it('rejects unapproved origins before sending credentials and disables redirects', async () => {
     expect(() => platformUrl('https://unapproved.example')).toThrow();

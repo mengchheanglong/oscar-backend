@@ -40,7 +40,7 @@ describe('Chief HTTP review boundary', () => {
         { provide: ChiefService, useValue: service },
         {
           provide: ConfigService,
-          useValue: new ConfigService({ NODE_ENV: 'test', APP_ORIGIN: 'http://localhost:3002' }),
+          useValue: new ConfigService({ NODE_ENV: 'test', APP_ORIGIN: 'http://localhost:43100' }),
         },
         {
           provide: SessionService,

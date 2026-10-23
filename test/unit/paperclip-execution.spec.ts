@@ -4,7 +4,7 @@ import { PlatformConnection } from '../../src/modules/platforms/entities/platfor
 describe('Paperclip assigned issue execution contract', () => {
   const adapter = new PaperclipAdapter();
   const connection = {
-    baseUrl: 'http://localhost:3100',
+    baseUrl: 'http://localhost:43103',
     authToken: 'synthetic-token',
     metadata: { companyId: 'company', paperclipAccess: 'supervised' },
   } as unknown as PlatformConnection;
@@ -34,7 +34,7 @@ describe('Paperclip assigned issue execution contract', () => {
   it('assigns the exact reviewed task with a stable remote idempotency key', async () => {
     fetchMock.mockResolvedValue(reply(issue));
     await adapter.launch(connection, 'retry-key', 'Task', 'Reviewed task', 'agent', 'project');
-    expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:3100/api/companies/company/issues');
+    expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:43103/api/companies/company/issues');
     const init = fetchMock.mock.calls[0][1];
     const body = JSON.parse(init.body);
     expect(init.method).toBe('POST');
