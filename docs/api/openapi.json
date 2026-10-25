@@ -10512,6 +10512,34 @@
                 "snippet": {
                   "type": "string",
                   "nullable": true
+                },
+                "documentId": {
+                  "type": "string"
+                },
+                "collectionId": {
+                  "type": "string"
+                },
+                "sourceUrl": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "courseCode": {
+                  "type": "string"
+                },
+                "institution": {
+                  "type": "string"
+                },
+                "pageStart": {
+                  "type": "number"
+                },
+                "pageEnd": {
+                  "type": "number"
+                },
+                "startMs": {
+                  "type": "number"
+                },
+                "endMs": {
+                  "type": "number"
                 }
               }
             }
@@ -10659,6 +10687,11 @@
       "PostMessageDto": {
         "type": "object",
         "properties": {
+          "includeKnowledge": {
+            "type": "boolean",
+            "description": "Opt in to curated external knowledge for this turn",
+            "default": false
+          },
           "goalId": {
             "type": "string",
             "description": "Goal selected for this strategic review"

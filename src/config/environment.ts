@@ -66,6 +66,25 @@ const schema = z
       .default('info'),
     SWAGGER_ENABLED: booleanString.default(false),
     AI_ENABLED: booleanString.default(false),
+    OSCAR_KNOWLEDGE_ENABLED: booleanString.default(false),
+    OSCAR_KNOWLEDGE_BASE_URL: z
+      .string()
+      .url()
+      .refine((value) => {
+        const url = new URL(value);
+        return (
+          ['http:', 'https:'].includes(url.protocol) &&
+          !url.username &&
+          !url.password &&
+          !url.search &&
+          !url.hash &&
+          url.pathname === '/'
+        );
+      })
+      .default('http://127.0.0.1:8010'),
+    OSCAR_KNOWLEDGE_SERVICE_TOKEN: z.string().default(''),
+    OSCAR_KNOWLEDGE_COLLECTION: z.string().min(1).max(100).default('mba-business'),
+    OSCAR_KNOWLEDGE_TIMEOUT_MS: z.coerce.number().int().min(100).max(10000).default(2500),
     LOCAL_FILES_ENABLED: booleanString.default(false),
     LOCAL_FILES_REGISTRY: z.string().min(1).default('./var/local-folders.json'),
     HERMES_ENABLED: booleanString.default(false),

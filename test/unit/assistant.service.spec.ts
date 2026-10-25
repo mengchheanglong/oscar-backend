@@ -348,6 +348,74 @@ describe('AssistantService', () => {
         expect(mockLlmProvider.generateAnswer).not.toHaveBeenCalled();
       });
 
+      it('persists canonical external citations and rejects forged chunk IDs', async () => {
+        const external = {
+          chunkId: 'external-chunk',
+          sourceId: 'external-doc',
+          documentId: 'external-doc',
+          sourceType: 'EXTERNAL_KNOWLEDGE',
+          title: 'Synthetic course',
+          revision: 1,
+          locator: 'Page 2',
+          text: 'Subscription pricing',
+          snippet: 'Subscription pricing',
+          score: 0.01,
+          sourceUrl: 'https://example.org/lecture.pdf',
+          courseCode: 'DEMO',
+          institution: 'Synthetic',
+          pageStart: 2,
+          collectionId: 'mba-business',
+        };
+        const knowledge = {
+          retrieve: jest.fn().mockResolvedValue({ evidence: [external], unavailable: false }),
+        };
+        Object.assign(service, { knowledge });
+        mockLlmProvider.generateAnswer.mockResolvedValue({
+          content: 'Pricing [Evidence #1]',
+          citations: [{ ...external, sourceUrl: 'https://evil.example/' }, { chunkId: 'forged' }],
+          modelName: 'test',
+        });
+        const answer = await service.postMessage(mockProjectId, mockUserId, 'conv-1', {
+          ...request,
+          includeKnowledge: true,
+        });
+        expect(answer.assistantMessage.citations).toEqual([
+          expect.objectContaining({
+            sourceType: 'EXTERNAL_KNOWLEDGE',
+            sourceUrl: external.sourceUrl,
+            pageStart: 2,
+            courseCode: 'DEMO',
+            evidenceNumber: 1,
+          }),
+        ]);
+        await expect(
+          service.postMessage(mockProjectId, mockUserId, 'conv-1', request),
+        ).rejects.toThrow();
+      });
+
+      it('reports supplementary outage while retaining normal workspace generation', async () => {
+        const knowledge = {
+          retrieve: jest.fn().mockResolvedValue({ evidence: [], unavailable: true }),
+        };
+        Object.assign(service, { knowledge });
+        const result = await service.postMessage(mockProjectId, mockUserId, 'conv-1', {
+          content: 'pricing',
+          includeKnowledge: true,
+        });
+        expect(result.assistantMessage.content).toContain(
+          'Supplementary knowledge sources were unavailable',
+        );
+        expect(mockRetrievalService.retrieve).toHaveBeenCalled();
+        expect(mockLlmProvider.generateAnswer).toHaveBeenCalled();
+      });
+
+      it('does not consult knowledge without explicit request opt-in', async () => {
+        const knowledge = { retrieve: jest.fn() };
+        Object.assign(service, { knowledge });
+        await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
+        expect(knowledge.retrieve).not.toHaveBeenCalled();
+      });
+
       it('replays a saved response after delivery is lost without another provider call or message', async () => {
         const first = await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
         const retry = await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);

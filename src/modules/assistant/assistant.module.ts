@@ -1,4 +1,5 @@
 import { SkillsModule } from '../skills/skills.module';
+import { KnowledgeClientModule } from '../knowledge-client/knowledge-client.module';
 import { PlatformsModule } from '../platforms/platforms.module';
 import { PlatformHandoff } from './entities/platform-handoff.entity';
 import { PlatformHandoffsService } from './platform-handoffs.service';
@@ -50,6 +51,7 @@ import {
 
 @Module({
   imports: [
+    KnowledgeClientModule,
     SkillsModule,
     TypeOrmModule.forFeature([
       Conversation,

@@ -1,5 +1,5 @@
 import { CitationItem } from '../entities/chat-message.entity';
-import { RetrievedEvidence } from '../../mavis/retrieval/retrieval.service';
+import { AssistantEvidence as RetrievedEvidence } from '../../knowledge-client/knowledge-evidence';
 
 export interface ChatCompletionMessage {
   role: 'system' | 'user' | 'assistant';

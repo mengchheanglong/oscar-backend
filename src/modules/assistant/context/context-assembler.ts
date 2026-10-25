@@ -1,7 +1,7 @@
 import { measureGoalProgress } from '../../goals/goal-progress';
 import { Injectable } from '@nestjs/common';
 import { AssistantMode } from '../entities/conversation.entity';
-import { RetrievedEvidence } from '../../mavis/retrieval/retrieval.service';
+import { AssistantEvidence as RetrievedEvidence } from '../../knowledge-client/knowledge-evidence';
 import { SavedMemory } from '../entities/saved-memory.entity';
 import { Goal } from '../../goals/entities/goal.entity';
 import { MavisExecutionResultItem, MavisMemoryItem } from '../../mavis/mavis.contract';
@@ -96,26 +96,51 @@ export class ContextAssembler {
     const includedEvidence: RetrievedEvidence[] = [];
 
     const evidenceBlocks: string[] = [];
+    const hasExternal = evidence.some((item) => item.sourceType === 'EXTERNAL_KNOWLEDGE');
+    let workspaceChars = 0;
+    let externalChars = 0;
 
     for (let i = 0; i < evidence.length; i++) {
       const item = evidence[i]!;
+      const external = item.sourceType === 'EXTERNAL_KNOWLEDGE';
+      const categoryRemaining = hasExternal
+        ? external
+          ? 5000 - externalChars
+          : 10000 - workspaceChars
+        : maxChars - accumulatedChars;
+      if (categoryRemaining < 500) continue;
       const workspaceLine = item.projectName
         ? `Workspace: [${item.projectKey || 'PROJECT'}] ${item.projectName}\n`
         : '';
-      const block = `[Evidence #${i + 1}]
+      const header = `[Evidence #${includedEvidence.length + 1}]
 ${workspaceLine}Source Type: ${item.sourceType}
 Title: ${item.title} (Revision: ${item.revision})
 Locator: ${item.locator}
-Content:
-${item.text ?? item.snippet}
-`;
-      if (accumulatedChars + block.length > maxChars && includedEvidence.length > 0) {
+${external ? `Course: ${item.courseCode ?? 'Unknown'}; Institution: ${item.institution ?? 'Unknown'}; URL: ${item.sourceUrl ?? 'No public URL'}\n` : ''}
+Content:\n`;
+      const content = item.text ?? item.snippet;
+      const block = header + content + '\n';
+      if (
+        !hasExternal &&
+        accumulatedChars + block.length > maxChars &&
+        includedEvidence.length > 0
+      ) {
         break;
       }
 
-      const boundedBlock = block.slice(0, maxChars - accumulatedChars);
-      accumulatedChars += boundedBlock.length;
-      includedEvidence.push(item);
+      const separatorChars = includedEvidence.length ? 7 : 0;
+      const available = Math.min(categoryRemaining, maxChars - accumulatedChars - separatorChars);
+      if (available <= header.length + 1) continue;
+      const includedText = content.slice(0, available - header.length - 1);
+      const boundedBlock = header + includedText + '\n';
+      if (external) externalChars += boundedBlock.length;
+      else workspaceChars += boundedBlock.length;
+      accumulatedChars += boundedBlock.length + separatorChars;
+      includedEvidence.push(
+        includedText.length === content.length
+          ? item
+          : { ...item, text: includedText, snippet: includedText.slice(0, 240) },
+      );
       evidenceBlocks.push(boundedBlock);
     }
 

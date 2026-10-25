@@ -1,5 +1,11 @@
 # OSCAR — Backend
 
+Local curated reference retrieval is available through the independent sibling
+`oscar-knowledge` service. See [local knowledge integration](docs/operations/KNOWLEDGE_LOCAL.md)
+for connecting the private token, starting the stack, enabling **Course knowledge**
+per chat turn, and running the explicit live verification. Tracked defaults remain
+disabled; the current local installation is enabled and verified with synthetic notes.
+
 ## Current product plan: OSCAR & MAVIS
 
 The [OSCAR & MAVIS vision and architecture](docs/product/OSCAR_MAVIS_Vision_and_Architecture.md)

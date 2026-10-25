@@ -13,6 +13,14 @@ import { AssistantMode } from '../entities/conversation.entity';
 import { KnowledgeSourceType, ACTIVE_KNOWLEDGE_SOURCE_TYPES } from '../../ingestion/entities';
 
 export class PostMessageDto {
+  @ApiPropertyOptional({
+    description: 'Opt in to curated external knowledge for this turn',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  includeKnowledge?: boolean;
+
   @ApiPropertyOptional({ description: 'Goal selected for this strategic review' })
   @IsOptional()
   @IsUUID()

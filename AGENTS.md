@@ -59,3 +59,10 @@
 - The original AIW implementation guide and MCP project are inherited references;
   do not rename existing user project records or database identifiers as part of
   product branding. Report MCP unavailability honestly.
+
+## OSCAR MCP workflow
+
+- Use the configured `oscar` MCP server for project `AIW`. Consult accepted decisions with `list_decisions` and `get_decision` before design changes.
+- AI generation creates drafts only. Inspect and edit proposals before confirmation. Confirm only user-authorized selected items with the current version and a stable idempotency key; reuse the key on retries. Reject unwanted drafts.
+- Mark assigned tasks `DONE` using `update_task_status` only after completion and verification. Do not invent assigned tasks or completion.
+- Keep personal access tokens in private local configuration, outside tracked files. Report MCP unavailability honestly.

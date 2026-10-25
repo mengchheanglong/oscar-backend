@@ -37,6 +37,8 @@ function Test-LocalNodeProcess([string]$Script) {
 }
 
 $endpoints = [ordered]@{ Backend = 'http://127.0.0.1:43101/api/v1/health/ready'; Frontend = 'http://127.0.0.1:43100/api/v1/health/ready'; Paperclip = 'http://127.0.0.1:43103/api/health'; T3 = 'http://127.0.0.1:43102/.well-known/t3/environment' }
+$knowledgeEnabled = [bool](Select-String -LiteralPath (Join-Path $backendRoot '.env') -Pattern '^OSCAR_KNOWLEDGE_ENABLED=true\s*$' -Quiet)
+if ($knowledgeEnabled) { $endpoints['Knowledge'] = 'http://127.0.0.1:8010/health/ready' }
 if ($CheckOnly) {
   $failed = $false
   foreach ($entry in $endpoints.GetEnumerator()) {
@@ -58,6 +60,19 @@ try {
   & pnpm migration:run
   if ($LASTEXITCODE -ne 0) { throw 'Migration failed. Existing data was preserved.' }
 } finally { Pop-Location }
+if ($knowledgeEnabled -and -not (Test-Endpoint $endpoints.Knowledge)) {
+  $knowledgeRoot = Join-Path $workspaceRoot 'oscar-knowledge'
+  if ((Test-Path -LiteralPath (Join-Path $knowledgeRoot 'compose.yaml')) -and
+      (Test-Path -LiteralPath (Join-Path $knowledgeRoot '.env'))) {
+    Push-Location $knowledgeRoot
+    try {
+      & docker compose --profile app up -d --wait --wait-timeout 45 api
+      if ($LASTEXITCODE -ne 0) { Write-Warning 'Supplementary knowledge did not start; normal OSCAR chat remains available.' }
+    } finally { Pop-Location }
+  } else {
+    Write-Warning 'Supplementary knowledge checkout/configuration missing; normal OSCAR chat remains available.'
+  }
+}
 if (-not (Test-Endpoint $endpoints.Backend)) {
   Assert-FreePort 43101
   if (-not (Test-Path (Join-Path $backendRoot 'dist\main.js'))) { throw 'Build the backend with pnpm build first.' }

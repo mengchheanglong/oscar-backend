@@ -1,5 +1,29 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-25 external knowledge slice: independent sibling `oscar-knowledge`
+> implements an evidence-only FastAPI/PostgreSQL service. Backend integration is
+> disabled by default and requires per-turn `includeKnowledge`; the frontend adds
+> a Course knowledge checkbox. Existing workspace retrieval, MAVIS, database
+> schema and Compose identity remain intact. Citation JSON gains optional external
+> source/course/page/time metadata. Verification: 435 backend unit tests, 173 E2E
+> tests and 142 database integration tests passed; lint/typecheck/build/format
+> passed and OpenAPI was regenerated. An additional opt-in cross-service smoke
+> passed using real knowledge HTTP and OSCAR test-DB persistence with scripted
+> DeepSeek transport. No live model or embedding call was made in that initial check. Full commands,
+> file inventory, Python checks and limits: sibling
+> `oscar-knowledge/docs/IMPLEMENTATION_REPORT.md`. Actual MIT imports/license
+> approval and corpus-scale evaluation remain pending. Follow-up local integration
+> enabled the private service connection, started the core stack with no pending
+> migrations, and passed real configured-model generation, persisted external
+> citations, idempotent replay and normal opt-out chat. A browser composer turn
+> also returned a course citation. The pre-existing `deepseek-flash` setting was
+> retained; no embedding call was made. New commands: `knowledge:connect`,
+> `knowledge:check`, `knowledge:verify` (explicit `--live` for real generation).
+> Frontend retry IDs now change when knowledge options change after a failed send.
+> See [local knowledge integration](docs/operations/KNOWLEDGE_LOCAL.md). The OSCAR
+> MCP lookup initially failed before startup; after startup it succeeded and
+> returned no accepted decisions. No task was marked done.
+
 > New product direction (2026-10-18): [OSCAR & MAVIS vision and architecture](docs/product/OSCAR_MAVIS_Vision_and_Architecture.md)
 > is the current planning document. Its roadmap (section 15) and MVP (section 16)
 > supersede this guide's original roadmap for future work. Begin with Phase 0:
