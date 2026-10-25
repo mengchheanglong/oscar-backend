@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { parse } from 'dotenv';
 import { ConfigService } from '@nestjs/config';
@@ -34,6 +34,8 @@ smoke('Independent knowledge HTTP → OSCAR persisted answer (scripted generatio
     if (process.env.NODE_ENV !== 'test' || !url || !new URL(url).pathname.endsWith('_test'))
       throw new Error('Dedicated test database required');
     const db = await new DataSource(databaseOptions(url)).initialize();
+    let smokeProjectId: string | undefined;
+    let smokeUserId: string | undefined;
     try {
       await db.runMigrations({ transaction: 'all' });
       const user = await db.getRepository(User).save({
@@ -41,11 +43,13 @@ smoke('Independent knowledge HTTP → OSCAR persisted answer (scripted generatio
         displayName: 'Knowledge smoke',
         passwordHash: 'synthetic-only',
       });
+      smokeUserId = user.id;
       const project = await db.getRepository(Project).save({
         key: `K${randomUUID().slice(0, 7).toUpperCase()}`,
         name: 'Synthetic Rentify demo',
         createdBy: user.id,
       });
+      smokeProjectId = project.id;
       await db
         .getRepository(ProjectMember)
         .save({ projectId: project.id, userId: user.id, accessRole: ProjectRole.OWNER });
@@ -56,6 +60,11 @@ smoke('Independent knowledge HTTP → OSCAR persisted answer (scripted generatio
       const config = new ConfigService({
         OSCAR_KNOWLEDGE_ENABLED: true,
         OSCAR_KNOWLEDGE_SERVICE_TOKEN: knowledgeEnv.KNOWLEDGE_SERVICE_TOKEN,
+        OSCAR_KNOWLEDGE_BASE_URL: 'http://127.0.0.1:8010',
+        OSCAR_KNOWLEDGE_COLLECTION: 'mba-business',
+        // This explicit real-service test can run alongside GPU/CPU validation.
+        // Production timeout behavior is covered by unit and live outage checks.
+        OSCAR_KNOWLEDGE_TIMEOUT_MS: 10000,
       });
       const realFetch = global.fetch;
       let generationCalls = 0;
@@ -127,8 +136,9 @@ smoke('Independent knowledge HTTP → OSCAR persisted answer (scripted generatio
       );
       expect(generationCalls).toBe(1);
       // Read-only smoke artifact: explicitly identifies the mocked generation transport.
+      mkdirSync('var/knowledge-integration', { recursive: true });
       writeFileSync(
-        '../oscar-knowledge/docs/verified-oscar-answer.json',
+        'var/knowledge-integration/scripted-smoke.json',
         JSON.stringify(
           {
             verification:
@@ -160,7 +170,14 @@ smoke('Independent knowledge HTTP → OSCAR persisted answer (scripted generatio
       );
     } finally {
       jest.restoreAllMocks();
-      await db.destroy();
+      try {
+        // Remove only this test's generated fixture so global history workers in
+        // later suites cannot claim its messages.
+        if (smokeProjectId) await db.getRepository(Project).delete(smokeProjectId);
+        if (smokeUserId) await db.getRepository(User).delete(smokeUserId);
+      } finally {
+        await db.destroy();
+      }
     }
   }, 30000);
 });

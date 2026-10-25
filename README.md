@@ -4,7 +4,9 @@ Local curated reference retrieval is available through the independent sibling
 `oscar-knowledge` service. See [local knowledge integration](docs/operations/KNOWLEDGE_LOCAL.md)
 for connecting the private token, starting the stack, enabling **Course knowledge**
 per chat turn, and running the explicit live verification. Tracked defaults remain
-disabled; the current local installation is enabled and verified with synthetic notes.
+disabled; the current local installation uses the user-approved MIT noncommercial
+demo collection. See the sibling Knowledge repository's
+`docs/KNOWLEDGE_HACKATHON_READINESS.md` for current evidence and limits.
 
 ## Current product plan: OSCAR & MAVIS
 
@@ -60,7 +62,7 @@ preserved. The original AI Workspace repositories remain separate.
 
 - Frontend: https://github.com/mengchheanglong/oscar-frontend
 - Backend: https://github.com/mengchheanglong/oscar-backend
-- Working branch: `develop`; GitHub default branch: `main`.
+- Working branch: `main`; GitHub default branch: `main`.
 - Local frontend: `http://localhost:43100`; local API: `http://127.0.0.1:43101`.
 - Environment files, access tokens, uploaded content, and machine MCP settings
   stay local and are not part of this repository.

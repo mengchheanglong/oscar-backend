@@ -12,6 +12,7 @@ import { LlmProvider } from '../llm/llm-provider.interface';
 import { ChatMessage } from '../entities/chat-message.entity';
 import { ConversationHistoryRepository } from './conversation-history.repository';
 import { HistoryRecallService } from './history-recall.service';
+import { scopeCitationMarkers } from './citation-scope';
 import {
   ContextSummary,
   ContextTurn,
@@ -196,6 +197,7 @@ export class ConversationContextService {
     );
     await this.assertAccess(s);
     if (historical) result.messages.splice(1, 0, historical);
+    result.messages = scopeCitationMarkers(result.messages);
     return {
       ...result,
       estimated: estimateContext(result.messages),

@@ -8,6 +8,13 @@ const environmentPath = path.join(backendRoot, '.env');
 async function main() {
   const original = fs.readFileSync(environmentPath, 'utf8');
   const backend = dotenv.parse(original);
+  const collectionIndex = process.argv.indexOf('--collection');
+  const collection =
+    collectionIndex >= 0
+      ? process.argv[collectionIndex + 1]
+      : backend.OSCAR_KNOWLEDGE_COLLECTION || 'mba-business';
+  if (!collection || !/^[a-z0-9][a-z0-9-]{0,99}$/.test(collection))
+    throw new Error('INVALID_KNOWLEDGE_COLLECTION');
   const database = new URL(backend.DATABASE_URL);
   if (
     !['127.0.0.1', 'localhost'].includes(database.hostname) ||
@@ -26,13 +33,13 @@ async function main() {
   });
   if (!response.ok) throw new Error('KNOWLEDGE_AUTH_OR_READINESS_FAILED');
   const catalog = await response.json();
-  if (!Array.isArray(catalog) || !catalog.some((entry) => entry.id === 'mba-business'))
+  if (!Array.isArray(catalog) || !catalog.some((entry) => entry.id === collection))
     throw new Error('KNOWLEDGE_COLLECTION_REQUIRED');
   const desired = {
     OSCAR_KNOWLEDGE_ENABLED: 'true',
     OSCAR_KNOWLEDGE_BASE_URL: 'http://127.0.0.1:8010',
     OSCAR_KNOWLEDGE_SERVICE_TOKEN: token,
-    OSCAR_KNOWLEDGE_COLLECTION: 'mba-business',
+    OSCAR_KNOWLEDGE_COLLECTION: collection,
     OSCAR_KNOWLEDGE_TIMEOUT_MS: '2500',
   };
   if (process.argv.includes('--check')) {

@@ -1,5 +1,17 @@
 # Local external knowledge integration
 
+The current local demo selects `mba-mit-demo`, containing three explicitly
+user-approved MIT OCW PDFs for noncommercial local use. The original synthetic
+`mba-business` collection remains available. Connect/check a selected collection
+with `node scripts/connect-knowledge-local.cjs --collection mba-mit-demo` (append
+`--check` for read-only validation), then restart the local backend if its private
+configuration changed. Omitting `--collection` preserves the configured collection.
+The older `verify-knowledge-local.cjs --live` expects synthetic fixtures; use
+`verify-mba-demo.cjs --live` for the real corpus and normal RENTIFY project access.
+It reports missing course citations as LIMITED, not fully grounded successes.
+Read sibling `oscar-knowledge/docs/KNOWLEDGE_HACKATHON_READINESS.md` for measured
+results, startup, actual outage checks and unresolved grounding limitations.
+
 The local knowledge connection is enabled in the ignored backend `.env`. The
 shared internal token is copied from the sibling knowledge service without
 printing it. Default tracked configuration remains disabled. Existing workspace

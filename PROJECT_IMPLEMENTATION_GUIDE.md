@@ -1,5 +1,20 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-25 MIT hackathon validation: three explicitly user-approved MIT OCW PDFs
+> were indexed by the independent Knowledge service with local Qwen vectors in
+> `mba-mit-demo`, limited to the noncommercial local demonstration. Real Rentify
+> answers and a browser-composer turn used persisted course/page citations. Live
+> review found historical evidence numbers leaking into new replies; generation
+> context now removes historical citation markers while preserving saved history
+> and current evidence numbering. This reduces marker reuse, but does not prove
+> semantic claim support: two follow-up answers omitted current course citations
+> and remain limited demonstrations. The cross-service test now cleans its own
+> fixtures and writes only a private test artifact. Verification: 436 unit, 173
+> E2E and 143 isolated integration tests (including the optional real-HTTP smoke)
+> passed; lint/typecheck/build and regenerated OpenAPI passed. Full report and
+> operational sequence: sibling `oscar-knowledge/docs/KNOWLEDGE_HACKATHON_READINESS.md`.
+> No production-hosting or universal answer-grounding readiness is claimed.
+
 > 2026-10-25 external knowledge slice: independent sibling `oscar-knowledge`
 > implements an evidence-only FastAPI/PostgreSQL service. Backend integration is
 > disabled by default and requires per-turn `includeKnowledge`; the frontend adds
