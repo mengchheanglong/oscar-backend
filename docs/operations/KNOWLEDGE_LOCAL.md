@@ -1,16 +1,19 @@
 # Local external knowledge integration
 
-The current local demo selects `mba-mit-demo`, containing three explicitly
-user-approved MIT OCW PDFs for noncommercial local use. The original synthetic
-`mba-business` collection remains available. Connect/check a selected collection
-with `node scripts/connect-knowledge-local.cjs --collection mba-mit-demo` (append
+The current local demo selects `mba-majors`: 1,374 reviewed, user-approved
+documents and 36,722 active locally embedded passages supporting 22 original
+MBA study pathways. Import approval is limited to the noncommercial local demo,
+with notices retained and 83 quarantined or unresolved items excluded. The earlier
+`mba-mit-demo` and synthetic `mba-business` collections remain available.
+Connect/check a selected collection
+with `node scripts/connect-knowledge-local.cjs --collection mba-majors` (append
 `--check` for read-only validation), then restart the local backend if its private
 configuration changed. Omitting `--collection` preserves the configured collection.
 The older `verify-knowledge-local.cjs --live` expects synthetic fixtures; use
-`verify-mba-demo.cjs --live` for the real corpus and normal RENTIFY project access.
-It reports missing course citations as LIMITED, not fully grounded successes.
-Read sibling `oscar-knowledge/docs/KNOWLEDGE_HACKATHON_READINESS.md` for measured
-results, startup, actual outage checks and unresolved grounding limitations.
+`verify-mba-majors.cjs --live` for the current corpus and existing AIW project.
+`verify-mba-demo.cjs --live` targets the earlier three-PDF corpus. Read sibling
+`oscar-knowledge/docs/MBA_MAJORS_READINESS.md` for current measurements and limits;
+`KNOWLEDGE_HACKATHON_READINESS.md` retains the earlier outage and grounding checks.
 
 The local knowledge connection is enabled in the ignored backend `.env`. The
 shared internal token is copied from the sibling knowledge service without
@@ -23,7 +26,7 @@ From the sibling `oscar-knowledge` directory, follow its README setup first. The
 
 ```powershell
 cd C:\Users\User\study-workspace\OSCAR\oscar-backend
-pnpm knowledge:connect
+node scripts/connect-knowledge-local.cjs --collection mba-majors
 pnpm build
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-local.ps1 -SkipAgents
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-local.ps1 -CheckOnly -SkipAgents
@@ -39,7 +42,7 @@ Failure to start that optional service does not block normal OSCAR startup.
 Check-only status includes Knowledge when enabled. No database is reset or seeded.
 
 The connection helper refuses any backend database other than loopback
-`43104/oscar`, checks service authentication and the `mba-business` catalog,
+`43104/oscar`, checks service authentication and the selected collection catalog,
 then updates only the five `OSCAR_KNOWLEDGE_*` variables. Use `--check` to validate
 without writing. Rotating the service token requires rerunning `knowledge:connect`
 and restarting the local backend. Never copy provider keys between services.
@@ -49,14 +52,14 @@ and restarting the local backend. Never copy provider keys between services.
 Open <http://localhost:43100/assistant>, sign in with your existing local account,
 select an ordinary Assistant chat and check **Course knowledge**. Ask:
 
-> Using the synthetic Pricing experiments notes, how should Rentify test a basic
-> and premium subscription? Answer in two short sentences and cite the notes.
+> Using the approved MBA course library, explain how WACC discounts free cash
+> flow. Cite the course and distinguish teaching examples from measured results.
 
 Click the numbered citation to inspect the source excerpt, course, institution,
 section and source link. Numbers may be greater than 1 because workspace evidence
-shares the same ordered, budgeted list. `DEMO-PRICING` is original synthetic CC0
-material. Its example.org URL is a fixture provenance identifier, not a hosted
-university resource. MIT entries have not been approved or imported.
+shares the same ordered, budgeted list. Course/page/timestamp locators depend on
+the original source format. Retain source notices and consult original figures
+and pages where text extraction loses layout.
 
 The checkbox is per-turn and starts off. It affects ordinary assistant generation;
 Hermes/T3/Paperclip execution paths are separate workflows. With it off, no new
@@ -72,16 +75,28 @@ access to the existing AIW project, without generation or writes. The PAT remain
 private and is accepted by the ordinary authentication guard; no guard is bypassed.
 
 ```powershell
-# Explicitly makes two real requests using the configured generation provider.
+# Explicitly makes three real requests using the configured generation provider.
 # Creates one acceptance chat in your existing local AIW project.
-pnpm knowledge:verify -- --live
+node scripts/verify-mba-majors.cjs --live
 ```
 
 The live check verifies an actual retrieved course citation, persistence after
 re-reading messages, idempotent request replay and a normal opt-out answer.
-It saves a private report to ignored `var/knowledge-integration/latest.json`.
-It does not approve proposals, create memories, import MIT materials, or send an
-embedding request. No real provider call runs in the automated unit tests.
+It saves a private report to ignored `var/mba-majors/latest.json`. It checks two
+course questions and one opt-out answer, and requires the `mba-majors` selection.
+It does not import sources or change model settings. No real provider call runs
+in the automated unit tests.
+
+2026-10-25 MBA expansion: both finance and healthcare answers completed with the
+existing `deepseek-flash` setting. Every external citation belongs to an approved,
+active `mba-majors` revision. Citations survived reloading; idempotent replay
+returned the same saved answers; opt-out chat returned no external citations.
+The Knowledge import integrity check passed, preserving the previous 10 documents
+and 68 chunks. The 22-query hybrid benchmark achieved 20 predefined source-family
+hits; the other two yielded relevant alternatives inspected manually. This is
+sample acceptance, not universal claim-grounding or academic-equivalence proof.
+
+## Earlier synthetic-demo verification (historical)
 
 2026-10-25: the live check passed with the pre-existing configured `deepseek-flash`
 model. A browser composer submission also returned a correctly numbered course

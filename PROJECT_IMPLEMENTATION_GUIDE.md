@@ -1,5 +1,24 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-25 approved MBA-major import: private local configuration now selects
+> `mba-majors`, with 1,374 approved documents, 36,722 active 1024-dimensional local
+> Qwen vectors, matching checksums and no failed/unfinished jobs. The previous
+> 10 documents and 68 chunks are unchanged; 83 held-out items are excluded. The
+> study library supplies 22 original pathways, 176 units/activities and 22
+> capstones. A 22-query hybrid benchmark produced 20 predefined source-family
+> hits and two manually reviewed relevant alternatives. New
+> `scripts/verify-mba-majors.cjs --live` passed two real configured-model course
+> answers, approved active citations, saved-message reload, idempotent replay,
+> and ordinary chat opt-out (three new generation requests total). Existing
+> `deepseek-flash` runtime settings were retained. Backend lint, typecheck and
+> build and repository formatting passed; the new verifier passed syntax checks. No core
+> application or HTTP contract changed; prior regression counts below were not
+> rerun for this data/operations update. See
+> [local knowledge integration](docs/operations/KNOWLEDGE_LOCAL.md) and sibling
+> `oscar-knowledge/docs/MBA_MAJORS_READINESS.md` for evidence and limitations.
+> Approval covers the reviewed subset for a noncommercial local demo, not
+> commercial/public reuse or official MBA equivalence.
+
 > 2026-10-25 MIT hackathon validation: three explicitly user-approved MIT OCW PDFs
 > were indexed by the independent Knowledge service with local Qwen vectors in
 > `mba-mit-demo`, limited to the noncommercial local demonstration. Real Rentify
