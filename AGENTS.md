@@ -2,7 +2,7 @@
 
 ## Git workflow
 
-- Work only on `develop`. Reconcile newer `main` changes into `develop`; do not commit or merge into `main`.
+- Work on `main` during active development, as requested by the user. Keep it synchronized with `origin/main`; do not create or use a separate `develop` workflow unless the user requests it.
 - Commit completed, verified changes locally. Do not push unless the user explicitly requests it.
 
 ## Read first
