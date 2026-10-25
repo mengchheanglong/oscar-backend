@@ -83,6 +83,7 @@ const schema = z
       })
       .default('http://127.0.0.1:8010'),
     OSCAR_KNOWLEDGE_SERVICE_TOKEN: z.string().default(''),
+    OSCAR_KNOWLEDGE_PRIVATE_SCOPE_SECRET: z.string().default(''),
     OSCAR_KNOWLEDGE_COLLECTION: z.string().min(1).max(100).default('mba-business'),
     OSCAR_KNOWLEDGE_TIMEOUT_MS: z.coerce.number().int().min(100).max(10000).default(2500),
     LOCAL_FILES_ENABLED: booleanString.default(false),

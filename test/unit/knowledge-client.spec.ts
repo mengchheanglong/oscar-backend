@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+import { createHash, createHmac } from 'node:crypto';
 import { KnowledgeClientService } from '../../src/modules/knowledge-client/knowledge-client.service';
 import { AssistantEvidence } from '../../src/modules/knowledge-client/knowledge-evidence';
 import { ContextAssembler } from '../../src/modules/assistant/context/context-assembler';
@@ -30,6 +31,100 @@ function client(enabled = true) {
 }
 describe('optional curated knowledge', () => {
   afterEach(() => jest.restoreAllMocks());
+  it('combines shared and authenticated private scopes without accepting unrelated collections', async () => {
+    const actor = 'c37c3283-30d8-4d43-99a3-2319f3bf2049';
+    const scoped = new KnowledgeClientService(
+      new ConfigService({
+        OSCAR_KNOWLEDGE_ENABLED: true,
+        OSCAR_KNOWLEDGE_PRIVATE_SCOPE_SECRET: 'independent-private-test-signing-key-123456789',
+      }),
+    );
+    const fetch = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          retrieval_mode_used: 'keyword',
+          results: [
+            result,
+            {
+              ...result,
+              chunk_id: 'c37c3283-30d8-4d43-99a3-2319f3bf2048',
+              collection_id: 'social-systems',
+            },
+          ],
+        }),
+      ),
+    );
+    expect((await scoped.retrieve('systems', actor, 'all')).evidence).toHaveLength(2);
+    expect(JSON.parse(fetch.mock.calls[0]![1]!.body as string).collection_ids).toEqual([
+      'mba-business',
+      'personal-library',
+      'social-systems',
+    ]);
+    fetch.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          retrieval_mode_used: 'keyword',
+          results: [{ ...result, collection_id: 'another-private-collection' }],
+        }),
+      ),
+    );
+    expect((await scoped.retrieve('systems', actor, 'all')).unavailable).toBe(true);
+  });
+  it('bounds private catalog response bytes', async () => {
+    const scoped = new KnowledgeClientService(
+      new ConfigService({
+        OSCAR_KNOWLEDGE_ENABLED: true,
+        OSCAR_KNOWLEDGE_PRIVATE_SCOPE_SECRET: 'independent-private-test-signing-key-123456789',
+      }),
+    );
+    jest.spyOn(global, 'fetch').mockResolvedValue(new Response('x'.repeat(5000)));
+    expect(await scoped.collections('c37c3283-30d8-4d43-99a3-2319f3bf2049')).toEqual([]);
+  });
+  it('binds private retrieval to authenticated actor and exact request with a separate signing key', async () => {
+    const secret = 'independent-private-library-test-key-123456789';
+    const actor = 'c37c3283-30d8-4d43-99a3-2319f3bf2049';
+    const fetch = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          retrieval_mode_used: 'keyword',
+          results: [{ ...result, collection_id: 'personal-library' }],
+        }),
+      ),
+    );
+    const scoped = new KnowledgeClientService(
+      new ConfigService({
+        OSCAR_KNOWLEDGE_ENABLED: true,
+        OSCAR_KNOWLEDGE_SERVICE_TOKEN: 'service-token',
+        OSCAR_KNOWLEDGE_PRIVATE_SCOPE_SECRET: secret,
+      }),
+    );
+    expect((await scoped.retrieve('systems', actor, 'personal-library')).unavailable).toBe(false);
+    const request = fetch.mock.calls[0]![1]!;
+    const headers = request.headers as Record<string, string>;
+    const [payload, signature] = headers['X-OSCAR-Private-Scope']!.split('.');
+    const claims = JSON.parse(Buffer.from(payload!, 'base64url').toString());
+    expect(claims.sub).toBe(actor);
+    expect(claims.body_sha256).toBe(
+      createHash('sha256')
+        .update(request.body as string)
+        .digest('hex'),
+    );
+    expect(signature).toBe(createHmac('sha256', secret).update(payload!).digest('hex'));
+    expect(claims.exp - claims.iat).toBe(30);
+    fetch.mockClear();
+    expect((await scoped.retrieve('systems', undefined, 'personal-library')).unavailable).toBe(
+      true,
+    );
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it('does not send private requests when only the service bearer is configured', async () => {
+    const fetch = jest.spyOn(global, 'fetch');
+    expect(
+      (await client().retrieve('systems', 'c37c3283-30d8-4d43-99a3-2319f3bf2049', 'social-systems'))
+        .unavailable,
+    ).toBe(true);
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it('makes no HTTP call when disabled', async () => {
     const fetch = jest.spyOn(global, 'fetch');
     expect(await client(false).retrieve('pricing')).toEqual({ evidence: [], unavailable: true });

@@ -1,5 +1,27 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-25 private reference-library integration: the existing local Knowledge
+> service now enforces authenticated owner scope through a separate, short-lived,
+> body-bound backend signature. Service bearer alone cannot read private books or
+> collection counts. Chat accepts optional `knowledgeScope` for MBA, Personal
+> Library, Social Systems or all permitted references; default opt-out/MBA behavior
+> and the existing generation provider are preserved. Scope participates in retry
+> identity. Book author/chapter/physical-page, OCR and partial-coverage metadata
+> persist in citations; local paths are excluded. The frontend reuses the composer
+> and saved source preview. Current new private data: 487 references, 43,859 active
+> local Qwen vectors, 43/43 roadmap reading matches. Seven references are partial
+> with nine unresolved pages; most of the giant compilation remains unindexed.
+> Original PDFs and the pre-existing MBA baseline passed preservation audits.
+> Validation: 440 backend unit, 173 E2E, 142 isolated integration passed (one
+> optional real-HTTP integration skipped); lint/typecheck/build/format/OpenAPI
+> passed. Knowledge: 88 passed/1 skipped, Ruff/mypy passed. Frontend: 34 tests,
+> lint/typecheck/build passed. Four unique scripted live requests and one browser
+> chat verified private citations, abstention/opt-out, saved history and retry
+> behavior. Six gold-book retrieval questions hit all expected books in the top
+> five; this is not exhaustive grounding accuracy. See
+> [local operation](docs/operations/KNOWLEDGE_LOCAL.md) and sibling
+> `oscar-knowledge/docs/LOCAL_KNOWLEDGE_LIBRARY_INTEGRATION.md`.
+
 > 2026-10-25 approved MBA-major import: private local configuration now selects
 > `mba-majors`, with 1,374 approved documents, 36,722 active 1024-dimensional local
 > Qwen vectors, matching checksums and no failed/unfinished jobs. The previous

@@ -1,6 +1,35 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/knowledge/collections": {
+      "get": {
+        "operationId": "KnowledgeLibraryController_collections",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PrivateCollectionStatusDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Reference Knowledge"
+        ]
+      }
+    },
     "/api/v1/skills": {
       "get": {
         "operationId": "SkillsController_list",
@@ -8336,6 +8365,26 @@
       }
     },
     "schemas": {
+      "PrivateCollectionStatusDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "personal-library",
+              "social-systems"
+            ]
+          },
+          "indexed_books": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "indexed_books"
+        ]
+      },
       "SkillSummaryDto": {
         "type": "object",
         "properties": {
@@ -10526,6 +10575,28 @@
                 "courseCode": {
                   "type": "string"
                 },
+                "bookId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "author": {
+                  "type": "string"
+                },
+                "edition": {
+                  "type": "string"
+                },
+                "chapter": {
+                  "type": "string"
+                },
+                "extraction": {
+                  "type": "string"
+                },
+                "reviewRequired": {
+                  "type": "boolean"
+                },
+                "coverageNote": {
+                  "type": "string"
+                },
                 "institution": {
                   "type": "string"
                 },
@@ -10687,9 +10758,19 @@
       "PostMessageDto": {
         "type": "object",
         "properties": {
+          "knowledgeScope": {
+            "type": "string",
+            "enum": [
+              "mba",
+              "social-systems",
+              "personal-library",
+              "all"
+            ],
+            "default": "mba"
+          },
           "includeKnowledge": {
             "type": "boolean",
-            "description": "Opt in to curated external knowledge for this turn",
+            "description": "Opt in to permitted reference knowledge for this turn",
             "default": false
           },
           "goalId": {

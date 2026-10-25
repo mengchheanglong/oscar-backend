@@ -1,6 +1,13 @@
 import { RetrievedEvidence } from '../mavis/retrieval/retrieval.service';
 
 export interface AssistantEvidence extends Omit<RetrievedEvidence, 'sourceType'> {
+  bookId?: string;
+  author?: string;
+  edition?: string;
+  chapter?: string;
+  extraction?: string;
+  reviewRequired?: boolean;
+  coverageNote?: string;
   sourceType: RetrievedEvidence['sourceType'] | 'EXTERNAL_KNOWLEDGE';
   documentId?: string;
   collectionId?: string;

@@ -1,5 +1,41 @@
 # Local external knowledge integration
 
+## Private reference library
+
+The local private library is available through the same service and composer.
+Enable **Reference knowledge** and select MBA, Personal Library, Social Systems,
+or All permitted references. Current private scope has 487 ready references,
+including HTML sections; this count is not a distinct-book count. Seven are
+partially extracted and carry explicit coverage warnings. All 43 Social Systems
+roadmap readings have reference matches, while most of the oversized compilation
+is still unindexed. See sibling
+`oscar-knowledge/docs/LOCAL_KNOWLEDGE_LIBRARY_INTEGRATION.md` for commands and limits.
+
+Backend `.env` uses a separate `OSCAR_KNOWLEDGE_PRIVATE_SCOPE_SECRET`, matched to
+Knowledge's `KNOWLEDGE_PRIVATE_SCOPE_SECRET`. Ordinary authentication supplies the
+actual user; client collection IDs and the service token cannot impersonate an
+owner. `GET /api/v1/knowledge/collections` returns only owner-scoped ready counts.
+`knowledgeScope` is optional (`mba`, `personal-library`, `social-systems`, `all`)
+and requires per-turn `includeKnowledge`. The default remains MBA and opted out.
+
+`node scripts/connect-private-library.cjs --check` checks existing keys and normal
+local authentication without changing permissions. Run without `--check` only to
+connect keys; explicit `--approve-owned-pdfs` separately records operator-authorized
+PDF checksums. Existing owned PDFs are already approved for private use.
+`node scripts/verify-private-library.cjs` checks owner readiness; `--live` runs four
+bounded configured-model cases, persisting request IDs privately and reusing them
+on retries. Existing passed cases reload rather than regenerate. Reports under
+`var/private-library` are ignored and must remain private. No provider keys or
+source PDFs belong in Git. Generation settings are unchanged.
+
+Validation: 440 unit, 173 E2E, 142 isolated integration passed; one optional HTTP
+smoke skipped. Lint/typecheck/build/format and regenerated OpenAPI passed. Live
+private citations/reload, idempotency scope conflicts, unanswerable abstention and
+opt-out passed. Disabling the independent private-scope keys and restarting closes
+private access while retaining additive schema, existing shared data and vectors.
+
+## Shared MBA corpus
+
 The current local demo selects `mba-majors`: 1,374 reviewed, user-approved
 documents and 36,722 active locally embedded passages supporting 22 original
 MBA study pathways. Import approval is limited to the noncommercial local demo,

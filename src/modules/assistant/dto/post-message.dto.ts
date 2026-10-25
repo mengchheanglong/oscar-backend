@@ -14,7 +14,14 @@ import { KnowledgeSourceType, ACTIVE_KNOWLEDGE_SOURCE_TYPES } from '../../ingest
 
 export class PostMessageDto {
   @ApiPropertyOptional({
-    description: 'Opt in to curated external knowledge for this turn',
+    enum: ['mba', 'social-systems', 'personal-library', 'all'],
+    default: 'mba',
+  })
+  @IsOptional()
+  @IsIn(['mba', 'social-systems', 'personal-library', 'all'])
+  knowledgeScope?: 'mba' | 'social-systems' | 'personal-library' | 'all';
+  @ApiPropertyOptional({
+    description: 'Opt in to permitted reference knowledge for this turn',
     default: false,
   })
   @IsOptional()

@@ -24,6 +24,13 @@ export enum MessageStatus {
 }
 
 export interface CitationItem {
+  bookId?: string;
+  author?: string;
+  edition?: string;
+  chapter?: string;
+  extraction?: string;
+  reviewRequired?: boolean;
+  coverageNote?: string;
   documentId?: string;
   collectionId?: string;
   sourceUrl?: string;

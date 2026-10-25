@@ -3,6 +3,8 @@ import {
   ConversationSkillsController,
 } from '../src/modules/skills/skills.controller';
 import { SkillsService } from '../src/modules/skills/skills.service';
+import { KnowledgeLibraryController } from '../src/modules/knowledge-client/knowledge-library.controller';
+import { KnowledgeClientService } from '../src/modules/knowledge-client/knowledge-client.service';
 import { UploadedFoldersController } from '../src/modules/local-folders/uploaded-folders.controller';
 import { UploadedFoldersService } from '../src/modules/local-folders/uploaded-folders.service';
 import 'reflect-metadata';
@@ -75,6 +77,7 @@ import { ChiefController } from '../src/modules/chief-of-staff/chief.controller'
 import { ChiefService } from '../src/modules/chief-of-staff/chief.service';
 
 export const OPENAPI_CONTROLLERS = [
+  KnowledgeLibraryController,
   SkillsController,
   ConversationSkillsController,
   ChiefController,
@@ -111,6 +114,7 @@ export const OPENAPI_CONTROLLERS = [
 @Module({
   controllers: OPENAPI_CONTROLLERS,
   providers: [
+    { provide: KnowledgeClientService, useValue: {} },
     { provide: SkillsService, useValue: {} },
     { provide: ChiefService, useValue: {} },
     { provide: UploadedFoldersService, useValue: {} },

@@ -211,6 +211,7 @@ export class AssistantService implements OnModuleInit {
               dto.sourceType ?? null,
               dto.includeAllWorkspaces ?? null,
               ...(dto.includeKnowledge ? [true] : []),
+              ...(dto.knowledgeScope && dto.knowledgeScope !== 'mba' ? [dto.knowledgeScope] : []),
             ]),
           )
           .digest('hex')
@@ -297,7 +298,7 @@ export class AssistantService implements OnModuleInit {
 
     // Start bounded supplementary retrieval only for explicit opt-in.
     const knowledgePromise = dto.includeKnowledge
-      ? (this.knowledge?.retrieve(dto.content) ??
+      ? (this.knowledge?.retrieve(dto.content, userId, dto.knowledgeScope) ??
         Promise.resolve({ evidence: [], unavailable: true }))
       : Promise.resolve({ evidence: [], unavailable: false });
     // Retrieve evidence
@@ -422,6 +423,13 @@ export class AssistantService implements OnModuleInit {
           sourceId: matched.sourceId,
           sourceType: matched.sourceType,
           title: matched.title,
+          bookId: matched.bookId,
+          author: matched.author,
+          edition: matched.edition,
+          chapter: matched.chapter,
+          extraction: matched.extraction,
+          reviewRequired: matched.reviewRequired,
+          coverageNote: matched.coverageNote,
           revision: matched.revision,
           locator: matched.locator,
           snippet: matched.snippet,
