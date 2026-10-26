@@ -6,6 +6,13 @@ recall use the same provider. This is separate from answer generation and from
 the independent Knowledge service's configuration. No model is downloaded at
 startup, and local failures never contact a paid embedding endpoint.
 
+Qwen 0.6B/1024 is the setup-template and application fallback default. The pinned
+default digest is the installed Q8_0 release, not a dynamically accepted latest
+model. Install and warm that runtime before ingestion. Explicit OpenAI settings
+remain supported; select `AI_EMBEDDING_PROVIDER=disabled` for keyword-only use
+without Ollama. When an OpenAI provider is explicitly selected and model/dimensions
+are omitted, they default to `text-embedding-3-small` / 1536.
+
 ## Configure and migrate
 
 Back up the existing local database and private `.env` first. Apply migrations
@@ -68,7 +75,8 @@ override `OSCAR_DOCKER_OLLAMA_BASE_URL` if needed. Its endpoint is part of ident
 so host and container inference identities deliberately differ. Re-embed for the
 selected endpoint rather than silently treating them as interchangeable. A hosted
 deployment needs its own reachable inference service; this laptop's loopback
-endpoint is not a production dependency. The checked-in default remains disabled.
+endpoint is not a production dependency; provide an inference runtime or explicitly
+select the embedding provider appropriate to that deployment.
 
 Only 0.6B/1024 is enabled in the main application. A 4B benchmark does not enable
 4B ingestion or select a new production model. Sizes/quantizations, memory use,

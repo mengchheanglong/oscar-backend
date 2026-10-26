@@ -15,7 +15,7 @@
 
 - Backend: NestJS, strict TypeScript, Express, TypeORM, PostgreSQL/pgvector, pnpm.
 - LLM: DeepSeek V4 Pro (`deepseek-v4-pro`) through a provider adapter. Do not replace it with another generation model.
-- Embeddings are a separate dependency. Main OSCAR supports OpenAI or pinned local Qwen3-Embedding 0.6B through Ollama; use the configured provider and preserve other model identities during migrations. Never send an embedding request with a DeepSeek credential.
+- Embeddings are a separate dependency. Main OSCAR defaults to pinned local Qwen3-Embedding 0.6B through Ollama, with explicit OpenAI and keyword-only overrides supported. Preserve other model identities during migrations. Never send an embedding request with a DeepSeek credential.
 - Finish Phase 1 before connecting Phase 2 AI. Core workspace operations must work without AI credentials or Redis.
 - This is the backend repository. Do not create a frontend, second backend stack, microservices, Kubernetes, or unrelated infrastructure without a matching task.
 - Follow the next unfinished milestone when the user asks to continue generally. Do not implement the whole roadmap in an unrelated small task.

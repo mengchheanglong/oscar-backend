@@ -1,4 +1,4 @@
-import { validateEnvironment } from '../../src/config/environment';
+import { DEFAULT_QWEN_REVISION, validateEnvironment } from '../../src/config/environment';
 
 const valid = {
   APP_ORIGIN: 'http://localhost:43101',
@@ -6,6 +6,22 @@ const valid = {
 };
 
 describe('Environment validation', () => {
+  it('defaults to pinned local Qwen without an OpenAI credential', () => {
+    const config = validateEnvironment(valid);
+    expect(config.AI_EMBEDDING_PROVIDER).toBe('ollama');
+    expect(config.AI_EMBEDDING_MODEL).toBe('qwen3-embedding:0.6b');
+    expect(config.AI_EMBEDDING_DIMENSIONS).toBe(1024);
+    expect(config.AI_OLLAMA_MODEL_REVISION).toBe(DEFAULT_QWEN_REVISION);
+    expect(config.OPENAI_API_KEY).toBeUndefined();
+  });
+  it('honors explicit keyword-only and OpenAI provider choices with compatible defaults', () => {
+    for (const provider of ['disabled', 'openai']) {
+      const config = validateEnvironment({ ...valid, AI_EMBEDDING_PROVIDER: provider });
+      expect(config.AI_EMBEDDING_PROVIDER).toBe(provider);
+      expect(config.AI_EMBEDDING_MODEL).toBe('text-embedding-3-small');
+      expect(config.AI_EMBEDDING_DIMENSIONS).toBe(1536);
+    }
+  });
   it('requires Nous auth paths and a free model while retaining the DeepSeek default', () => {
     expect(validateEnvironment(valid).HERMES_PROVIDER).toBe('deepseek');
     const nous = {
@@ -53,6 +69,7 @@ describe('Environment validation', () => {
 
   it.each([
     { AI_HISTORY_AUTO_INDEX_ENABLED: 'true' },
+    { AI_EMBEDDING_PROVIDER: 123 },
     { AI_HISTORY_INDEX_DAILY_TEXTS: '-1' },
     { AI_HISTORY_INDEX_SCOPE_DAILY_BYTES: 'NaN' },
     { PORT: 'not-a-number' },
@@ -126,7 +143,7 @@ describe('Environment validation', () => {
     });
     expect(config.AI_ENABLED).toBe(true);
     expect(config.DEEPSEEK_API_KEY).toBe('test-deepseek-key');
-    expect(config.AI_EMBEDDING_PROVIDER).toBe('disabled');
+    expect(config.AI_EMBEDDING_PROVIDER).toBe('ollama');
     expect(config.AI_DAILY_PROJECT_BUDGET_USD).toBe(25);
   });
 
@@ -159,6 +176,6 @@ describe('Environment validation', () => {
     });
     expect(config.AI_LLM_PROVIDER).toBe('deepseek');
     expect(config.AI_CHAT_MODEL).toBe('deepseek-flash');
-    expect(config.AI_EMBEDDING_PROVIDER).toBe('disabled');
+    expect(config.AI_EMBEDDING_PROVIDER).toBe('ollama');
   });
 });

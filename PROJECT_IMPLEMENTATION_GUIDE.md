@@ -1,5 +1,17 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-26 embedding default follow-up: pinned local Qwen 0.6B/1024 is now
+> the application fallback and setup-template default, with compatible defaults
+> for explicit OpenAI and keyword-only overrides. Missing or blank provider
+> settings select Qwen; invalid provider types are rejected. Fresh default
+> configuration (with no OpenAI credential or embedding overrides) generated a
+> finite 1024-vector through the installed local runtime, and the example
+> environment matched the resolved defaults. Verification: 456 unit and 173 HTTP
+> tests passed, alongside backend build/lint/typecheck/format checks. No schema
+> or vector changes were needed for this default selection. Live cited chat,
+> idempotent replay, upload ingestion and history recall passed after restart;
+> temporary QA items were deleted. API, frontend proxy and Knowledge were healthy.
+
 > 2026-10-26 main embedding migration: local OSCAR now selects pinned Qwen3-Embedding
 > 0.6B (1024 dimensions) through the existing local Ollama runtime; DeepSeek Flash
 > answer generation is unchanged. Migration 1793012400000 adds separate document

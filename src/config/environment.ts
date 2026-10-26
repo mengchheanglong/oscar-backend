@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+export const DEFAULT_QWEN_REVISION =
+  'ac6da0dfba84a81fdbfbaf330198c33cd77c4cdfc53e8bc50eb581914a15621d';
+
 const booleanString = z.enum(['true', 'false']).transform((value) => value === 'true');
 const postgresUrl = z
   .string()
@@ -125,14 +128,14 @@ const schema = z
       z.enum(['deepseek-flash', 'deepseek-v4-pro']).default('deepseek-flash'),
     ),
     AI_EMBEDDING_PROVIDER: emptyStringToUndefined(
-      z.enum(['disabled', 'mock', 'openai', 'ollama']).default('disabled'),
+      z.enum(['disabled', 'mock', 'openai', 'ollama']).default('ollama'),
     ),
     OPENAI_API_KEY: emptyStringToUndefined(z.string().optional()),
     OPENAI_EMBEDDING_BASE_URL: z.string().default('https://api.openai.com/v1'),
     AI_EMBEDDING_MODEL: z.string().default('text-embedding-3-small'),
     AI_EMBEDDING_DIMENSIONS: z.coerce.number().int().default(1536),
     AI_OLLAMA_BASE_URL: z.string().url().default('http://127.0.0.1:11434'),
-    AI_OLLAMA_MODEL_REVISION: z.string().default(''),
+    AI_OLLAMA_MODEL_REVISION: z.string().default(DEFAULT_QWEN_REVISION),
     AI_OLLAMA_QUERY_TIMEOUT_MS: z.coerce.number().int().min(100).max(30000).default(5000),
     AI_OLLAMA_DOCUMENT_TIMEOUT_MS: z.coerce.number().int().min(1000).max(600000).default(120000),
     AI_DAILY_PROJECT_BUDGET_USD: emptyStringToUndefined(z.coerce.number().optional()),
@@ -276,7 +279,22 @@ const schema = z
 export type Environment = z.infer<typeof schema>;
 
 export function validateEnvironment(input: Record<string, unknown>): Environment {
-  const parsed = schema.safeParse(input);
+  const configuredProvider = input.AI_EMBEDDING_PROVIDER;
+  const provider =
+    configuredProvider === undefined ||
+    (typeof configuredProvider === 'string' && !configuredProvider.trim())
+      ? 'ollama'
+      : configuredProvider;
+  // Defaults follow the selected provider. Explicit legacy/keyword-only choices
+  // must not inherit Qwen dimensions or accidentally send a Qwen model to OpenAI.
+  const local = provider === 'ollama';
+  const parsed = schema.safeParse({
+    ...input,
+    AI_EMBEDDING_PROVIDER: provider,
+    AI_EMBEDDING_MODEL:
+      input.AI_EMBEDDING_MODEL ?? (local ? 'qwen3-embedding:0.6b' : 'text-embedding-3-small'),
+    AI_EMBEDDING_DIMENSIONS: input.AI_EMBEDDING_DIMENSIONS ?? (local ? 1024 : 1536),
+  });
   if (!parsed.success) {
     const fields = [...new Set(parsed.error.issues.map((issue) => issue.path.join('.')))];
     // Values and Zod's raw error are deliberately omitted: input may contain secrets.
