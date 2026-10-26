@@ -24,6 +24,8 @@ jobs:
       TEST_DATABASE_URL: postgresql://ai_workspace_test:local_test_only@127.0.0.1:5432/ai_workspace_test
     steps:
       - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
