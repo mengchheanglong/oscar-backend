@@ -1,4 +1,4 @@
-// Explicit live acceptance: four bounded configured-model requests. Resumes retries safely.
+// Four bounded live requests; --compilation adds one. Resumes saved retries safely.
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
@@ -82,6 +82,13 @@ async function main() {
       'In one sentence, describe the purpose of a reading plan without consulting reference knowledge.',
     ],
   ];
+  if (process.argv.includes('--compilation'))
+    cases.push([
+      'private-compilation',
+      'personal-library',
+      true,
+      'Using the physics material in my personal reference library, explain why a satellite in a circular orbit is accelerating even if its speed is constant. Cite the actual retrieved source and physical PDF page. For mixed compilation sources, do not claim a verified book edition or author. Keep it under 90 words.',
+    ]);
   for (const [name, knowledgeScope, includeKnowledge, content] of cases) {
     if (report.checks.some((c) => c.name === name && c.status === 'PASS')) continue;
     let request = report.requests.find((r) => r.name === name);
@@ -112,6 +119,27 @@ async function main() {
         ),
         'ABSTENTION_REQUIRED',
       );
+    if (name === 'private-compilation') {
+      const catalog = JSON.parse(
+        fs.readFileSync('D:/AI/OSCAR/Knowledge/Catalog/library.json', 'utf8'),
+      );
+      const windows = new Map(
+        catalog.virtual_books.filter((r) => r.compilation_window).map((r) => [r.id, r]),
+      );
+      assert(
+        citations.some((c) => {
+          const source = windows.get(c.bookId);
+          return (
+            source && c.pageStart >= source.page_range[0] && c.pageStart <= source.page_range[1]
+          );
+        }),
+        'COMPILATION_CITATION_REQUIRED',
+      );
+      assert(
+        /centripetal|direction|velocity/i.test(answer.content),
+        'PHYSICS_EXPLANATION_REQUIRED',
+      );
+    }
     if (name === 'opt-out') assert.equal(citations.length, 0);
     const replay = await api(route, 'POST', request.body);
     assert.equal(replay.assistantMessage.id, answer.id);

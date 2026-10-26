@@ -121,7 +121,7 @@ Content:\n`;
       const extractionNotice = item.reviewRequired
         ? item.extraction === 'LOCAL_TESSERACT_OCR'
           ? 'Machine OCR evidence: mathematical notation may be wrong. Qualify formula claims and direct the reader to the original PDF page.\n'
-          : 'Formula/table extraction may lose layout; verify formulas against the original PDF page.\n'
+          : 'Extracted or visually described evidence may omit content or layout; verify details, formulas and diagrams against the original PDF page.\n'
         : '';
       header += extractionNotice;
       if (item.coverageNote) header += `Coverage: ${item.coverageNote}\n`;

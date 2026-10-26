@@ -4,9 +4,11 @@ Local curated reference retrieval is available through the independent sibling
 `oscar-knowledge` service. See [local knowledge integration](docs/operations/KNOWLEDGE_LOCAL.md)
 for connecting the private token, starting the stack, enabling **Course knowledge**
 per chat turn, and running the explicit live verification. Tracked defaults remain
-disabled; the current local installation uses the user-approved MIT noncommercial
-demo collection. See the sibling Knowledge repository's
-`docs/KNOWLEDGE_HACKATHON_READINESS.md` for current evidence and limits.
+disabled; the current local installation has the approved MBA demo collection and
+owner-scoped private references. In Assistant, enable **Reference knowledge** and
+select the desired scope. See the sibling Knowledge repository's
+`docs/LIBRARY_COMPLETION_2026_10_26.md` and generated local reports for current
+coverage, processing status and source-quality limits.
 
 ## Current product plan: OSCAR & MAVIS
 

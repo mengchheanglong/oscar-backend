@@ -1,5 +1,16 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-26 library continuation: extraction/review notices now cover visual
+> descriptions and diagrams as well as OCR formulas. The resumable private-library
+> verifier accepts `--compilation` for one additional bounded, configured-model
+> physics question and requires a citation inside an actual compilation window.
+> The sibling Knowledge service adds checksum-bound compilation ranges, MBA text
+> reuse/page supplements and strict final coverage audits. Bulk import status and
+> final live acceptance remain separate from registration; see
+> `oscar-knowledge/docs/LIBRARY_COMPLETION_2026_10_26.md` and generated local reports.
+> This notice change passed 440 backend unit tests, lint/typecheck/build/format;
+> the existing 173 E2E and 142 isolated integration passes were not rerun here.
+
 > 2026-10-25 private reference-library integration: the existing local Knowledge
 > service now enforces authenticated owner scope through a separate, short-lived,
 > body-bound backend signature. Service bearer alone cannot read private books or
