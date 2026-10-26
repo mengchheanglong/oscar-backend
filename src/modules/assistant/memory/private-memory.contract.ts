@@ -13,6 +13,8 @@ export interface PrivateMemoryResult {
 }
 export interface MemoryEmbeddingProvider {
   readonly identity: string;
+  readonly dimensions?: number;
+  embedQuery?(texts: string[]): Promise<number[][]>;
   embed(texts: string[]): Promise<number[][]>;
 }
 export const MEMORY_DIMENSIONS = 1536;
@@ -25,14 +27,19 @@ export function embeddingIdentity(namespace: string, model: string): string {
 export function contentHash(content: string): string {
   return createHash('sha256').update(content).digest('hex');
 }
-export function validateVectors(vectors: number[][], count: number): void {
+export function validateVectors(
+  vectors: number[][],
+  count: number,
+  dimensions = MEMORY_DIMENSIONS,
+): void {
   if (
+    ![1024, 1536].includes(dimensions) ||
     !Array.isArray(vectors) ||
     vectors.length !== count ||
     vectors.some(
       (v) =>
         !Array.isArray(v) ||
-        v.length !== MEMORY_DIMENSIONS ||
+        v.length !== dimensions ||
         v.some((n) => !Number.isFinite(n)) ||
         !v.some((n) => n !== 0),
     )

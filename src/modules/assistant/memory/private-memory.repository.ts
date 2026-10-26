@@ -46,7 +46,7 @@ export class PrivateMemoryRepository {
     identity: string,
     vector: number[],
   ): Promise<PrivateMemoryResult[]> {
-    validateVectors([vector], 1);
+    validateVectors([vector], 1, vector.length);
     return this.db.query(
       `SELECT ${fields} FROM copilot_memories m JOIN private_memory_vectors v
       ON v.memory_id=m.id AND v.project_id=m.project_id AND v.user_id=m.user_id AND v.source_version=m.version
@@ -85,7 +85,7 @@ export class PrivateMemoryRepository {
     generation: string,
     vector: number[],
   ): Promise<void> {
-    validateVectors([vector], 1);
+    validateVectors([vector], 1, vector.length);
     await this.db.query(
       `INSERT INTO private_memory_vectors(memory_id,project_id,user_id,source_version,content_hash,embedding_identity,generation_id,embedding)
       SELECT m.id,m.project_id,m.user_id,m.version,$6,$7,$8,$9::vector FROM copilot_memories m

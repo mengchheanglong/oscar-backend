@@ -81,6 +81,12 @@ export class KnowledgeChunk {
   })
   embedding!: number[] | string | null;
 
+  @Column({ name: 'embedding_qwen', type: 'text', nullable: true })
+  embeddingQwen!: string | null;
+
+  @Column({ name: 'embedding_qwen_identity', type: 'text', nullable: true })
+  embeddingQwenIdentity!: string | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 }

@@ -6,6 +6,7 @@ import {
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
+import { localEmbeddingProvider } from './embedding/configured-embedding-provider';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHash } from 'node:crypto';
@@ -142,7 +143,9 @@ export class IngestionService implements OnModuleInit {
     const providerType = this.configService.get<string>('AI_EMBEDDING_PROVIDER') ?? 'disabled';
     const openAiApiKey = this.configService.get<string>('OPENAI_API_KEY');
 
-    if (providerType === 'openai' && openAiApiKey) {
+    if (providerType === 'ollama') {
+      this.embeddingProvider = localEmbeddingProvider(this.configService);
+    } else if (providerType === 'openai' && openAiApiKey) {
       this.embeddingProvider = new OpenAiEmbeddingProvider({
         apiKey: openAiApiKey,
         baseUrl: this.configService.get<string>('OPENAI_EMBEDDING_BASE_URL'),
@@ -585,7 +588,16 @@ export class IngestionService implements OnModuleInit {
             metadata: c.metadata,
             embeddingModel: embeddingProvider?.modelName ?? 'keyword-only',
             embeddingDimensions: embeddingProvider?.dimensions ?? 0,
-            embedding: embeddingProvider ? (embeddings[idx] ?? []) : null,
+            embedding:
+              embeddingProvider?.dimensions === 1024
+                ? null
+                : embeddingProvider
+                  ? (embeddings[idx] ?? [])
+                  : null,
+            embeddingQwen:
+              embeddingProvider?.dimensions === 1024 ? JSON.stringify(embeddings[idx]) : null,
+            embeddingQwenIdentity:
+              embeddingProvider?.dimensions === 1024 ? embeddingProvider.identity : null,
           }),
         );
 

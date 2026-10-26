@@ -43,7 +43,7 @@ export class HistoryVectorRepository {
     vector: number[],
     maxDistance = DEFAULT_HISTORY_MAX_DISTANCE,
   ): Promise<HistoryExcerpt[]> {
-    validateVectors([vector], 1);
+    validateVectors([vector], 1, vector.length);
     return this.db.query(
       `SELECT ${fields} FROM ai_messages m JOIN ai_conversations c ON c.id=m.conversation_id ${join}
       WHERE ${historyEligible} AND (c.id<>$3 OR m.context_seq<=$5) AND v.embedding_identity=$4
@@ -102,7 +102,7 @@ export class HistoryVectorRepository {
     generation: string,
     vector: number[],
   ): Promise<void> {
-    validateVectors([vector], 1);
+    validateVectors([vector], 1, vector.length);
     // A changed, excluded, deleted or newly inaccessible source cannot activate.
     await this.db.transaction(async (tx) => {
       // Share the privacy-change lock: an exclusion either deletes a vector

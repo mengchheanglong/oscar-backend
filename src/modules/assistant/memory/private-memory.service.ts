@@ -29,8 +29,8 @@ export class PrivateMemoryService {
     if (this.provider && (await this.repository.hasVectors(scope, this.provider.identity))) {
       let vector: number[] | undefined;
       try {
-        const vectors = await this.provider.embed([query]);
-        validateVectors(vectors, 1);
+        const vectors = await (this.provider.embedQuery?.([query]) ?? this.provider.embed([query]));
+        validateVectors(vectors, 1, this.provider.dimensions ?? 1536);
         vector = vectors[0];
       } catch {
         mode = 'keyword_embedding_unavailable';
@@ -74,7 +74,7 @@ export class PrivateMemoryService {
     const rows = await this.repository.pending(scope, this.provider.identity);
     if (!rows.length) return { attempted: 0, remaining: false };
     const vectors = await this.provider.embed(rows.map((r) => r.content));
-    validateVectors(vectors, rows.length);
+    validateVectors(vectors, rows.length, this.provider.dimensions ?? 1536);
     await this.repository.assertAccess(scope);
     const generation = randomUUID();
     for (let i = 0; i < rows.length; i++)

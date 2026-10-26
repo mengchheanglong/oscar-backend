@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import { databaseOptions } from '../../src/database/database-options';
 import { RemoveMockEmbeddings1790985600000 } from '../../src/database/migrations/1790985600000-RemoveMockEmbeddings';
+import { LocalQwenEmbeddings1793012400000 } from '../../src/database/migrations/1793012400000-LocalQwenEmbeddings';
 
 describe('PostgreSQL foundation migrations', () => {
   let database: DataSource;
@@ -68,6 +69,49 @@ describe('PostgreSQL foundation migrations', () => {
     } finally {
       await runner.rollbackTransaction();
       await runner.release();
+    }
+  });
+
+  it('preserves legacy vectors while adding isolated 1024-dimensional storage and refuses destructive rollback', async () => {
+    const q = database.createQueryRunner();
+    await q.startTransaction();
+    try {
+      for (const table of ['knowledge_chunks', 'private_memory_vectors', 'ai_history_vectors']) {
+        await q.query(
+          `CREATE TEMP TABLE ${table}(id integer, embedding vector(1536)) ON COMMIT DROP`,
+        );
+        await q.query(`INSERT INTO ${table} VALUES(1,$1::vector)`, [
+          JSON.stringify([1, ...Array<number>(1535).fill(0)]),
+        ]);
+      }
+      const before = await q.query('SELECT embedding::text AS value FROM knowledge_chunks');
+      const migration = new LocalQwenEmbeddings1793012400000();
+      await migration.up(q);
+      expect(await q.query('SELECT embedding::text AS value FROM knowledge_chunks')).toEqual(
+        before,
+      );
+      for (const table of ['private_memory_vectors', 'ai_history_vectors']) {
+        expect(await q.query(`SELECT embedding::text AS value FROM ${table}`)).toEqual(before);
+        await q.query(`INSERT INTO ${table} VALUES(2,$1::vector)`, [
+          JSON.stringify([1, ...Array<number>(1023).fill(0)]),
+        ]);
+        expect(
+          (
+            await q.query(`SELECT vector_dims(embedding) AS dimensions FROM ${table} ORDER BY id`)
+          ).map((row: { dimensions: number }) => row.dimensions),
+        ).toEqual([1536, 1024]);
+      }
+      await q.query(
+        `UPDATE knowledge_chunks SET embedding_qwen=$1::vector,embedding_qwen_identity='synthetic-qwen'`,
+        [JSON.stringify([1, ...Array<number>(1023).fill(0)])],
+      );
+      expect(await q.query('SELECT embedding::text AS value FROM knowledge_chunks')).toEqual(
+        before,
+      );
+      await expect(migration.down()).rejects.toThrow('Preserve model-specific vectors');
+    } finally {
+      await q.rollbackTransaction();
+      await q.release();
     }
   });
 });

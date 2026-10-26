@@ -130,6 +130,58 @@ describe('Search against PostgreSQL', () => {
     if (viewer) await db.getRepository(User).delete(viewer.id);
     await db.destroy();
   });
+  it('retrieves only the selected Qwen identity and retains private-source isolation', async () => {
+    const vector = [1, ...Array<number>(1023).fill(0)];
+    const local = new RetrievalService(db);
+    const query = jest.fn(async () => [vector]);
+    const provider = {
+      dimensions: 1024,
+      modelName: 'qwen3-embedding:0.6b',
+      identity: 'synthetic-qwen',
+      embed: jest.fn(async () => {
+        throw new Error('Queries must be instructed');
+      }),
+      embedQuery: query,
+    };
+    local.setEmbeddingProvider(provider);
+    await db.query(
+      `UPDATE knowledge_chunks SET embedding_qwen=$2::vector,embedding_qwen_identity=$3 WHERE project_id=$1`,
+      [project.id, JSON.stringify(vector), provider.identity],
+    );
+    try {
+      const own = await local.retrieve({
+        actorId: owner.id,
+        projectId: project.id,
+        query: 'launch',
+        mode: 'semantic',
+      });
+      expect(own.some((row) => row.sourceId === privateSource.sourceId)).toBe(true);
+      const shared = await local.retrieve({
+        actorId: viewer.id,
+        projectId: project.id,
+        query: 'launch',
+        mode: 'semantic',
+      });
+      expect(shared.length).toBeGreaterThan(0);
+      expect(shared.some((row) => row.sourceId === privateSource.sourceId)).toBe(false);
+      expect(query).toHaveBeenCalled();
+      expect(provider.embed).not.toHaveBeenCalled();
+      local.setEmbeddingProvider({ ...provider, identity: 'different-revision' });
+      expect(
+        await local.retrieve({
+          actorId: owner.id,
+          projectId: project.id,
+          query: 'launch',
+          mode: 'semantic',
+        }),
+      ).toEqual([]);
+    } finally {
+      await db.query(
+        'UPDATE knowledge_chunks SET embedding_qwen=NULL,embedding_qwen_identity=NULL WHERE project_id=$1',
+        [project.id],
+      );
+    }
+  });
   it('finds document body text once, preserves the live status/date and does not fall back on an empty match', async () => {
     const result = await service.search(
       project.id,

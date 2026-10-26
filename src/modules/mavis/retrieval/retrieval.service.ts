@@ -139,7 +139,11 @@ export class RetrievalService {
       );
     }
 
-    const [queryVec] = await this.embeddingProvider.embed([query]);
+    const [queryVec] = await (this.embeddingProvider.embedQuery?.([query]) ??
+      this.embeddingProvider.embed([query]));
+    const local = this.embeddingProvider.dimensions === 1024;
+    const column = local ? 'embedding_qwen' : 'embedding';
+    const identityColumn = local ? 'embedding_qwen_identity' : 'embedding_model';
     if (!queryVec) return [];
 
     const vectorParam = `[${queryVec.join(',')}]`;
@@ -159,7 +163,7 @@ export class RetrievalService {
         s.source_revision,
         p.name AS project_name,
         p.key AS project_key,
-        (1 - (c.embedding <=> $1::vector)) AS score_signal
+        (1 - (c.${column} <=> $1::vector)) AS score_signal
       FROM knowledge_chunks c
       INNER JOIN knowledge_sources s ON s.id = c.knowledge_source_id
       LEFT JOIN projects p ON p.id = s.project_id
@@ -168,11 +172,11 @@ export class RetrievalService {
         AND s.source_type NOT IN ('REQUIREMENT', 'MEETING')
         AND s.deleted_at IS NULL
         AND c.index_version = s.active_index_version
-        AND c.embedding IS NOT NULL
+        AND c.${column} IS NOT NULL
         AND (s.owner_id IS NULL OR (s.owner_id = $6::uuid AND EXISTS (SELECT 1 FROM project_members pm JOIN users u ON u.id = pm.user_id WHERE pm.project_id = s.project_id AND pm.user_id = s.owner_id AND pm.removed_at IS NULL AND u.is_active = true)))
-        AND c.embedding_model = $5
+        AND c.${identityColumn} = $5
         AND ($3::varchar IS NULL OR s.source_type = $3 OR ($3 = 'DOCUMENT' AND s.source_type = 'LOCAL_FILE'))
-      ORDER BY c.embedding <=> $1::vector ASC
+      ORDER BY c.${column} <=> $1::vector ASC
       LIMIT $4;
       `,
       [
@@ -180,7 +184,7 @@ export class RetrievalService {
         projectIds,
         sourceType ?? null,
         limit,
-        this.embeddingProvider.modelName,
+        local ? this.embeddingProvider.identity : this.embeddingProvider.modelName,
         actorId || null,
       ],
     );

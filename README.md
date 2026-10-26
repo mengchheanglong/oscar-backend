@@ -1,5 +1,8 @@
 # OSCAR — Backend
 
+Main app document, memory and history embeddings also support pinned local Qwen
+0.6B. See [local embedding migration and rollback](docs/operations/LOCAL_EMBEDDINGS.md).
+
 Local curated reference retrieval is available through the independent sibling
 `oscar-knowledge` service. See [local knowledge integration](docs/operations/KNOWLEDGE_LOCAL.md)
 for connecting the private token, starting the stack, enabling **Course knowledge**

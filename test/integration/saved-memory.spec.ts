@@ -420,6 +420,43 @@ describe('Private copilot memory with PostgreSQL', () => {
     expect(await repo.hasVectors(scope, identity)).toBe(false);
   });
 
+  it('keeps OpenAI vectors intact while indexing and recalling local Qwen memory', async () => {
+    const saved = await service.create(projectA.id, userA.id, draft('Keep the original budget.'));
+    await service.create(projectA.id, userB.id, draft('Private colleague budget.'));
+    const repo = new PrivateMemoryRepository(database),
+      scope = { projectId: projectA.id, userId: userA.id };
+    const legacy = [1, ...Array<number>(1535).fill(0)],
+      local = [1, ...Array<number>(1023).fill(0)];
+    const oldIdentity = embeddingIdentity('synthetic', 'legacy-model');
+    await new PrivateMemoryService(repo, {
+      identity: oldIdentity,
+      embed: async (texts) => texts.map(() => legacy),
+    }).indexBatch(scope);
+    const before = await database.query(
+      'SELECT embedding::text AS value FROM private_memory_vectors WHERE memory_id=$1 AND embedding_identity=$2',
+      [saved.id, oldIdentity],
+    );
+    const embedQuery = jest.fn(async () => [local]);
+    const recall = new PrivateMemoryService(repo, {
+      identity: 'synthetic-local-qwen',
+      dimensions: 1024,
+      embed: async (texts) => texts.map(() => local),
+      embedQuery,
+    });
+    await recall.indexBatch(scope);
+    expect((await recall.select(projectA.id, userA.id, 'allocation')).map((row) => row.id)).toEqual(
+      [saved.id],
+    );
+    expect(embedQuery).toHaveBeenCalled();
+    expect(
+      await database.query(
+        'SELECT embedding::text AS value FROM private_memory_vectors WHERE memory_id=$1 AND embedding_identity=$2',
+        [saved.id, oldIdentity],
+      ),
+    ).toEqual(before);
+    expect(await repo.hasVectors(scope, 'unindexed-model')).toBe(false);
+  });
+
   it('keeps one actor’s private memories separate across authorized projects and respects inactive accounts', async () => {
     const members = database.getRepository(ProjectMember);
     await members.save(

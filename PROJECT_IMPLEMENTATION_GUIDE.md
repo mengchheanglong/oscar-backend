@@ -1,5 +1,37 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-26 main embedding migration: local OSCAR now selects pinned Qwen3-Embedding
+> 0.6B (1024 dimensions) through the existing local Ollama runtime; DeepSeek Flash
+> answer generation is unchanged. Migration 1793012400000 adds separate document
+> vectors and retains identity-keyed 1536/1024 memory/history rows. Backup and
+> preservation audits retained all 10,703 legacy document-chunk entries (including
+> keyword-only rows), zero existing private-memory vectors, and 94 existing history
+> vectors. Backfilled 262 permitted active document/code chunks and 52 eligible
+> history messages for the main user across two active projects; no saved memories
+> existed for that user. A repeated backfill did no work. Other accounts' sources
+> were not re-embedded. Live ordinary chat returned a persisted GitHub citation
+> with idempotent replay; a new upload activated a 1024-vector in the separate
+> column; both temporary QA items were deleted using ordinary application APIs.
+> Live hybrid document and history recall passed. See
+> [local main embedding operation](docs/operations/LOCAL_EMBEDDINGS.md) for
+> configuration, Docker routing, model identity, privacy checks and rollback.
+>
+> Bounded source-discovery comparison: on 8 queries / 32 existing chunks, OpenAI
+> and local Qwen 0.6B each hit the expected source in the top five for 7/8 queries;
+> Qwen 4B Q4 also hit 7/8 and improved top-one hits from 5/8 to 7/8. Resident GPU
+> usage was about 1.2 GB for 0.6B Q8 and 3.4 GB for 4B Q4. On the expanded
+> 262-chunk corpus, OpenAI and 0.6B both hit 6/8 in the top five. Pure semantic
+> search missed a rare TS6 identifier case; ordinary hybrid search recovered its
+> correct PR through lexical matching. These small title-informed samples are
+> smoke evidence, not independent accuracy benchmarks or a general model ranking.
+> 0.6B remains the selected default; the downloaded 4B model was unloaded after
+> comparison and is not enabled for main ingestion. Verification: 453 unit tests,
+> 173 HTTP tests and 146 isolated PostgreSQL integration tests passed; one
+> optional cross-service HTTP test was skipped. Backend lint, typecheck, build,
+> formatting and OpenAPI generation passed, with no API contract change.
+> Reports remain ignored under
+> `var/qwen-main`; provider keys, vectors and source text are not committed.
+
 > 2026-10-26 final library acceptance: all 672 original PDFs / 198,758 physical
 > pages are accounted for. Private scope has 1,040 searchable references, 24,542
 > active document parts and 261,212 current Qwen chunks/vector rows; 18 additional

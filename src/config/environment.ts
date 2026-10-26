@@ -125,12 +125,16 @@ const schema = z
       z.enum(['deepseek-flash', 'deepseek-v4-pro']).default('deepseek-flash'),
     ),
     AI_EMBEDDING_PROVIDER: emptyStringToUndefined(
-      z.enum(['disabled', 'mock', 'openai']).default('disabled'),
+      z.enum(['disabled', 'mock', 'openai', 'ollama']).default('disabled'),
     ),
     OPENAI_API_KEY: emptyStringToUndefined(z.string().optional()),
     OPENAI_EMBEDDING_BASE_URL: z.string().default('https://api.openai.com/v1'),
     AI_EMBEDDING_MODEL: z.string().default('text-embedding-3-small'),
     AI_EMBEDDING_DIMENSIONS: z.coerce.number().int().default(1536),
+    AI_OLLAMA_BASE_URL: z.string().url().default('http://127.0.0.1:11434'),
+    AI_OLLAMA_MODEL_REVISION: z.string().default(''),
+    AI_OLLAMA_QUERY_TIMEOUT_MS: z.coerce.number().int().min(100).max(30000).default(5000),
+    AI_OLLAMA_DOCUMENT_TIMEOUT_MS: z.coerce.number().int().min(1000).max(600000).default(120000),
     AI_DAILY_PROJECT_BUDGET_USD: emptyStringToUndefined(z.coerce.number().optional()),
     SUPABASE_URL: emptyStringToUndefined(z.string().url().optional()),
     SUPABASE_PUBLISHABLE_KEY: emptyStringToUndefined(z.string().optional()),
@@ -138,18 +142,49 @@ const schema = z
     SUPABASE_JWKS_URL: emptyStringToUndefined(z.string().url().optional()),
   })
   .superRefine((value, context) => {
+    if (value.AI_EMBEDDING_PROVIDER === 'ollama') {
+      let validOrigin = false;
+      try {
+        const url = new URL(value.AI_OLLAMA_BASE_URL);
+        validOrigin =
+          url.protocol === 'http:' &&
+          ['127.0.0.1', 'localhost', '[::1]', 'host.docker.internal'].includes(url.hostname) &&
+          !url.username &&
+          !url.password &&
+          !url.search &&
+          !url.hash &&
+          url.pathname === '/';
+      } catch {
+        /* Validation issue below. */
+      }
+      if (
+        !validOrigin ||
+        value.AI_EMBEDDING_MODEL !== 'qwen3-embedding:0.6b' ||
+        value.AI_EMBEDDING_DIMENSIONS !== 1024 ||
+        !/^(sha256:)?[a-f0-9]{64}$/.test(value.AI_OLLAMA_MODEL_REVISION)
+      )
+        context.addIssue({
+          code: 'custom',
+          path: ['AI_EMBEDDING_PROVIDER'],
+          message:
+            'Local Qwen requires a local Ollama origin, qwen3-embedding:0.6b, 1024 dimensions and a pinned SHA256 revision.',
+        });
+    }
     if (
       value.AI_HISTORY_AUTO_INDEX_ENABLED &&
       (!value.AI_ENABLED ||
-        value.AI_EMBEDDING_PROVIDER !== 'openai' ||
-        !value.OPENAI_API_KEY ||
-        value.AI_EMBEDDING_DIMENSIONS !== 1536)
+        !(
+          (value.AI_EMBEDDING_PROVIDER === 'openai' &&
+            value.OPENAI_API_KEY &&
+            value.AI_EMBEDDING_DIMENSIONS === 1536) ||
+          (value.AI_EMBEDDING_PROVIDER === 'ollama' && value.AI_EMBEDDING_DIMENSIONS === 1024)
+        ))
     ) {
       context.addIssue({
         code: 'custom',
         path: ['AI_HISTORY_AUTO_INDEX_ENABLED'],
         message:
-          'History indexing requires AI_ENABLED and a configured 1536-dimensional embedding provider.',
+          'History indexing requires AI_ENABLED and a configured supported embedding provider.',
       });
     }
     if (value.HERMES_ENABLED && (!value.AI_ENABLED || !value.HERMES_PYTHON || !value.HERMES_ROOT)) {

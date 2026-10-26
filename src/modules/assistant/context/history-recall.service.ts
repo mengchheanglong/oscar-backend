@@ -43,8 +43,9 @@ export class HistoryRecallService {
       if (await this.vectors.hasVectors(s, identity, through)) {
         let vector: number[] | undefined;
         try {
-          const result = await this.provider.embed([query]);
-          validateVectors(result, 1);
+          const result = await (this.provider.embedQuery?.([query]) ??
+            this.provider.embed([query]));
+          validateVectors(result, 1, this.provider.dimensions ?? 1536);
           vector = result[0];
         } catch {
           mode = 'keyword_embedding_unavailable';
@@ -85,7 +86,7 @@ export class HistoryRecallService {
     const rows = await this.vectors.pending(s, identity);
     if (!rows.length) return { attempted: 0, remaining: false };
     const vectors = await this.provider.embed(rows.map((r) => r.content));
-    validateVectors(vectors, rows.length);
+    validateVectors(vectors, rows.length, this.provider.dimensions ?? 1536);
     await this.vectors.assertAccess(s);
     const generation = randomUUID();
     for (let i = 0; i < rows.length; i++)

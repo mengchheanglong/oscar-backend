@@ -65,7 +65,7 @@ export class HistoryIndexWorker implements OnModuleInit, OnModuleDestroy {
         return 0;
       }
       const result = await this.provider!.embed(batch.rows.map((r) => r.content));
-      validateVectors(result, batch.rows.length);
+      validateVectors(result, batch.rows.length, this.provider!.dimensions ?? 1536);
       await this.vectors.assertAccess(batch.scope);
       if (!(await this.jobs.owns(batch))) return 0;
       for (let i = 0; i < batch.rows.length; i++)

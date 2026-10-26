@@ -27,6 +27,7 @@ import { HistoryVectorRepository } from '../../src/modules/assistant/context/his
 import { ConversationHistoryRepository } from '../../src/modules/assistant/context/conversation-history.repository';
 import { embeddingIdentity } from '../../src/modules/assistant/memory/private-memory.contract';
 import { historyEmbeddingIdentity } from '../../src/modules/assistant/context/history-retrieval.contract';
+import { HistoryRecallService } from '../../src/modules/assistant/context/history-recall.service';
 
 describe('Durable automatic history indexing with PostgreSQL', () => {
   let db: DataSource, jobs: HistoryIndexRepository;
@@ -107,6 +108,45 @@ describe('Durable automatic history indexing with PostgreSQL', () => {
       content,
       mode: AssistantMode.WORKSPACE,
     });
+  it('keeps both embedding generations and rechecks history exclusion during local recall', async () => {
+    const m = await message('The project keeps a reserve for contingencies.');
+    const repository = new HistoryVectorRepository(db),
+      history = new ConversationHistoryRepository(db);
+    const old = new HistoryRecallService(history, repository, {
+      identity: 'legacy-generation',
+      embed: async (texts) => texts.map(vector),
+    });
+    await old.indexBatch(scope());
+    const oldIdentity = historyEmbeddingIdentity('legacy-generation');
+    const before = await db.query(
+      'SELECT embedding::text AS value FROM ai_history_vectors WHERE message_id=$1 AND embedding_identity=$2',
+      [m.id, oldIdentity],
+    );
+    const localVector = [1, ...Array<number>(1023).fill(0)];
+    const query = jest.fn(async () => [localVector]);
+    const local = new HistoryRecallService(history, repository, {
+      identity: 'local-generation',
+      dimensions: 1024,
+      embed: async (texts) => texts.map(() => localVector),
+      embedQuery: query,
+    });
+    await local.indexBatch(scope());
+    const through = (
+      await db.query('SELECT context_seq::text AS value FROM ai_messages WHERE id=$1', [m.id])
+    )[0].value as string;
+    expect((await local.select(scope(), 'buffer', through)).map((row) => row.messageId)).toEqual([
+      m.id,
+    ]);
+    expect(query).toHaveBeenCalled();
+    expect(
+      await db.query(
+        'SELECT embedding::text AS value FROM ai_history_vectors WHERE message_id=$1 AND embedding_identity=$2',
+        [m.id, oldIdentity],
+      ),
+    ).toEqual(before);
+    await db.getRepository(ChatMessage).update(m.id, { contextExcluded: true });
+    expect(await local.select(scope(), 'buffer', through)).toEqual([]);
+  });
   async function limits(texts = 100, bytes = 100000): Promise<HistoryIndexLimits> {
     const used = (
       await db.query(
