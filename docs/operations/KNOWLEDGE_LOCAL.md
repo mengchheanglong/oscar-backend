@@ -4,12 +4,17 @@
 
 The local private library is available through the same service and composer.
 Enable **Reference knowledge** and select MBA, Personal Library, Social Systems,
-or All permitted references. Current private scope has 487 ready references,
-including HTML sections; this count is not a distinct-book count. Seven are
-partially extracted and carry explicit coverage warnings. All 43 Social Systems
-roadmap readings have reference matches, while most of the oversized compilation
-is still unindexed. See sibling
-`oscar-knowledge/docs/LOCAL_KNOWLEDGE_LIBRARY_INTEGRATION.md` for commands and limits.
+or All permitted references. As of 2026-10-26, private scope has 1,040 searchable
+references, 24,542 active document parts and 261,212 local Qwen chunks/vector
+rows. These include HTML sections, supplements and bounded compilation windows;
+they are not distinct-book counts. All 672 original PDFs / 198,758 physical pages
+are accounted for; 18 additional references are reviewed non-text, with no
+fabricated passages. No partial references or unresolved pages remain. All 43
+Social Systems roadmap readings have indexed matches. Source editions,
+illustration labels and OCR formulas still require judgment. See sibling
+`oscar-knowledge/docs/LIBRARY_COMPLETION_2026_10_26.md` for evidence and limits.
+Choose **All permitted references** to include privately added MBA PDFs and page
+supplements; MBA-only retains the approved shared corpus.
 
 Backend `.env` uses a separate `OSCAR_KNOWLEDGE_PRIVATE_SCOPE_SECRET`, matched to
 Knowledge's `KNOWLEDGE_PRIVATE_SCOPE_SECRET`. Ordinary authentication supplies the
@@ -27,6 +32,15 @@ bounded configured-model cases, persisting request IDs privately and reusing the
 on retries. Existing passed cases reload rather than regenerate. Reports under
 `var/private-library` are ignored and must remain private. No provider keys or
 source PDFs belong in Git. Generation settings are unchanged.
+
+`--live --compilation` also checks a bounded physics answer with an actual
+physical-page citation and unverified compilation attribution. The local backend
+uses `OSCAR_KNOWLEDGE_TIMEOUT_MS=8000` for the expanded exact-search library; the
+tracked default remains 2500 ms. Restart the local backend after changing its
+ignored configuration. The first physics attempt safely reported unavailable
+sources under the old budget and is retained in saved history. A separate stable
+recovery request passed with page 110908; repeated verification reuses saved IDs.
+Five scripted cases now pass, alongside the earlier browser citation check.
 
 Validation: 440 unit, 173 E2E, 142 isolated integration passed; one optional HTTP
 smoke skipped. Lint/typecheck/build/format and regenerated OpenAPI passed. Live

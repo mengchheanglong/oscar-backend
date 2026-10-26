@@ -1,5 +1,25 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-26 final library acceptance: all 672 original PDFs / 198,758 physical
+> pages are accounted for. Private scope has 1,040 searchable references, 24,542
+> active document parts and 261,212 current Qwen chunks/vector rows; 18 additional
+> references are reviewed non-text. No partial references or unresolved pages
+> remain. All 43 roadmap readings have indexed matches. Original files and the
+> 1,384-document / 36,790-chunk / 36,797-vector baseline are unchanged. Five saved
+> scripted chat cases pass, including physical-page compilation citations,
+> abstention and opt-out; reload/replay/scope conflicts pass. The initial physics
+> timeout is retained in history; its separate stable recovery passed after
+> exact-search optimization and an 8000 ms ignored local source budget. The
+> tracked default and generation provider are unchanged. Knowledge: 108 passed,
+> one optional local-model test skipped; Ruff/mypy passed. The final expanded
+> hybrid sample hits 4/6 predefined books; all 22 original MBA queries retain
+> their baseline document in the top six with valid scopes. This does not replace
+> the original strict 20/22 MBA source-family result. Select Reference knowledge
+> → All permitted references for private MBA additions. Source editions, OCR
+> formulas and complete graphic transcription remain quality limits. Earlier
+> dated counts below describe historical snapshots; current evidence is in sibling
+> `oscar-knowledge/docs/LIBRARY_COMPLETION_2026_10_26.md` and the local Catalog reports.
+
 > 2026-10-26 library continuation: extraction/review notices now cover visual
 > descriptions and diagrams as well as OCR formulas. The resumable private-library
 > verifier accepts `--compilation` for one additional bounded, configured-model

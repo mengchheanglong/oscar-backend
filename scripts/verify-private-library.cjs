@@ -84,7 +84,7 @@ async function main() {
   ];
   if (process.argv.includes('--compilation'))
     cases.push([
-      'private-compilation',
+      'private-compilation-after-timeout-fix',
       'personal-library',
       true,
       'Using the physics material in my personal reference library, explain why a satellite in a circular orbit is accelerating even if its speed is constant. Cite the actual retrieved source and physical PDF page. For mixed compilation sources, do not claim a verified book edition or author. Keep it under 90 words.',
@@ -119,7 +119,7 @@ async function main() {
         ),
         'ABSTENTION_REQUIRED',
       );
-    if (name === 'private-compilation') {
+    if (name.startsWith('private-compilation')) {
       const catalog = JSON.parse(
         fs.readFileSync('D:/AI/OSCAR/Knowledge/Catalog/library.json', 'utf8'),
       );
