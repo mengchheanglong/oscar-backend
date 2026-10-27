@@ -1,229 +1,203 @@
-# OSCAR — Backend
+# OSCAR Backend
 
-Main app document, memory and history embeddings default to pinned local Qwen
-0.6B. See [local embedding setup and rollback](docs/operations/LOCAL_EMBEDDINGS.md).
+The API and orchestration layer for OSCAR, a personal AI chief of staff. It owns
+workspace records, private conversations, reviewed memory, project retrieval,
+and supervised work delegated to connected agents.
 
-Chat uses one permissioned knowledge flow: project evidence and all permitted
-reference-library sources share the same answer and numbered citations. The
-frontend starts with **Knowledge** enabled. This local installation now uses
-**Sources required**: every ordinary Assistant turn retrieves sources, and
-unsupported or uncited drafts are withheld. `OSCAR_KNOWLEDGE_REQUIRED=true`
-enforces this on the server even when a client omits or disables Knowledge.
-Unconfigured installations retain optional retrieval and per-turn opt-out.
-In optional mode, API callers explicitly set `includeKnowledge`; when true, omitted
-`knowledgeScope` now means `all`. Explicit legacy scopes remain supported.
-See [local knowledge integration](docs/operations/KNOWLEDGE_LOCAL.md).
-The separate library service preserves owner isolation, source provenance and
-source-quality notices. Local installation is connected; tracked service enablement
-still defaults to disabled for an unconfigured installation.
+Built with **NestJS 11, TypeScript, TypeORM, PostgreSQL 17, and pgvector**, with an
+Express HTTP API and a stdio Model Context Protocol server.
 
-Chat composer uploads are now private [chat attachments](docs/product/CHAT_ATTACHMENTS.md).
-Existing uploads remain project knowledge. Files can be explicitly promoted to
-project knowledge or summarized into reviewed private memory; upload alone does
-not share a file or save a memory. Apply the attachment migration and restart
-both rebuilt applications before using the updated UI.
+## Repository responsibilities
 
-## Current product plan: OSCAR & MAVIS
+| Repository                                                            | Responsibility                                                                             |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **oscar-backend**                                                     | Authentication, domain data, conversation context, retrieval, MCP, and agent orchestration |
+| [oscar-frontend](https://github.com/mengchheanglong/oscar-frontend)   | Browser application and human review interface                                             |
+| [oscar-knowledge](https://github.com/mengchheanglong/oscar-knowledge) | Independent reference ingestion and evidence-only retrieval                                |
 
-The [OSCAR & MAVIS vision and architecture](docs/product/OSCAR_MAVIS_Vision_and_Architecture.md)
-is the new product direction supplied on 18 October 2026. OSCAR is the personal,
-goal-driven AI Chief of Staff; MAVIS is its shared memory and continuity system.
-The existing Continuum frontend and backend remain the engineering foundation.
+MAVIS is OSCAR's memory and continuity layer within this application. The
+independent Knowledge service supplies reference evidence; it does not generate
+OSCAR answers or own project records.
 
-Start with the [Phase 0 foundation](docs/product/OSCAR_MAVIS_FOUNDATION.md) for the current
-baseline, system boundaries, known gaps, and repeatable cross-repository checks:
-`pnpm verify:foundation` (add `--integration` for the isolated local database).
+## Capabilities
 
-Use the blueprint's [implementation roadmap](docs/product/OSCAR_MAVIS_Vision_and_Architecture.md#15-implementation-roadmap)
-for new planning, beginning with Phase 0: preserve and verify the current baseline.
-Its [first MVP](docs/product/OSCAR_MAVIS_Vision_and_Architecture.md#16-the-first-mvp-i-would-actually-build)
-connects a real goal, approved memory, and one supervised external agent workflow.
-The [Phases 1–3 implementation](docs/product/OSCAR_MAVIS_PHASES_1_3.md) adds goals,
-approved MAVIS memory, and platform activity. The [T3 chat handoff](docs/product/OSCAR_T3_HANDOFF.md)
-adds reviewed, supervised execution and returns T3's result to OSCAR chat.
-The [shared agent handoff guide](docs/product/OSCAR_AGENT_HANDOFFS.md) covers Hermes,
-T3 and Paperclip execution, result summaries and configuration. The inherited
-implementation guide remains a record of the foundation and its verification history.
+- Cookie sessions, CSRF protection, personal access tokens, project membership,
+  and action-level authorization.
+- Projects, goals, tasks, architecture decisions, activity, and reviewed AI
+  proposals with version checks and idempotent confirmation.
+- Private conversations, bounded recent context, durable summaries, reviewed
+  memory, history recall, and context exclusions.
+- Chat-scoped attachments, explicit promotion to project knowledge, shared
+  documents, private folder copies, and GitHub source synchronization.
+- Keyword, semantic, and hybrid retrieval with source provenance and citations.
+- Shared skill guidance and supervised Hermes, T3, and Paperclip handoffs with
+  persisted status, results, and outcome review.
+- MCP tools for permitted workspace operations and reviewed proposals.
 
-The [chief-of-staff workflow](docs/product/CHIEF_OF_STAFF_WORKFLOW.md) adds goal-linked
-execution, human outcome reviews, proposed MAVIS lessons, opt-in recurring
-briefings and user-reported execution spending. Windows startup and live readiness
-are available through `pnpm workspace:start` and `pnpm workspace:status`; see
-[local development](docs/operations/LOCAL_DEVELOPMENT.md).
+Meetings, requirements, and the old dashboard are retired. Historical data and
+migration identifiers remain preserved. The knowledge graph is planned. Feature
+implementation does not establish that every runtime or deployment is configured.
 
-The [documentation map](docs/README.md) groups the product, architecture, memory,
-evaluation, operations, and API references by topic.
+## Local development
 
-The [shared skills guide](docs/product/SHARED_SKILLS.md) documents Customize, the
-central personal skill library, persistent chat commands, and agent/MCP access.
-The [Founder pack installation](docs/product/FOUNDER_SKILLS.md) describes the 11
-imported business modes, pinned source, and instruction-mode boundaries.
+### Requirements
 
-## Existing foundation
+- Node.js **24.14.0** and pnpm **10.32.1**, matching the repository pins.
+- Docker with Compose v2 for local PostgreSQL services.
+- Ollama with pinned **Qwen3-Embedding 0.6B** for default embeddings, or an explicit
+  keyword-only configuration.
+- Separate provider credentials when enabling answer generation.
 
-Current scope: Meetings, Requirements, and Dashboard functionality have been
-retired. See [feature retirement](docs/product/FEATURE_RETIREMENT.md) for removed API/MCP
-contracts, preserved data, and verification. This supersedes the inherited
-foundation-era feature inventory below.
+Keep the repositories in sibling folders:
 
-For host development and the full Docker app, see
-[Running Continuum locally](docs/operations/DOCKER_LOCAL.md). The Docker app profile includes
-the sibling frontend repository and uses ports 43100 (web) and 43101 (API).
+```text
+OSCAR/
+  oscar-backend/
+  oscar-frontend/
+  oscar-knowledge/
+```
 
-Continuum is a personal, chat-first workspace for business, finance, research,
-project files, tasks, decisions, and AI-assisted work. This is an independent
-repository derived from AI Workspace's develop branch, with its Git history
-preserved. The original AI Workspace repositories remain separate.
-
-- Frontend: https://github.com/mengchheanglong/oscar-frontend
-- Backend: https://github.com/mengchheanglong/oscar-backend
-- Working branch: `main`; GitHub default branch: `main`.
-- Local frontend: `http://localhost:43100`; local API: `http://127.0.0.1:43101`.
-- Environment files, access tokens, uploaded content, and machine MCP settings
-  stay local and are not part of this repository.
-
-The inherited implementation guide and verification notes describe the original
-foundation. The OSCAR & MAVIS blueprint above defines the new product direction.
-Legacy `aiw_*` storage keys, API environment names, database migration identifiers,
-and the existing isolated development database remain compatible with current
-local data. Repository branding changes do not migrate or reset that data.
-
-NestJS backend foundation for Continuum. Read the OSCAR & MAVIS blueprint for the
-current plan and [PROJECT_IMPLEMENTATION_GUIDE.md](PROJECT_IMPLEMENTATION_GUIDE.md)
-for the inherited architecture, API conventions, and implementation history.
-
-## What exists
-
-- NestJS 11, Express, strict TypeScript, TypeORM, PostgreSQL/pgvector.
-- Validated environment configuration; structured Pino logging; request IDs; safe errors; Helmet; explicit-origin CORS; global DTO validation.
-- Health endpoints, Swagger UI, and offline OpenAPI generation.
-- Explicit migration workflow, isolated database tests, Docker Compose, and a GitHub Actions CI workflow.
-- Pinned Node/pnpm versions and a pnpm lockfile.
-
-Core workspace modules, authentication, documents, ingestion/retrieval, cited
-copilot chat, reviewed proposals and GitHub integration are implemented. The
-operational extension adds Workspace mode, reviewed private memory, and a bounded
-Hermes agent execution path. Read the guide's latest progress ledger for actual
-verification and release limitations; foundation-era instructions below are not
-a current feature-status inventory.
-
-AI uses the existing configured DeepSeek provider/model. Embeddings have separate
-settings. Optional Hermes execution remains disabled by default and needs a
-prepared Python/source environment plus explicit database migrations. See
-[Hermes runtime setup](docs/architecture/HERMES_RUNTIME.md); the Node-only Docker image does
-not bundle Hermes. The current local environment is enabled and passed a real
-DeepSeek V4 Pro workflow; production runtime packaging/deployment remains pending.
-
-Normal chat supports bounded history and durable conversation summaries. Apply
-the explicit context migration before running the updated backend; see
-[conversation context](docs/memory/CONVERSATION_CONTEXT.md) for the budget, connection
-requirements, and rollout status. The budget uses conservative byte estimates,
-not an exact DeepSeek token count.
-
-Older private dialogue can also be retrieved within the owning user/project.
-[History recall and exclusions](docs/memory/CONVERSATION_HISTORY_RECALL.md) explains the
-retrieval, exclusion control, dependency invalidation and required migrations.
-Optional [semantic history recall](docs/memory/SEMANTIC_HISTORY_RECALL.md) adds compatible
-pgvector embeddings through explicit bounded indexing or optional
-[automatic history indexing](docs/memory/AUTOMATIC_HISTORY_INDEXING.md) with persistent
-daily limits and retries. Read the
-[evaluation results](docs/evaluation/HISTORY_RECALL_EVALUATION.md) for measured gains and limits.
-The [English answer evaluation](docs/evaluation/HISTORY_ANSWER_EVALUATION.md) checks actual
-generated answers, including corrections, exclusions, private scope and compaction.
-
-## Prerequisites
-
-For current manual testing on develop, use the separate local database and server
-targets in [Isolated local development](docs/operations/LOCAL_DEVELOPMENT.md). Local testing
-must not use the deployment database.
-
-Team is scoped to yourself and active collaborators sharing a project. Pending
-invitations belong to their sender; foreign invitation cancellation is rejected.
-Inviting a system administrator requires an administrator account.
-
-Read-only local folder sources are available through Documents. Selected text is
-indexed privately for the owning account and project; original files remain on
-the user's computer. See [folder sources](docs/operations/LOCAL_FOLDER_SOURCES.md) for the
-browser connector, data transfer, rescan/disconnect workflow, and limits.
-
-- Node.js **24.14.0**, as pinned in `.node-version`.
-- pnpm **10.32.1**, as pinned in `package.json` (`npm install --global pnpm@10.32.1` if needed).
-- Docker with Compose and a running Docker engine.
-
-NestJS 11 is pinned for the CommonJS/Jest toolchain; `@nestjs/config` is pinned at v4 because v12 is ESM-only. TypeScript 5.9 and TypeORM 0.3 are also pinned to keep the toolchain compatible. You do not need a global Nest CLI.
-
-## Start local development
-
-Run from this repository. On first setup only, copy the environment example:
+Run from `oscar-backend`. PowerShell examples are shown.
 
 ```powershell
-Copy-Item .env.example .env
 pnpm install --frozen-lockfile
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+# Review .env before starting services or applying migrations.
 pnpm db:up
 pnpm migration:run
 pnpm dev
 ```
 
-On macOS/Linux, use `cp .env.example .env`. Do not overwrite an existing configured `.env` during later updates. The initial setup task already creates the local `.env` and installs dependencies.
+For a new installation, set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`
+in private configuration if initial administrator bootstrap is needed. Bootstrap
+only creates an administrator when none exists. Do not seed a persistent
+installation or replace an existing `.env` during normal startup.
 
-- API liveness: [http://localhost:43101/api/v1/health/live](http://localhost:43101/api/v1/health/live)
-- API readiness: [http://localhost:43101/api/v1/health/ready](http://localhost:43101/api/v1/health/ready)
-- Swagger UI (local development): [http://localhost:43101/api/docs](http://localhost:43101/api/docs)
-- Runtime OpenAPI JSON: [http://localhost:43101/api/docs-json](http://localhost:43101/api/docs-json)
+### Local endpoints
 
-The project defaults to port **43101**. Host development PostgreSQL is on **43104**. Update `.env` deliberately if local ports change; Compose has explicit mappings and does not inherit all `.env` runtime values.
+| Component                 | Endpoint / port                       |
+| ------------------------- | ------------------------------------- |
+| Web application           | `http://localhost:43100`              |
+| API                       | `http://127.0.0.1:43101/api/v1`       |
+| Swagger, when enabled     | `http://127.0.0.1:43101/api/docs`     |
+| Main PostgreSQL           | `127.0.0.1:43104`                     |
+| Isolated test PostgreSQL  | `127.0.0.1:43105`                     |
+| Optional Redis            | `127.0.0.1:43106`                     |
+| T3 / Paperclip            | `127.0.0.1:43102` / `127.0.0.1:43103` |
+| Independent Knowledge API | `http://127.0.0.1:8010`               |
+| Local Ollama              | `http://127.0.0.1:11434`              |
 
-There is no root `/` page; use the routes above. A successful response is `{"data":{"status":"ok"}}`. Readiness checks PostgreSQL and a temporary write/delete probe under local upload storage; it returns a generic 503 if either is unavailable. The API currently requires the database at startup. After startup, database failure causes readiness to fail while liveness remains available.
+API health endpoints are `/api/v1/health/live` and `/api/v1/health/ready`.
+API readiness does not replace checking model and agent dependencies.
 
-## Run the containerized local stack
+## Configuration
+
+Use [.env.example](.env.example) as the configuration inventory. Credentials and
+machine-specific paths belong in ignored local configuration.
+
+| Concern                    | Checked-in configuration                                                           |
+| -------------------------- | ---------------------------------------------------------------------------------- |
+| Answer generation          | `AI_ENABLED=false`; DeepSeek adapter, `deepseek-flash` model                       |
+| Main embeddings            | `ollama`, `qwen3-embedding:0.6b`, 1024 dimensions, pinned revision                 |
+| Reference service          | `OSCAR_KNOWLEDGE_ENABLED=false`; configure the independent service before enabling |
+| Required-source policy     | `OSCAR_KNOWLEDGE_REQUIRED=false`; configurable installation policy                 |
+| Private storage            | `STORAGE_DRIVER=local`; back up the storage root with the database                 |
+| Hermes                     | Disabled until its Python runtime and provider are prepared                        |
+| Automatic history indexing | Disabled until explicitly enabled with configured limits                           |
+
+### Models and retrieval
+
+Generation and embeddings are separate dependencies. Enabling DeepSeek requires
+its own credential; it does not configure embeddings. Main embeddings default to
+pinned local Qwen 0.6B. Install and warm the model, verify its full revision
+digest, and follow the [embedding guide](docs/operations/LOCAL_EMBEDDINGS.md)
+before indexing or changing providers. Startup does not download model weights.
+
+Set `AI_EMBEDDING_PROVIDER=disabled` for keyword-only operation without Ollama.
+OpenAI embeddings remain an explicit alternative with separate credentials.
+There is no automatic fallback from local embedding failures to a paid provider.
+Existing vector identities are preserved during supported migrations; switching
+providers can require deliberate re-indexing.
+
+### Reference knowledge and required sources
+
+Connect the independent service using the
+[Knowledge integration guide](docs/operations/KNOWLEDGE_LOCAL.md). It requires a
+service token and, for private references, a separate backend-only signing
+secret. Private ownership or exact-book reader grants remain enforced.
+
+Optional mode lets the user control reference retrieval per turn. Required mode
+forces retrieval for ordinary Assistant turns and withholds unsupported drafts
+when current citations are missing. It is not an enforcement layer for external
+agent outputs, nor a guarantee of factual accuracy or semantic claim support.
+
+### Files, memory, and authorization
+
+Composer uploads belong to one private chat and stay outside the shared project
+index. A user can explicitly promote a file to project knowledge or review and
+save a short private memory. Existing uploads retain their project knowledge
+scope. Attachment-bearing chats are excluded from cross-chat recall; removal
+invalidates earlier derived assistant context. See
+[chat attachments](docs/product/CHAT_ATTACHMENTS.md) for formats, limits, and retention.
+
+Retrieved documents, messages, skills, and agent outputs are untrusted context.
+They cannot grant permissions. AI-generated changes remain drafts until normal
+authorization, explicit user confirmation, version checks, and transactional
+persistence succeed.
+
+## Running the workspace
+
+For an already configured Windows installation with both applications built:
 
 ```powershell
+pnpm workspace:start
+pnpm workspace:status
+```
+
+The launcher runs explicit migrations, reuses healthy processes, and starts
+configured local services. It requires prepared external runtimes; it does not
+install them. For core startup without T3 and Paperclip:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-local.ps1 -SkipAgents
+```
+
+For the Docker application profile, start PostgreSQL, migrate, then build/start:
+
+```powershell
+pnpm db:up
+docker compose --profile migrations run --rm migrate
 pnpm stack:up
 ```
 
-This builds the API image, starts PostgreSQL, runs migrations in a one-shot release container, then starts the API on port 43101. Do not run `pnpm dev` on the same port simultaneously. To switch to host development:
+Follow the [Docker guide](docs/operations/DOCKER_LOCAL.md) for existing volumes,
+upload mounts, and host/container model identities. The Node image does not
+bundle the Hermes Python runtime. Never delete volumes or reset a database to
+repair an existing installation.
 
-```powershell
-docker compose --profile app stop api
-pnpm dev
+## MCP integration
+
+Build the backend and configure the client to launch:
+
+```text
+node <absolute-backend-path>/dist/mcp/cli.js
 ```
 
-Stop only this project's containers with `pnpm stack:stop`. Development database and upload named volumes persist. The test database uses tmpfs and loses its contents when its container stops. Avoid `docker compose down -v` unless intentionally deleting this project's development data.
+| Variable           | Purpose                                                         |
+| ------------------ | --------------------------------------------------------------- |
+| `OSCAR_API_URL`    | Reachable API base, for example `http://127.0.0.1:43101/api/v1` |
+| `OSCAR_API_KEY`    | Personal access token from the authenticated OSCAR account      |
+| `OSCAR_PROJECT_ID` | Default project key or UUID                                     |
 
-Compose is a **local demo/development configuration**: credentials are public local-only values, ports bind loopback, and Swagger is enabled. The image defaults to production mode, which disables public Swagger. A production deployment still needs private credentials, a least-privilege runtime database role, a separate migration role, TLS, restricted networking, backups, and deployment-specific storage. No cloud deployment has been created.
+The stdio process forwards operations to the authenticated API; it does not
+bypass membership or access storage directly. Keep tokens in private client
+configuration and restart MCP clients after rebuilding. Inspect and edit AI
+proposals before confirming selected, user-authorized items; reuse the same
+idempotency key when retrying a confirmation.
 
-## Commands
-
-| Command                                      | Purpose                                                           |
-| -------------------------------------------- | ----------------------------------------------------------------- |
-| `pnpm dev`                                   | Watch/restart the TypeScript API                                  |
-| `pnpm build`                                 | Compile application into `dist/`                                  |
-| `pnpm start:prod`                            | Run compiled API; configuration still comes from environment/.env |
-| `pnpm lint`                                  | ESLint, including promise handling                                |
-| `pnpm typecheck`                             | Check application, scripts, and tests                             |
-| `pnpm format:check` / `pnpm format`          | Check/apply Prettier                                              |
-| `pnpm test`                                  | Unit tests, no database                                           |
-| `pnpm test:e2e`                              | HTTP infrastructure tests with fake database, no Docker required  |
-| `pnpm db:test:up`                            | Start isolated PostgreSQL test service on 43105                   |
-| `pnpm test:integration`                      | Real PostgreSQL/pgvector migration tests                          |
-| `pnpm migration:run` / `pnpm migration:show` | Explicitly apply/list development migrations                      |
-| `pnpm migration:run:prod`                    | Apply compiled migrations in release environment                  |
-| `pnpm openapi:generate`                      | Write `docs/api/openapi.json` without database or API keys        |
-
-To generate a migration after editing entities:
+## Verification
 
 ```powershell
-pnpm migration:generate src/database/migrations/DescribeTheChange
-```
-
-Inspect generated SQL before running it. There is no automatic schema synchronization or startup migration. The initial migration enables `vector`; its rollback intentionally refuses automatic extension deletion because later columns could depend on it. No user or project seed exists until those entities are implemented.
-
-The OpenAPI generator currently registers only health controllers in a metadata-only module. Add new controllers there as endpoints are implemented, and compare generated paths with the runtime document. Do not generate fake operations from the future endpoint inventory.
-
-## Verify changes
-
-```powershell
-pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test
@@ -232,191 +206,35 @@ pnpm db:test:up
 pnpm test:integration
 pnpm build
 pnpm openapi:generate
+pnpm format:check
 ```
 
-Integration tests read `TEST_DATABASE_URL`, require a database name ending in `_test`, and reject the development URL. They apply migrations and verify pgvector plus idempotent replay. Never change that URL to shared or production data. Tests do not drop the database. HTTP tests use isolated temporary storage and a fake database; a passing HTTP suite alone is not real database verification.
+Database integration tests use a dedicated `_test` database and an isolated
+per-run database. Never point them at development or deployment data.
+`pnpm verify:foundation` checks the backend and sibling frontend; add
+`--integration` after starting the test database. Knowledge has its own Python
+verification workflow.
 
-The CI workflow repeats these checks, checks for OpenAPI drift, and builds the Docker image. It will run after the repository is pushed to GitHub; local verification does not mean remote CI has run.
+Live provider and upstream-agent checks are separate from deterministic tests
+and may require credentials, execution permissions, and provider usage. Consult
+the dated progress ledger for checks actually performed rather than treating
+historical test counts as a current readiness guarantee.
 
-## Structure
+## Documentation
 
-```text
-src/
-  config/                    # Validated environment
-  common/                    # HTTP setup and error handling
-  database/                  # TypeORM options, CLI data source, migrations
-  modules/health/             # Only implemented feature module so far
-  app.module.ts
-  main.ts
-  openapi.ts
-scripts/                     # Offline OpenAPI and guarded integration runner
-test/{unit,e2e,integration}/
-docs/api/openapi.json             # Actual generated contract
-.github/workflows/ci.yml
-```
+- [Documentation map](docs/README.md)
+- [Product vision and architecture](docs/product/OSCAR_MAVIS_Vision_and_Architecture.md)
+- [Implementation guide and progress ledger](PROJECT_IMPLEMENTATION_GUIDE.md)
+- [Local development](docs/operations/LOCAL_DEVELOPMENT.md) and [operations runbook](docs/operations/RUNBOOK.md)
+- [Goals, briefings, and outcome reviews](docs/product/CHIEF_OF_STAFF_WORKFLOW.md)
+- [Agent handoffs](docs/product/OSCAR_AGENT_HANDOFFS.md) and [Hermes runtime](docs/architecture/HERMES_RUNTIME.md)
+- [Shared skills](docs/product/SHARED_SKILLS.md)
+- [Conversation context](docs/memory/CONVERSATION_CONTEXT.md) and [history recall](docs/memory/CONVERSATION_HISTORY_RECALL.md)
+- [Generated API contract](docs/api/openapi.json)
+- [Feature retirement](docs/product/FEATURE_RETIREMENT.md)
 
-Do not put domain business logic in `common`. Add feature modules with their DTOs, services, entities, policies, and behavior tests as the guide's milestones progress.
-
-## Production Deployment (Oracle Cloud Always Free)
-
-Turnkey deployment configuration is located in the [`deploy/`](deploy/) directory for **Oracle Cloud Infrastructure (OCI) Always Free** (Ampere A1 ARM: 4 OCPU, 24 GB RAM, 200 GB NVMe - $0/month):
-
-- **Automated Setup Script**: [`deploy/setup-oracle-vm.sh`](deploy/setup-oracle-vm.sh)
-- **Deployment Guide**: [`deploy/DEPLOYMENT_GUIDE.md`](deploy/DEPLOYMENT_GUIDE.md)
-- **Production Compose**: [`deploy/docker-compose.prod.yml`](deploy/docker-compose.prod.yml)
-- **Caddy Reverse Proxy**: [`deploy/Caddyfile`](deploy/Caddyfile)
-
-To deploy on a new Ubuntu Oracle Cloud VM:
-
-```bash
-curl -sSL https://raw.githubusercontent.com/mengchheanglong/AI-Workspace-backend/main/deploy/setup-oracle-vm.sh | bash
-```
-
-## Troubleshooting
-
-- **Docker connection failure:** start Docker Desktop/the Docker engine, then rerun `pnpm db:up`.
-- **Port already allocated:** inspect the owner; stop only this project's API if switching execution mode, or choose another local port. Do not terminate unrelated work.
-- **Database connection refused:** confirm `pnpm db:up` passed and `.env` uses port 43104 for host execution; container execution uses hostname `postgres` and port 5432.
-- **Invalid environment configuration:** the error identifies invalid fields without printing their values. Check exact `true`/`false`, valid URLs/ports, and keep Phase 2 flags false.
-- **Migration permission denied:** extension setup needs an appropriate migration role; do not enable `synchronize` to bypass migrations.
-- **Readiness 503:** check database availability and local storage permissions. Detailed credentials/paths are intentionally omitted from public responses.
-- **PowerShell script execution restrictions:** use `pnpm.cmd` instead of `pnpm`; do not weaken machine-wide execution policy.
-
-## Operational copilot and private memory
-
-Workspace mode supports research, analysis, planning, and project work across
-disciplines. In the frontend, new chats start in this mode; existing conversation
-defaults and specialized modes are preserved. Learning assistance is available
-when it helps the work or is requested.
-
-Open **AI Copilot → Memory** to review, save, edit, or remove private context,
-preferences, and lessons. **Remember…** on a completed reply opens a draft for
-review; **Confirm and save** persists it. Memory is private to the authenticated
-user in the selected project and separate from cited project evidence.
-
-Apply the `1791072000000-CreateCopilotMemories` migration explicitly before
-running this version against a persistent database (`pnpm migration:run`, or
-`pnpm migration:run:prod` in the release environment). The change does not apply
-migrations at startup. Memory CRUD needs neither AI credentials nor Redis;
-generation still uses the configured provider.
-
-MCP additionally exposes `list_copilot_memories`, `save_copilot_memory`,
-`update_copilot_memory`, and `remove_copilot_memory`. Saves/edits require reviewed
-text and `userConfirmed: true`; creates use a stable UUID `idempotencyKey` for
-retries; edits/removals use the current version. Restart MCP clients after a
-rebuild. Removed memories stop appearing in saved context; existing messages
-are retained.
-
-See [the reuse blueprint](docs/product/WORKSPACE_REUSE_BLUEPRINT.md) for the inspected
-source revisions, memory responsibilities, and next runtime integration.
-OpenClaw, Hermes, Paperclip, and Langflow are references/integration candidates;
-this slice does not install or connect their runtimes.
-
-## Reviewed AI actions through MCP
-
-The stdio server exposes current workspace tools for projects, tasks, decisions,
-documents, search, GitHub, activity, and reviewed AI proposals. It no longer
-exposes meeting, requirement, or dashboard tools. Restart the MCP client after
-rebuilding the backend to refresh tool discovery.
-
-Generation creates a private, project-scoped task draft only. Inspect its source
-decision and revision, edit using the current proposal version, then confirm only
-reviewed item IDs with a stable `Idempotency-Key`; reuse that key for retries.
-An empty `selectedItemIds` array creates no tasks. Unwanted drafts can be
-rejected. All operations use the authenticated API, permissions, validation and
-transaction checks.
-
-Codex uses `.codex/config.toml` for project MCP settings. Forward the PAT with `env_vars = ["AI_WORKSPACE_API_KEY"]` and keep it in the local environment. CLI environment options belong before `-- node ...`; do not pass them as Node arguments. Restart the MCP client after rebuilding the backend to refresh its tool list.
-
-Decision-based task drafts retain the source decision and revision. Review and
-edit proposals before confirmation; a changed source decision requires
-regenerating the proposal. INVALID_PROPOSAL_DRAFT, INVALID_SELECTION and
-ASSIGNEE_NOT_MEMBER reject invalid writes. AI_RETRIEVAL_FAILED reports
-unavailable context without creating a proposal or task.
-
-GET /projects/:projectId/tasks/:taskId (and MCP `get_task`) returns aiProvenance
-for confirmed AI-created tasks, including the source entity/revision and proposal
-ID. Private draft text is omitted. Ordinary tasks return null provenance.
-
-## Real data and provider configuration
-
-Runtime pages and MCP tools use saved workspace records. The current workspace has two active users, Codex and Claude; the SRS and its saved feature-test records are retained. Mock LLM, embedding and GitHub providers are restricted to isolated tests. Unconfigured AI generation reports unavailable instead of returning simulated answers.
-
-`AI_EMBEDDING_PROVIDER=disabled` is the default. In this mode ingestion preserves source text and indexes it for keyword search; hybrid retrieval uses keyword results. Explicit semantic search reports unavailable until a real embedding provider is configured. DeepSeek generation remains separate from embeddings.
-
-To enable real semantic search, configure `AI_EMBEDDING_PROVIDER=openai` with a separate `OPENAI_API_KEY`, then reindex the project sources. Migration `1790985600000-RemoveMockEmbeddings` makes vectors nullable and clears only vectors labeled `mock-*`, retaining text, provenance and real vectors. Apply migrations explicitly; never reset a persistent database for this cleanup.
-
-The legacy mock verification scripts (`verify-p2-01-ingestion.ts`, `verify-retrieval-chat.ts`, `verify-ai-task-flow.ts`) require a separate local `TEST_DATABASE_URL` targeting `ai_workspace_test` on port 43105. They ignore the application's `DATABASE_URL` so they cannot populate the live workspace with test data.
-
-## Complete GitHub code indexing
-
-Index Codebase checks every eligible source/document file, with no file-count cap. The frontend automatically follows `nextCursor` through short requests and shows checked-file progress. `POST /projects/:projectId/integrations/github/sync-code` accepts `connectionId`, an optional transient `accessToken`, `cursor` (default 0), `batchSize` (default 2, maximum 5), and `treeVersion` returned by the first batch. Continue until `nextCursor` is null; aggregate each batch's `indexedFilesCount` and `unchangedFilesCount`. A changed manifest rejects continuation and requires restarting from zero.
-
-Successful GitHub SHA checkpoints and an indexed knowledge source allow unchanged files to be skipped. Interrupted or failed files are retried on the next run; partial coverage returns an error instead of success. Truncated recursive GitHub trees are expanded using nonrecursive tree requests. Generated/dependency files, lockfiles, unsupported formats and files over 100 KB remain excluded. An optional GitHub token can be entered for a synchronization/indexing run; it is cleared afterward and is not stored by the integration.
-
-## Private folder uploads
-
-Documents offers one browser folder upload flow. Legacy live/snapshot APIs and
-stored data remain compatible; their duplicate panels are removed from the page.
-Original files and relative paths stay in private backend storage. Files can be
-downloaded immediately; only completed folder copies enter Hermes discovery.
-Copilot retrieval becomes available as background extraction finishes.
-
-Uploads persist per-file progress across page reloads and backend restarts. Use
-**Resume**, reselect the unchanged source folder, and the browser verifies saved
-files in 8 MiB blocks before skipping them. Changed saved files are rejected;
-discard the copy and upload a new one to replace contents. Resume works at file
-boundaries: an interrupted file restarts, while committed files are retained.
-**Pause** stops requests and leaves a resumable copy. Copies are not live sync.
-
-The original storage quota is per account across projects, enforced under an
-account lock so concurrent uploads cannot exceed it. Configure in `.env`:
-
-| Setting                      | Default                 |
-| ---------------------------- | ----------------------- |
-| `FOLDER_STORAGE_QUOTA_BYTES` | 20 GiB of originals     |
-| `FOLDER_MAX_FILE_BYTES`      | 1 GiB per file          |
-| `FOLDER_MAX_FILES`           | 100,000 per folder      |
-| `FOLDER_MAX_SOURCES`         | 100 per project/account |
-
-There is no separate 2 GiB folder cap. HTTP transport is bounded to 8 GiB per
-request; validated configuration cannot exceed it. Quota counts original bytes,
-not PostgreSQL search data or extracted derivatives. Back up PostgreSQL and
-`STORAGE_LOCAL_ROOT` together and provide extra disk space for temporary uploads
-and extracted content. Settings/usage are exposed privately under the project
-upload settings route; no credentials or machine configuration are tracked.
-
-The worker uses PostgreSQL leases rather than Redis, processes only active
-owners/members on completed folders, and retries interrupted jobs after lease
-expiry. Content preparation does not delay upload completion. UTF-8, PDF and
-DOCX extraction stays bounded to 10 MiB originals / 4 MiB text. Unsupported files
-remain downloadable. Larger UTF-8 originals can be read by Hermes in bounded
-8,000-character pages without whole-file indexing. Each read scans at most
-64 MiB; query offsets are capped. Large PDF/DOCX files remain metadata-only.
-
-Run migrations explicitly against the isolated develop DB before testing.
-The normal browser flow needs no PowerShell. Development UI/API use matching
-`127.0.0.1` hosts (43100/43101) to avoid another app's IPv6 localhost listener.
-Hosting, TLS and cloud object storage are not provisioned. Cross-device access
-still needs a reachable authenticated backend and persistent storage. Hard
-crashes may leave orphan/temp blobs; automatic blob reconciliation is future
-work. Extraction is eventually consistent, not a guarantee that every format
-can be understood by AI.
-
-## Unified Copilot
-
-Copilot now uses one general assistant and one conversation surface. Select
-**Use tools** in the composer to run Hermes inside a project conversation.
-Progress and reports remain in that thread; ordinary follow-up questions can use
-the saved report. Reviewed proposals still require explicit product confirmation.
-Apply the new migration before starting the updated backend. See
-[Unified Copilot](docs/architecture/UNIFIED_COPILOT.md) for persistence, privacy, legacy API
-compatibility, context bounds and verification.
-
-Standalone chats retain their all-project context in conversation metadata. Apply
-`ConversationWorkspaceScope1792368000001` with the explicit migration command
-before starting this backend revision. The private chat remains in its existing
-storage project; broader context means permitted project knowledge, not broader
-access to another user's private conversation or memory.
-
-See [Phase 1–3 implementation and compatibility](docs/product/OSCAR_MAVIS_PHASES_1_3.md) for goals, MAVIS review, platform setup, and module naming.
+Active development uses `main`. Historical AI Workspace/Continuum names remain
+in compatible identifiers and migrations; do not rename records or delete volumes
+for branding consistency. Local Compose is a development configuration. Public
+deployment requires separate secrets, TLS, access controls, persistent storage,
+backups, and runtime provisioning.
