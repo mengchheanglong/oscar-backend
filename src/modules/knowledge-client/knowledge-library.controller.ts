@@ -3,6 +3,7 @@ import {
   ApiConflictResponse,
   ApiCookieAuth,
   ApiForbiddenResponse,
+  ApiGoneResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -93,6 +94,7 @@ export class KnowledgeLibraryController {
   @ApiForbiddenResponse({ description: 'Access denied to this source' })
   @ApiNotFoundResponse({ description: 'Passage or document not found' })
   @ApiConflictResponse({ description: 'Stale revision' })
+  @ApiGoneResponse({ description: 'Passage excluded or removed' })
   inspectPassage(
     @CurrentUser() user: User,
     @Body() dto: PassageInspectDto,

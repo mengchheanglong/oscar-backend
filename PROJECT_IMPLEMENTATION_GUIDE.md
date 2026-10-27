@@ -2271,3 +2271,35 @@ Provider generation was not exercised. No remote push or hosted deployment.
 - Backed up the existing local database before recreating its container on the new host port; preserved its external volume and verified unchanged counts (4 projects, 7 users, 23 documents). Updated only saved loopback integration endpoint fields and private runtime configuration; provider credentials, remote task identifiers, and user content were preserved.
 - Development CORS admits OSCAR origins and rejects former common frontend ports; covered by HTTP tests. Launcher waits for a cold Paperclip startup without duplicating its existing process.
 - Verification: backend lint, typecheck, build, 423 unit tests, 173 HTTP tests, and 142 isolated PostgreSQL integration tests passed; frontend production build (including lint/typecheck) and 32 tests passed. OpenAPI generation produced no contract changes. Live API/proxy readiness and MCP list_decisions/list_tasks succeeded on the new endpoints; accepted AIW decisions were empty. All four workspace readiness checks passed on the new endpoints, both saved T3/Paperclip connections passed live health probes, and Redis returned PONG. Browser smoke verified the new frontend origin. Other projects remained untouched.
+
+### 2026-10-27 — Corrective knowledge-quality pilot
+
+- Unified search/inspection source eligibility and hardened the main-app passage
+  proxy with identity binding, byte/count limits and safe errors. Historical
+  previews cannot reconstruct old model context. New turns preserve bounded
+  source-evidence snapshots, including uncited passages and hashes, separately
+  from claimed supporting citations. Nullable additive migration applied locally
+  after a private backup; no existing content reset.
+- Verified backend lint/typecheck/build/OpenAPI/formatting, 529 unit tests,
+  177 HTTP tests and 153 isolated PostgreSQL tests (one skipped). Knowledge passed
+  148 tests (one skipped), Ruff and mypy. Frontend passed 37 tests, lint/typecheck
+  and build. Actual signed-in Rentify browser checks verified public and private
+  passage inspection, historical uncaptured excerpts and persisted source text.
+- Completed a frozen twenty-question app run: eleven answers, two partial
+  answers and two unnecessary abstentions among fifteen answerable questions;
+  all five unsupported requests refused; no generation failures. These are
+  usefulness categories, not claim-support accuracy. Unsupported additions and
+  contradictory applications remain, so the semantic quality gate is not passed.
+  Twenty snapshots and citation lists survived reload unchanged; pilot turns
+  are preserved but excluded from future context.
+- Preserved Gemini's original artifacts and wrote separate private corrections.
+  Nine PDF hashes checked; thirteen pages freshly rendered/spot-reviewed; twelve
+  unsafe quantitative chunks conservatively excluded, preserving three earlier
+  exclusions and all source data. No formula repair or full-library certification
+  claimed. Other pilot pages remain unverified, and report-only page roles do not
+  implement task-aware ranking. See
+  [quality-pilot operations](docs/operations/KNOWLEDGE_QUALITY_PILOT.md).
+- Next: recover source-specific/adjacent passages for exposed retrieval misses,
+  enforce semantic answer support and plan qualifiers, verify quarantined math,
+  and use new untouched final questions after tuning. Do not claim 99% grounding,
+  complete MBA coverage or all-page fidelity from this pilot.

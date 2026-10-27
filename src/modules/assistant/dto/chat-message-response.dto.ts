@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ChatMessage,
   CitationItem,
+  EvidenceSnapshot,
   MessageRole,
   MessageStatus,
 } from '../entities/chat-message.entity';
@@ -76,6 +77,15 @@ export class ChatMessageResponseDto {
   })
   citations!: CitationItem[];
 
+  @ApiPropertyOptional({
+    type: 'object',
+    nullable: true,
+    additionalProperties: true,
+    description:
+      'Private bounded evidence supplied for this turn, including uncited passages and text hashes. Null for historical turns not captured. generationAttempted distinguishes model input from deterministic policy replies.',
+  })
+  evidenceSnapshot!: EvidenceSnapshot | null;
+
   @ApiPropertyOptional({ example: 'deepseek-flash', nullable: true })
   modelName!: string | null;
 
@@ -99,6 +109,7 @@ export class ChatMessageResponseDto {
       status: message.status,
       contextExcluded: message.contextExcluded ?? false,
       citations: message.citations || [],
+      evidenceSnapshot: message.evidenceSnapshot ?? null,
       modelName: message.modelName,
       promptTokens: message.promptTokens,
       completionTokens: message.completionTokens,

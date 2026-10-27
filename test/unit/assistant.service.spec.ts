@@ -580,6 +580,39 @@ describe('AssistantService', () => {
         expect(saved).toHaveLength(2);
         expect(mockLlmProvider.generateAnswer).toHaveBeenCalledTimes(1);
       });
+      it('persists the complete model-used evidence separately from claimed citations and replays it unchanged', async () => {
+        const evidence = {
+          chunkId: 'audit-chunk',
+          sourceId: 'audit-doc',
+          sourceType: KnowledgeSourceType.DOCUMENT,
+          title: 'Synthetic plan',
+          revision: 2,
+          locator: 'Section',
+          text: 'A source-backed constraint.',
+          snippet: 'A source-backed constraint.',
+          score: 1,
+        };
+        mockRetrievalService.retrieve.mockResolvedValue([evidence]);
+        const first = await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
+        const snapshot = first.assistantMessage.evidenceSnapshot;
+        expect(snapshot).toMatchObject({
+          version: 1,
+          generationAttempted: true,
+          items: [
+            expect.objectContaining({
+              chunkId: evidence.chunkId,
+              revision: 2,
+              evidenceNumber: 1,
+              exactExcerpt: evidence.text,
+            }),
+          ],
+        });
+        expect(snapshot!.items[0]!.textSha256).toMatch(/^[a-f0-9]{64}$/);
+        expect(first.assistantMessage.citations).toEqual([]);
+        const replay = await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
+        expect(replay.assistantMessage.evidenceSnapshot).toEqual(snapshot);
+        expect(mockLlmProvider.generateAnswer).toHaveBeenCalledTimes(1);
+      });
       it('resumes retrieval failure without duplicating the user turn', async () => {
         mockRetrievalService.retrieve.mockRejectedValueOnce(new Error('Synthetic outage'));
         await expect(

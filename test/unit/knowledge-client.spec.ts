@@ -391,6 +391,7 @@ describe('optional curated knowledge', () => {
   });
 
   describe('inspectPassage', () => {
+    const passageText = 'Indicators: customers buying; a pattern emerging; WOM possible.';
     const actor = '6f2c5950-8eaa-4cc7-a78c-3dec8c637ab6';
     const params = {
       chunkId: 'd5595603-f3e2-5043-ae67-94645483b84a',
@@ -412,8 +413,8 @@ describe('optional curated knowledge', () => {
       start_ms: null,
       end_ms: null,
       revision: 1,
-      text: 'Indicators \n* Customer are buying the product/offering\n* Pattern setting in (similar products & value prop)\n* WOM possible',
-      char_count: 115,
+      text: passageText,
+      char_count: Array.from(passageText).length,
       extraction: 'NATIVE_PDF_TEXT',
       review_required: false,
       coverage_note: null,
@@ -442,7 +443,7 @@ describe('optional curated knowledge', () => {
       const result = await service.inspectPassage(actor, params);
       expect(result.chunkId).toBe(params.chunkId);
       expect(result.text).toContain('Indicators');
-      expect(result.charCount).toBe(115);
+      expect(result.charCount).toBe(Array.from(passageText).length);
       expect(fetchSpy).toHaveBeenCalledTimes(1);
 
       const [url, request] = fetchSpy.mock.calls[0]!;
@@ -504,7 +505,7 @@ describe('optional curated knowledge', () => {
       );
     });
 
-    it('throws NotFoundException on 410 excluded chunk', async () => {
+    it('preserves 410 for an excluded chunk', async () => {
       const service = createService();
       jest
         .spyOn(global, 'fetch')
@@ -514,6 +515,51 @@ describe('optional curated knowledge', () => {
       await expect(service.inspectPassage(actor, params)).rejects.toThrow(
         'KNOWLEDGE_PASSAGE_UNAVAILABLE',
       );
+    });
+
+    it.each(['chunk', 'document', 'revision', 'count'])(
+      'rejects a mismatched %s inspection response',
+      async (kind) => {
+        const changed = {
+          ...mockInspectResponse,
+          ...(kind === 'chunk' ? { chunk_id: '00000000-0000-4000-8000-000000000005' } : {}),
+          ...(kind === 'document' ? { document_id: '00000000-0000-4000-8000-000000000006' } : {}),
+          ...(kind === 'revision' ? { revision: 2 } : {}),
+          ...(kind === 'count' ? { char_count: 999 } : {}),
+        };
+        jest.spyOn(global, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify(changed)));
+        await expect(createService().inspectPassage(actor, params)).rejects.toThrow(
+          'KNOWLEDGE_UNAVAILABLE',
+        );
+      },
+    );
+
+    it('counts Unicode code points consistently with the Knowledge API', async () => {
+      const text = 'Finance 𝛼';
+      jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ ...mockInspectResponse, text, char_count: Array.from(text).length }),
+          ),
+        );
+      expect((await createService().inspectPassage(actor, params)).text).toBe(text);
+    });
+
+    it('bounds inspection response bytes and never logs malformed private bodies', async () => {
+      const { Logger } = await import('@nestjs/common');
+      const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+      const fetch = jest.spyOn(global, 'fetch');
+      for (const body of ['PRIVATE', 'x'.repeat(100001)]) {
+        fetch.mockResolvedValueOnce(new Response(body));
+        await expect(createService().inspectPassage(actor, params)).rejects.toThrow(
+          'KNOWLEDGE_UNAVAILABLE',
+        );
+      }
+      expect(warn.mock.calls).toEqual([
+        ['KNOWLEDGE_PASSAGE_INSPECT_FAILED'],
+        ['KNOWLEDGE_PASSAGE_INSPECT_FAILED'],
+      ]);
     });
 
     it('throws ForbiddenException when knowledge service is disabled', async () => {

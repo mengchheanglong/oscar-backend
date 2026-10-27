@@ -150,27 +150,18 @@ Content:\n`;
       if (external) externalChars += boundedBlock.length;
       else workspaceChars += boundedBlock.length;
       accumulatedChars += boundedBlock.length + separatorChars;
-      const fullLen = item.fullTextLength ?? item.text?.length ?? content.length;
-      const isTrunc = item.isTruncated ?? fullLen > item.snippet.length;
-      const isExternalOrEnriched = external || item.exactExcerpt !== undefined;
-      includedEvidence.push(
-        includedText.length === content.length
-          ? isExternalOrEnriched
-            ? { ...item, exactExcerpt: includedText, fullTextLength: fullLen, isTruncated: isTrunc }
-            : item
-          : {
-              ...item,
-              text: includedText,
-              snippet: includedText.slice(0, 240),
-              ...(isExternalOrEnriched
-                ? {
-                    exactExcerpt: includedText,
-                    fullTextLength: fullLen,
-                    isTruncated: true,
-                  }
-                : {}),
-            },
-      );
+      const fullLen = item.fullTextLength ?? Array.from(item.text ?? content).length;
+      const isTrunc = item.isTruncated === true || fullLen > Array.from(item.snippet).length;
+      // Persist the exact bounded source body for every source type; never infer
+      // historical model context later from a current source version.
+      includedEvidence.push({
+        ...item,
+        text: includedText,
+        snippet: includedText.length === content.length ? item.snippet : includedText.slice(0, 240),
+        exactExcerpt: includedText,
+        fullTextLength: fullLen,
+        isTruncated: includedText.length < content.length || isTrunc,
+      });
       evidenceBlocks.push(boundedBlock);
     }
 

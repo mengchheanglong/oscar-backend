@@ -56,6 +56,12 @@ export interface CitationItem {
   exactExcerpt?: string;
 }
 
+export interface EvidenceSnapshot {
+  version: 1;
+  generationAttempted: boolean;
+  items: (CitationItem & { textSha256: string })[];
+}
+
 @Entity('ai_messages')
 @Index('idx_ai_messages_conv', ['conversationId', 'createdAt'])
 @Index('idx_ai_messages_request_role', ['conversationId', 'clientRequestId', 'role'], {
@@ -103,6 +109,11 @@ export class ChatMessage {
 
   @Column({ type: 'jsonb', default: () => "'[]'" })
   citations!: CitationItem[];
+
+  // Private per-turn retrieval trace, not additional claimed supporting citations.
+  // Historical rows stay null: never reconstruct their model input later.
+  @Column({ name: 'evidence_snapshot', type: 'jsonb', nullable: true })
+  evidenceSnapshot!: EvidenceSnapshot | null;
 
   @Column({ name: 'model_name', type: 'varchar', length: 100, nullable: true })
   modelName!: string | null;

@@ -34,6 +34,12 @@ describe('PostgreSQL foundation migrations', () => {
     expect(await database.showMigrations()).toBe(false);
     expect(await database.runMigrations()).toEqual([]);
   });
+  it('adds nullable historical evidence snapshots without fabricating captured context', async () => {
+    const columns = await database.query(
+      "SELECT is_nullable FROM information_schema.columns WHERE table_name='ai_messages' AND column_name='evidence_snapshot'",
+    );
+    expect(columns).toEqual([{ is_nullable: 'YES' }]);
+  });
 
   it('removes only synthetic vectors while retaining source text and real embeddings', async () => {
     const runner = database.createQueryRunner();

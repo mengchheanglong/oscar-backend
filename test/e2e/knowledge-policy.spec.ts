@@ -61,4 +61,46 @@ describe('Reference policy HTTP boundary', () => {
     expect(result.body).toEqual([]);
     expect(collections).toHaveBeenCalledWith('fixture-owner');
   });
+  it('protects passage inspection and validates source identity input before proxying', async () => {
+    const body = {
+      chunkId: '00000000-0000-4000-8000-000000000001',
+      documentId: '00000000-0000-4000-8000-000000000002',
+      revision: 1,
+    };
+    await request(app.getHttpServer()).post('/api/v1/knowledge/passage').send(body).expect(401);
+    const inspect = jest.spyOn(knowledge, 'inspectPassage').mockResolvedValue({
+      ...body,
+      collectionId: 'mba-business',
+      title: 'Synthetic passage',
+      bookId: undefined,
+      author: undefined,
+      edition: undefined,
+      chapter: undefined,
+      locator: undefined,
+      pageStart: undefined,
+      pageEnd: undefined,
+      startMs: undefined,
+      endMs: undefined,
+      extraction: undefined,
+      coverageNote: undefined,
+      sourceUrl: undefined,
+      text: 'Current evidence',
+      charCount: 16,
+      reviewRequired: false,
+      isTruncated: false,
+    });
+    await request(app.getHttpServer())
+      .post('/api/v1/knowledge/passage')
+      .set('Authorization', 'Bearer fixture-session')
+      .send({ ...body, revision: 0 })
+      .expect(400);
+    expect(inspect).not.toHaveBeenCalled();
+    const result = await request(app.getHttpServer())
+      .post('/api/v1/knowledge/passage')
+      .set('Authorization', 'Bearer fixture-session')
+      .send(body)
+      .expect(200);
+    expect(inspect).toHaveBeenCalledWith('fixture-owner', body);
+    expect(result.body.chunkId).toBe(body.chunkId);
+  });
 });

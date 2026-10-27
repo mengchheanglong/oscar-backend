@@ -1,6 +1,7 @@
 import {
   ConflictException,
   ForbiddenException,
+  GoneException,
   Injectable,
   Logger,
   NotFoundException,
@@ -78,7 +79,7 @@ const passageInspectResponseSchema = z.object({
   start_ms: z.number().int().nonnegative().nullable().optional(),
   end_ms: z.number().int().nonnegative().nullable().optional(),
   revision: z.number().int().positive(),
-  text: z.string(),
+  text: z.string().max(100000),
   char_count: z.number().int().nonnegative(),
   extraction: z.string().max(100).nullable().optional(),
   review_required: z.boolean().optional(),
@@ -372,11 +373,34 @@ export class KnowledgeClientService {
       if (response.status === 403) throw new ForbiddenException('KNOWLEDGE_ACCESS_DENIED');
       if (response.status === 404) throw new NotFoundException('KNOWLEDGE_PASSAGE_NOT_FOUND');
       if (response.status === 409) throw new ConflictException('KNOWLEDGE_STALE_REVISION');
-      if (response.status === 410) throw new NotFoundException('KNOWLEDGE_PASSAGE_UNAVAILABLE');
+      if (response.status === 410) throw new GoneException('KNOWLEDGE_PASSAGE_UNAVAILABLE');
       if (!response.ok) throw new ServiceUnavailableException('KNOWLEDGE_UNAVAILABLE');
 
-      const json = await response.json();
-      const parsed = passageInspectResponseSchema.parse(json);
+      if (!response.body) throw new Error('PASSAGE_BODY_MISSING');
+      const reader = response.body.getReader();
+      const parts: Uint8Array[] = [];
+      let size = 0;
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          size += value.byteLength;
+          if (size > 100000) throw new Error('PASSAGE_RESPONSE_LIMIT');
+          parts.push(value);
+        }
+      } finally {
+        await reader.cancel();
+      }
+      const parsed = passageInspectResponseSchema.parse(
+        JSON.parse(Buffer.concat(parts).toString('utf8')),
+      );
+      if (
+        parsed.chunk_id !== params.chunkId ||
+        parsed.document_id !== params.documentId ||
+        parsed.revision !== params.revision ||
+        parsed.char_count !== Array.from(parsed.text).length
+      )
+        throw new Error('PASSAGE_RESPONSE_MISMATCH');
       return {
         chunkId: parsed.chunk_id,
         documentId: parsed.document_id,
@@ -404,15 +428,14 @@ export class KnowledgeClientService {
       if (
         err instanceof UnauthorizedException ||
         err instanceof ForbiddenException ||
+        err instanceof GoneException ||
         err instanceof NotFoundException ||
         err instanceof ConflictException ||
         err instanceof ServiceUnavailableException
       ) {
         throw err;
       }
-      this.logger.warn(
-        `KNOWLEDGE_PASSAGE_INSPECT_FAILED: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      this.logger.warn('KNOWLEDGE_PASSAGE_INSPECT_FAILED');
       throw new ServiceUnavailableException('KNOWLEDGE_UNAVAILABLE');
     }
   }

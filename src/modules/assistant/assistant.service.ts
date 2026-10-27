@@ -414,6 +414,17 @@ export class AssistantService implements OnModuleInit {
     // Generate LLM response
     let generateResult;
     const courtesy = groundingRequired ? courtesyReply(dto.content) : undefined;
+    const evidenceSnapshot = {
+      version: 1 as const,
+      generationAttempted: !groundingRequired || (!courtesy && assembled.evidenceItems.length > 0),
+      items: assembled.evidenceItems.map(({ text: _text, ...item }, index) => ({
+        ...item,
+        evidenceNumber: index + 1,
+        textSha256: createHash('sha256')
+          .update(item.exactExcerpt ?? item.snippet)
+          .digest('hex'),
+      })),
+    };
     try {
       generateResult =
         groundingRequired && (courtesy || !assembled.evidenceItems.length)
@@ -437,6 +448,7 @@ export class AssistantService implements OnModuleInit {
         role: MessageRole.ASSISTANT,
         mode,
         content: 'An error occurred while generating the response. Please try again.',
+        evidenceSnapshot,
         status: MessageStatus.FAILED,
         citations: [],
         clientRequestId: dto.clientRequestId ?? null,
@@ -506,6 +518,7 @@ export class AssistantService implements OnModuleInit {
             : '') + generateResult.content,
       status: MessageStatus.COMPLETED,
       citations: withholdDraft ? [] : validatedCitations,
+      evidenceSnapshot,
       modelName: generateResult.modelName,
       promptTokens: generateResult.promptTokens,
       completionTokens: generateResult.completionTokens,

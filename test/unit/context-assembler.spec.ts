@@ -183,6 +183,28 @@ describe('ContextAssembler', () => {
       expect(result.systemPrompt.toLowerCase()).toContain(mode.toLowerCase());
     }
   });
+  it('captures only the bounded model-used body without mutating the full project source', () => {
+    const text = 'Verified source text. '.repeat(2000);
+    const source = {
+      chunkId: 'bounded',
+      sourceId: 'doc',
+      sourceType: KnowledgeSourceType.DOCUMENT,
+      title: 'Long source',
+      revision: 1,
+      locator: 'Section',
+      snippet: text.slice(0, 240),
+      text,
+      score: 1,
+    };
+    const assembled = assembler.assemble('Test', AssistantMode.WORKSPACE, [source]);
+    const included = assembled.evidenceItems[0]!;
+    expect(included.exactExcerpt).toBe(included.text);
+    expect(included.exactExcerpt!.length).toBeLessThan(text.length);
+    expect(assembled.evidenceText).toContain(included.exactExcerpt);
+    expect(assembled.evidenceText.length).toBeLessThanOrEqual(16000);
+    expect(source.text).toBe(text);
+    expect(source).not.toHaveProperty('exactExcerpt');
+  });
 
   it('bounds complete memory records and gives them no evidence or permission authority', () => {
     const memories = Array.from({ length: 12 }, (_, i) => ({
@@ -245,7 +267,12 @@ describe('ContextAssembler', () => {
     expect(assembled.systemPrompt).toContain('does not broaden private memory scope');
     expect(assembled.evidenceText).toContain('Workspace: [P2] Second workspace');
     expect(assembled.evidenceText).not.toContain('State assumptions.');
-    expect(assembled.evidenceItems).toEqual(evidence);
+    expect(assembled.evidenceItems[0]).toMatchObject({
+      ...evidence[0],
+      exactExcerpt: 'A sourced plan.',
+      fullTextLength: 15,
+    });
+    expect(evidence[0]).not.toHaveProperty('exactExcerpt');
   });
 
   it('assembles system prompt with STRATEGY mode instructions and opportunity cost rules', () => {
