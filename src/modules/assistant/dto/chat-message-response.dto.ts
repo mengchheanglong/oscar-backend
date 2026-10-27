@@ -68,6 +68,9 @@ export class ChatMessageResponseDto {
         pageEnd: { type: 'number' },
         startMs: { type: 'number' },
         endMs: { type: 'number' },
+        fullTextLength: { type: 'number', nullable: true },
+        isTruncated: { type: 'boolean', nullable: true },
+        exactExcerpt: { type: 'string', nullable: true },
       },
     },
   })

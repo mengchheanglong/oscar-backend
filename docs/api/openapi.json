@@ -372,6 +372,55 @@
         ]
       }
     },
+    "/api/v1/knowledge/passage": {
+      "post": {
+        "operationId": "KnowledgeLibraryController_inspectPassage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PassageInspectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PassageInspectResultDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Access denied to this source"
+          },
+          "404": {
+            "description": "Passage or document not found"
+          },
+          "409": {
+            "description": "Stale revision"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Inspect the full permitted indexed passage for a citation",
+        "tags": [
+          "Reference Knowledge"
+        ]
+      }
+    },
     "/api/v1/skills": {
       "get": {
         "operationId": "SkillsController_list",
@@ -8742,6 +8791,113 @@
           "required"
         ]
       },
+      "PassageInspectDto": {
+        "type": "object",
+        "properties": {
+          "chunkId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Chunk UUID"
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Document UUID"
+          },
+          "revision": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Expected active revision number"
+          }
+        },
+        "required": [
+          "chunkId",
+          "documentId",
+          "revision"
+        ]
+      },
+      "PassageInspectResultDto": {
+        "type": "object",
+        "properties": {
+          "chunkId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "collectionId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "bookId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "author": {
+            "type": "string"
+          },
+          "edition": {
+            "type": "string"
+          },
+          "chapter": {
+            "type": "string"
+          },
+          "locator": {
+            "type": "string"
+          },
+          "pageStart": {
+            "type": "number"
+          },
+          "pageEnd": {
+            "type": "number"
+          },
+          "startMs": {
+            "type": "number"
+          },
+          "endMs": {
+            "type": "number"
+          },
+          "revision": {
+            "type": "number"
+          },
+          "text": {
+            "type": "string"
+          },
+          "charCount": {
+            "type": "number"
+          },
+          "extraction": {
+            "type": "string"
+          },
+          "reviewRequired": {
+            "type": "boolean"
+          },
+          "coverageNote": {
+            "type": "string"
+          },
+          "sourceUrl": {
+            "type": "string"
+          },
+          "isTruncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chunkId",
+          "documentId",
+          "collectionId",
+          "title",
+          "revision",
+          "text",
+          "charCount",
+          "reviewRequired",
+          "isTruncated"
+        ]
+      },
       "SkillSummaryDto": {
         "type": "object",
         "properties": {
@@ -10968,6 +11124,18 @@
                 },
                 "endMs": {
                   "type": "number"
+                },
+                "fullTextLength": {
+                  "type": "number",
+                  "nullable": true
+                },
+                "isTruncated": {
+                  "type": "boolean",
+                  "nullable": true
+                },
+                "exactExcerpt": {
+                  "type": "string",
+                  "nullable": true
                 }
               }
             }

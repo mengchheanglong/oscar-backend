@@ -1,4 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { createHash, createHmac } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
@@ -46,12 +54,38 @@ const evidenceSchema = z.object({
   page_end: z.number().int().positive().nullable(),
   start_ms: z.number().int().nonnegative().nullable(),
   end_ms: z.number().int().nonnegative().nullable(),
+  full_text_length: z.number().int().nonnegative().optional().nullable(),
+  is_truncated: z.boolean().optional(),
 });
 const responseSchema = (limit: number) =>
   z.object({
     retrieval_mode_used: z.enum(['keyword', 'semantic', 'hybrid']),
     results: z.array(evidenceSchema).max(limit),
   });
+
+const passageInspectResponseSchema = z.object({
+  chunk_id: z.uuid(),
+  document_id: z.uuid(),
+  collection_id: z.string().max(100),
+  title: z.string().max(500),
+  book_id: z.uuid().nullable().optional(),
+  author: z.string().max(300).nullable().optional(),
+  edition: z.string().max(200).nullable().optional(),
+  chapter: z.string().max(1000).nullable().optional(),
+  locator: z.string().max(1000).nullable().optional(),
+  page_start: z.number().int().positive().nullable().optional(),
+  page_end: z.number().int().positive().nullable().optional(),
+  start_ms: z.number().int().nonnegative().nullable().optional(),
+  end_ms: z.number().int().nonnegative().nullable().optional(),
+  revision: z.number().int().positive(),
+  text: z.string(),
+  char_count: z.number().int().nonnegative(),
+  extraction: z.string().max(100).nullable().optional(),
+  review_required: z.boolean().optional(),
+  coverage_note: z.string().max(300).nullable().optional(),
+  source_url: publicUrl.nullable().optional(),
+  is_truncated: z.boolean().optional(),
+});
 
 @Injectable()
 export class KnowledgeClientService {
@@ -296,11 +330,90 @@ export class KnowledgeClientService {
           pageEnd: item.page_end ?? undefined,
           startMs: item.start_ms ?? undefined,
           endMs: item.end_ms ?? undefined,
+          fullTextLength: item.full_text_length ?? undefined,
+          isTruncated: item.is_truncated ?? false,
         })),
       };
     } catch {
       this.logger.warn('KNOWLEDGE_UNAVAILABLE');
       return { evidence: [], unavailable: true };
+    }
+  }
+
+  async inspectPassage(
+    userId: string,
+    params: { chunkId: string; documentId: string; revision: number },
+  ) {
+    if (!this.config.get<boolean>('OSCAR_KNOWLEDGE_ENABLED', false)) {
+      throw new ServiceUnavailableException('KNOWLEDGE_SERVICE_DISABLED');
+    }
+    const body = JSON.stringify({
+      chunk_id: params.chunkId,
+      document_id: params.documentId,
+      revision: params.revision,
+    });
+    const url =
+      this.config.get<string>('OSCAR_KNOWLEDGE_BASE_URL', 'http://127.0.0.1:8010') +
+      '/internal/v1/passage';
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        redirect: 'error',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.config.get<string>('OSCAR_KNOWLEDGE_SERVICE_TOKEN', '')}`,
+          ...this.scopeHeaders(body, userId),
+        },
+        body,
+        signal: AbortSignal.timeout(5000),
+      });
+
+      if (response.status === 401) throw new UnauthorizedException('KNOWLEDGE_AUTH_FAILED');
+      if (response.status === 403) throw new ForbiddenException('KNOWLEDGE_ACCESS_DENIED');
+      if (response.status === 404) throw new NotFoundException('KNOWLEDGE_PASSAGE_NOT_FOUND');
+      if (response.status === 409) throw new ConflictException('KNOWLEDGE_STALE_REVISION');
+      if (response.status === 410) throw new NotFoundException('KNOWLEDGE_PASSAGE_UNAVAILABLE');
+      if (!response.ok) throw new ServiceUnavailableException('KNOWLEDGE_UNAVAILABLE');
+
+      const json = await response.json();
+      const parsed = passageInspectResponseSchema.parse(json);
+      return {
+        chunkId: parsed.chunk_id,
+        documentId: parsed.document_id,
+        collectionId: parsed.collection_id,
+        title: parsed.title,
+        bookId: parsed.book_id ?? undefined,
+        author: parsed.author ?? undefined,
+        edition: parsed.edition ?? undefined,
+        chapter: parsed.chapter ?? undefined,
+        locator: parsed.locator ?? undefined,
+        pageStart: parsed.page_start ?? undefined,
+        pageEnd: parsed.page_end ?? undefined,
+        startMs: parsed.start_ms ?? undefined,
+        endMs: parsed.end_ms ?? undefined,
+        revision: parsed.revision,
+        text: parsed.text,
+        charCount: parsed.char_count,
+        extraction: parsed.extraction ?? undefined,
+        reviewRequired: parsed.review_required ?? false,
+        coverageNote: parsed.coverage_note ?? undefined,
+        sourceUrl: parsed.source_url ?? undefined,
+        isTruncated: parsed.is_truncated ?? false,
+      };
+    } catch (err) {
+      if (
+        err instanceof UnauthorizedException ||
+        err instanceof ForbiddenException ||
+        err instanceof NotFoundException ||
+        err instanceof ConflictException ||
+        err instanceof ServiceUnavailableException
+      ) {
+        throw err;
+      }
+      this.logger.warn(
+        `KNOWLEDGE_PASSAGE_INSPECT_FAILED: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      throw new ServiceUnavailableException('KNOWLEDGE_UNAVAILABLE');
     }
   }
 }

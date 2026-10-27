@@ -389,4 +389,138 @@ describe('optional curated knowledge', () => {
     expect(assembled.evidenceText).toContain(`[Evidence #${assembled.evidenceItems.length}]`);
     expect(assembled.evidenceItems.length).toBeLessThan(sources.length);
   });
+
+  describe('inspectPassage', () => {
+    const actor = '6f2c5950-8eaa-4cc7-a78c-3dec8c637ab6';
+    const params = {
+      chunkId: 'd5595603-f3e2-5043-ae67-94645483b84a',
+      documentId: 'c2835011-09e7-4d96-a8fc-7310b919fc61',
+      revision: 1,
+    };
+    const mockInspectResponse = {
+      chunk_id: 'd5595603-f3e2-5043-ae67-94645483b84a',
+      document_id: 'c2835011-09e7-4d96-a8fc-7310b919fc61',
+      collection_id: 'personal-library',
+      title: 'MIT Lecture 21',
+      book_id: '1c5089a4-1995-4584-86a6-6d0cfeb666fb',
+      author: 'Bill Aulet',
+      edition: 'Spring 2013',
+      chapter: 'Scaling',
+      locator: 'Page 19',
+      page_start: 19,
+      page_end: 19,
+      start_ms: null,
+      end_ms: null,
+      revision: 1,
+      text: 'Indicators \n* Customer are buying the product/offering\n* Pattern setting in (similar products & value prop)\n* WOM possible',
+      char_count: 115,
+      extraction: 'NATIVE_PDF_TEXT',
+      review_required: false,
+      coverage_note: null,
+      source_url: 'https://example.org/mit15_390_lec21.pdf',
+      is_truncated: false,
+    };
+
+    const createService = (enabled = true) =>
+      new KnowledgeClientService(
+        new ConfigService({
+          OSCAR_KNOWLEDGE_ENABLED: enabled,
+          OSCAR_KNOWLEDGE_SERVICE_TOKEN: 'service-token-123456789',
+          OSCAR_KNOWLEDGE_PRIVATE_SCOPE_SECRET: 'independent-private-test-signing-key-123456789',
+        }),
+      );
+
+    it('successfully retrieves full permitted passage with HMAC-signed private scope', async () => {
+      const service = createService();
+      const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValueOnce(
+        new Response(JSON.stringify(mockInspectResponse), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      const result = await service.inspectPassage(actor, params);
+      expect(result.chunkId).toBe(params.chunkId);
+      expect(result.text).toContain('Indicators');
+      expect(result.charCount).toBe(115);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+      const [url, request] = fetchSpy.mock.calls[0]!;
+      expect(String(url)).toContain('/internal/v1/passage');
+      expect(request!.method).toBe('POST');
+      const authHeader = (request!.headers as Record<string, string>)['Authorization'];
+      expect(authHeader).toMatch(/^Bearer /);
+      const scopeHeader = (request!.headers as Record<string, string>)['X-OSCAR-Private-Scope'];
+      expect(scopeHeader).toBeDefined();
+      const [payloadB64, sig] = scopeHeader!.split('.');
+      const claims = JSON.parse(Buffer.from(payloadB64!, 'base64url').toString());
+      expect(claims.sub).toBe(actor);
+      expect(sig).toBeDefined();
+    });
+
+    it('throws UnauthorizedException on 401', async () => {
+      const service = createService();
+      jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ detail: 'Missing bearer token' }), { status: 401 }),
+        );
+      await expect(service.inspectPassage(actor, params)).rejects.toThrow('KNOWLEDGE_AUTH_FAILED');
+    });
+
+    it('throws ForbiddenException on 403 access denied', async () => {
+      const service = createService();
+      jest.spyOn(global, 'fetch').mockResolvedValueOnce(
+        new Response(JSON.stringify({ detail: 'Access denied to private document' }), {
+          status: 403,
+        }),
+      );
+      await expect(service.inspectPassage(actor, params)).rejects.toThrow(
+        'KNOWLEDGE_ACCESS_DENIED',
+      );
+    });
+
+    it('throws NotFoundException on 404', async () => {
+      const service = createService();
+      jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ detail: 'Document not found' }), { status: 404 }),
+        );
+      await expect(service.inspectPassage(actor, params)).rejects.toThrow(
+        'KNOWLEDGE_PASSAGE_NOT_FOUND',
+      );
+    });
+
+    it('throws ConflictException on 409 stale revision', async () => {
+      const service = createService();
+      jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ detail: 'Stale document revision' }), { status: 409 }),
+        );
+      await expect(service.inspectPassage(actor, params)).rejects.toThrow(
+        'KNOWLEDGE_STALE_REVISION',
+      );
+    });
+
+    it('throws NotFoundException on 410 excluded chunk', async () => {
+      const service = createService();
+      jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ detail: 'Chunk excluded' }), { status: 410 }),
+        );
+      await expect(service.inspectPassage(actor, params)).rejects.toThrow(
+        'KNOWLEDGE_PASSAGE_UNAVAILABLE',
+      );
+    });
+
+    it('throws ForbiddenException when knowledge service is disabled', async () => {
+      const service = createService(false);
+      await expect(service.inspectPassage(actor, params)).rejects.toThrow(
+        'KNOWLEDGE_SERVICE_DISABLED',
+      );
+    });
+  });
 });

@@ -18,4 +18,7 @@ export interface AssistantEvidence extends Omit<RetrievedEvidence, 'sourceType'>
   pageEnd?: number;
   startMs?: number;
   endMs?: number;
+  fullTextLength?: number;
+  isTruncated?: boolean;
+  exactExcerpt?: string;
 }

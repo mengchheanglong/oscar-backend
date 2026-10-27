@@ -51,6 +51,9 @@ export interface CitationItem {
   snippet?: string;
   projectName?: string;
   projectKey?: string;
+  fullTextLength?: number;
+  isTruncated?: boolean;
+  exactExcerpt?: string;
 }
 
 @Entity('ai_messages')

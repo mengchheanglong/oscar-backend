@@ -480,6 +480,9 @@ export class AssistantService implements OnModuleInit {
           pageEnd: matched.pageEnd,
           startMs: matched.startMs,
           endMs: matched.endMs,
+          fullTextLength: matched.fullTextLength,
+          isTruncated: matched.isTruncated,
+          exactExcerpt: matched.exactExcerpt,
         };
       });
 
