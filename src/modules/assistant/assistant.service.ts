@@ -1,6 +1,7 @@
 import { AttachmentsService } from './attachments.service';
 import { SkillsService } from '../skills/skills.service';
 import { KnowledgeClientService } from '../knowledge-client/knowledge-client.service';
+import { referenceQueryPlan } from '../knowledge-client/knowledge-query-plan';
 import { skillContext } from '../skills/skill-context';
 import { PlatformsService } from '../platforms/platforms.service';
 import { MavisService } from '../mavis/mavis.service';
@@ -366,9 +367,14 @@ export class AssistantService implements OnModuleInit {
       includeAllWorkspaces ? undefined : (project?.instructions ?? undefined),
       activeGoals,
       mavisMemories,
+      [],
+      !!dto.includeKnowledge && referenceQueryPlan(dto.content).length > 1,
     );
 
     assembled.systemPrompt += skillContext(selectedSkills);
+    if (dto.includeKnowledge && referenceQueryPlan(dto.content).length > 1)
+      assembled.systemPrompt +=
+        '\nFor this broad business-learning request, teach from the included reference passages across their covered topics, then apply the principles to the project. Project records supply application context, not a substitute for business teaching. Cite the current numbered evidence. Distinguish source-backed principles from your recommendations. Reading indexes and tables of contents are pointers, not substantive support for lessons; glossary definitions support definitions only. Omit unsupported teaching claims or label them as general reasoning. Describe limitations of the retrieved excerpts; do not infer that the entire library is thin or lacks a subject from this bounded sample.';
     if (dto.includeKnowledge) {
       assembled.systemPrompt +=
         '\nExternal knowledge retrieval status (server metadata): ' +

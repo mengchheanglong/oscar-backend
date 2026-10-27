@@ -12,6 +12,46 @@ describe('ContextAssembler', () => {
     assembler = new ContextAssembler();
   });
 
+  it('keeps diverse reference passages and project application context for a learning overview', () => {
+    const project: RetrievedEvidence = {
+      chunkId: 'project',
+      sourceId: 'project-doc',
+      title: 'Project plan',
+      revision: 1,
+      locator: 'Plan',
+      sourceType: KnowledgeSourceType.DOCUMENT,
+      snippet: 'Project context. '.repeat(800),
+      score: 1,
+    };
+    const references = Array.from({ length: 6 }, (_, i) => ({
+      ...project,
+      chunkId: `reference-${i}`,
+      sourceId: `book-${i}`,
+      sourceType: 'EXTERNAL_KNOWLEDGE' as const,
+      title: `Book ${i}`,
+      snippet: 'Explanatory business principle. '.repeat(100),
+    }));
+    const result = assembler.assemble(
+      'Test',
+      AssistantMode.WORKSPACE,
+      [project, ...references],
+      false,
+      undefined,
+      [],
+      undefined,
+      [],
+      [],
+      [],
+      true,
+    );
+    expect(result.evidenceItems[0]!.chunkId).toBe('project');
+    expect(
+      result.evidenceItems.filter((e) => e.sourceType === 'EXTERNAL_KNOWLEDGE').length,
+    ).toBeGreaterThanOrEqual(5);
+    expect(result.evidenceText.length).toBeLessThanOrEqual(16000);
+    expect(result.evidenceText).toContain('[Evidence #6]');
+  });
+
   it('assembles system prompt with untrusted data boundary rules', () => {
     const evidence: RetrievedEvidence[] = [
       {

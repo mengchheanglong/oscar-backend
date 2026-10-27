@@ -90,6 +90,7 @@ export class ContextAssembler {
     goals: Goal[] = [],
     mavisMemories: MavisMemoryItem[] = [],
     mavisRawRuns: MavisExecutionResultItem[] = [],
+    referenceOverview = false,
   ): AssembledContext {
     const maxChars = this.maxEvidenceTokens * this.approxCharsPerToken;
     let accumulatedChars = 0;
@@ -105,8 +106,8 @@ export class ContextAssembler {
       const external = item.sourceType === 'EXTERNAL_KNOWLEDGE';
       const categoryRemaining = hasExternal
         ? external
-          ? 5000 - externalChars
-          : 10000 - workspaceChars
+          ? (referenceOverview ? 9000 : 5000) - externalChars
+          : (referenceOverview ? 6000 : 10000) - workspaceChars
         : maxChars - accumulatedChars;
       if (categoryRemaining < 500) continue;
       const workspaceLine = item.projectName
@@ -136,7 +137,11 @@ Content:\n`;
       }
 
       const separatorChars = includedEvidence.length ? 7 : 0;
-      const available = Math.min(categoryRemaining, maxChars - accumulatedChars - separatorChars);
+      const available = Math.min(
+        categoryRemaining,
+        maxChars - accumulatedChars - separatorChars,
+        external && referenceOverview ? 1600 : maxChars,
+      );
       if (available <= header.length + 1) continue;
       const includedText = content.slice(0, available - header.length - 1);
       const boundedBlock = header + includedText + '\n';

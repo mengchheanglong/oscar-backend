@@ -31,6 +31,85 @@ function client(enabled = true) {
 }
 describe('optional curated knowledge', () => {
   afterEach(() => jest.restoreAllMocks());
+  it('uses bounded signed topic searches and preserves valid evidence if one topic fails', async () => {
+    const actor = 'c37c3283-30d8-4d43-99a3-2319f3bf2049';
+    const scoped = new KnowledgeClientService(
+      new ConfigService({
+        OSCAR_KNOWLEDGE_ENABLED: true,
+        OSCAR_KNOWLEDGE_PRIVATE_SCOPE_SECRET: 'independent-private-test-signing-key-123456789',
+      }),
+    );
+    const fetch = jest.spyOn(global, 'fetch');
+    const passage = (id: string, text: string) => ({
+      ...result,
+      chunk_id: id,
+      text,
+      snippet: text.slice(0, 200),
+    });
+    fetch
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            retrieval_mode_used: 'hybrid',
+            results: [
+              passage(result.chunk_id, 'Learning objectives. Chapter outline. Strategy.'),
+              passage(
+                'c37c3283-30d8-4d43-99a3-2319f3bf2047',
+                'A competitive advantage requires a valuable capability. '.repeat(8),
+              ),
+            ],
+          }),
+        ),
+      )
+      .mockResolvedValueOnce(new Response('unavailable', { status: 503 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            retrieval_mode_used: 'hybrid',
+            results: [
+              passage(
+                'c37c3283-30d8-4d43-99a3-2319f3bf2048',
+                'Market segmentation separates buyers by distinct needs. '.repeat(8),
+              ),
+            ],
+          }),
+        ),
+      );
+    const answer = await scoped.retrieve('Teach me business fundamentals', actor, 'all');
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(answer.unavailable).toBe(false);
+    expect(answer.evidence[0]!.chunkId).toBe('c37c3283-30d8-4d43-99a3-2319f3bf2047');
+    expect(answer.evidence[1]!.chunkId).toBe('c37c3283-30d8-4d43-99a3-2319f3bf2048');
+    for (const [, request] of fetch.mock.calls) {
+      const body = JSON.parse(request!.body as string);
+      expect(body.collection_ids).toEqual(['mba-business', 'personal-library', 'social-systems']);
+      expect(body.top_k).toBe(4);
+      const [payload, signature] = (request!.headers as Record<string, string>)[
+        'X-OSCAR-Private-Scope'
+      ]!.split('.');
+      const claims = JSON.parse(Buffer.from(payload!, 'base64url').toString());
+      expect(claims.sub).toBe(actor);
+      expect(claims.body_sha256).toBe(
+        createHash('sha256')
+          .update(request!.body as string)
+          .digest('hex'),
+      );
+      expect(signature).toBeDefined();
+    }
+  });
+  it('stops additional topic searches when the shared deadline expires', async () => {
+    const now = jest.spyOn(Date, 'now');
+    now.mockReturnValueOnce(10000).mockReturnValueOnce(10000).mockReturnValue(13000);
+    const fetch = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(
+        new Response(JSON.stringify({ retrieval_mode_used: 'keyword', results: [result] })),
+      );
+    const answer = await client().retrieve('MBA business lessons');
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(answer.evidence).toHaveLength(1);
+    expect(answer.unavailable).toBe(false);
+  });
   it('combines shared and authenticated private scopes without accepting unrelated collections', async () => {
     const actor = 'c37c3283-30d8-4d43-99a3-2319f3bf2049';
     const scoped = new KnowledgeClientService(

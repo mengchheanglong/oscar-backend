@@ -1,5 +1,22 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-27 broad business learning: short MBA/business learning requests now
+> search strategy/customer value, unit economics/cash flow and markets separately
+> under one existing retrieval deadline. Results are interleaved, deduplicated and
+> bounded by source; normal specific/named-source queries keep their original text.
+> Overview turns reserve more of the unchanged context ceiling for reference
+> passages. Navigation/glossary passages receive lower priority; the answer must
+> distinguish reading pointers, definitions, substantive teaching and application.
+> Authentication, owner signatures, opt-out and generation settings are unchanged.
+> Validation: 469 unit tests, 173 E2E tests, lint/typecheck/build/format passed;
+> after final query/prompt refinement, 36 affected tests and build passed again.
+> Two live original-prompt checks completed with the existing deepseek-flash
+> configuration. Final output cited six passages covering strategy, substantive
+> segmentation/customer value and contribution-margin/break-even teaching;
+> citations survived saved-message reload and identical-request replay.
+> Private live receipts are in ignored var/business-overview. PDF cleaning remains
+> deferred; this bounded retrieval improvement is not full MBA coverage proof.
+
 > 2026-10-27 unified reference library: the local composer defaults Knowledge on
 > and removes the source-category selector. Project evidence and all permitted
 > reference sources share one answer/citation flow. Opted-in API requests default

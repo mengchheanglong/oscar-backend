@@ -3,6 +3,7 @@ import { createHash, createHmac } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 import { AssistantEvidence } from './knowledge-evidence';
+import { referenceQueryPlan } from './knowledge-query-plan';
 
 const publicUrl = z
   .string()
@@ -130,6 +131,54 @@ export class KnowledgeClientService {
     userId?: string,
     scope: 'mba' | 'social-systems' | 'personal-library' | 'all' = 'mba',
   ): Promise<{ evidence: AssistantEvidence[]; unavailable: boolean }> {
+    const queries = referenceQueryPlan(query);
+    if (queries.length === 1) return this.retrieveSingle(query, userId, scope);
+    const deadline = Date.now() + this.config.get<number>('OSCAR_KNOWLEDGE_TIMEOUT_MS', 2500);
+    const batches: AssistantEvidence[][] = [];
+    let successful = 0;
+    for (const topic of queries) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) break;
+      const result = await this.retrieveSingle(topic, userId, scope, remaining);
+      if (!result.unavailable) successful++;
+      // Soft ordering only: introductory text is not automatically invalid evidence.
+      batches.push(result.evidence.sort((a, b) => this.navigationRisk(a) - this.navigationRisk(b)));
+    }
+    const evidence: AssistantEvidence[] = [];
+    const seen = new Set<string>();
+    const books = new Map<string, number>();
+    for (let rank = 0; rank < 4; rank++) {
+      for (const batch of batches) {
+        const item = batch[rank];
+        if (!item || seen.has(item.chunkId)) continue;
+        const key = item.bookId ?? item.sourceId;
+        if ((books.get(key) ?? 0) >= 2) continue;
+        seen.add(item.chunkId);
+        books.set(key, (books.get(key) ?? 0) + 1);
+        evidence.push(item);
+        if (evidence.length === 8) return { evidence, unavailable: false };
+      }
+    }
+    return { evidence, unavailable: successful === 0 };
+  }
+
+  private navigationRisk(item: AssistantEvidence): number {
+    const text = item.text ?? item.snippet;
+    return (
+      Number(
+        /learning objectives|table of contents|what.s in it for me|chapter outline|located reading evidence|glossary/i.test(
+          text,
+        ),
+      ) + Number(text.length < 300)
+    );
+  }
+
+  private async retrieveSingle(
+    query: string,
+    userId?: string,
+    scope: 'mba' | 'social-systems' | 'personal-library' | 'all' = 'mba',
+    timeoutMs = this.config.get<number>('OSCAR_KNOWLEDGE_TIMEOUT_MS', 2500),
+  ): Promise<{ evidence: AssistantEvidence[]; unavailable: boolean }> {
     if (!this.config.get<boolean>('OSCAR_KNOWLEDGE_ENABLED', false))
       return { evidence: [], unavailable: true };
     try {
@@ -164,7 +213,7 @@ export class KnowledgeClientService {
             ...(scope !== 'mba' ? this.scopeHeaders(body, userId!) : {}),
           },
           body,
-          signal: AbortSignal.timeout(this.config.get<number>('OSCAR_KNOWLEDGE_TIMEOUT_MS', 2500)),
+          signal: AbortSignal.timeout(timeoutMs),
         },
       );
       if (!response.ok || !response.body) throw new Error('KNOWLEDGE_HTTP_ERROR');

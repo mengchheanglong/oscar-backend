@@ -1,5 +1,43 @@
 # Local external knowledge integration
 
+## Broad business lessons — 2026-10-27
+
+Short broad business/MBA learning requests use three bounded topic searches:
+strategy/customer value, unit economics/cash flow, and markets. This addresses
+the original `lessons of doing business MBA` question returning mainly an ethics
+oath and chapter openings. Specific or named-source questions keep the original
+query. This is a deterministic introductory-business heuristic, not a general
+curriculum planner or coverage guarantee for every discipline or language.
+
+Each search keeps the same permitted collections, authenticated owner signature,
+response limits and shared retrieval deadline. A successful topic's evidence
+survives another topic's failure. Merge order alternates topics, removes duplicate
+chunks and limits each source to two passages (eight total). Navigation/index and
+glossary text is softly deprioritized, not deleted or certified as invalid.
+
+Overview context reserves 9000 characters for references and 6000 for project
+evidence within the unchanged 16000-character ceiling; individual reference
+blocks are capped at 1600 characters including metadata. Ordinary queries retain
+their previous budgets. No additional generation call or model change is needed.
+Teaching must distinguish sourced principles from project recommendations and
+must not use indexes as substantive support or infer corpus-wide gaps from a
+small retrieved sample. This does not guarantee every generated claim is grounded.
+
+Verification: 469 backend unit tests and 173 E2E tests passed, plus lint, typecheck,
+build and format. After final query/prompt refinement, all 36 affected tests and
+the build passed again. Normal local authentication, private-scope readiness and
+owner-scoped collection checks pass. Live acceptance uses the ordinary frontend
+API with the original short prompt and the existing generation provider, without
+naming source books. Two real requests completed; the final answer cited six
+passages from shared MBA and private Social Systems sources, including Playing
+to Win, Kotler's segmentation discussion, customer value and CVP/contribution
+margin teaching. Reading-index support seen in the first run was replaced with
+substantive segmentation passages after refinement. Saved citations survived
+message reload and identical-request replay. These are sampled answers, not a
+universal correctness guarantee. Private receipts, responses and stable retry IDs stay under
+ignored `var/business-overview`. The browser CLI stalled this round; live checks
+use the normal authenticated app API, not a fresh browser-flow verification.
+
 ## Current unified chat behavior — 2026-10-27
 
 The local composer starts with one **Knowledge** checkbox enabled and searches
