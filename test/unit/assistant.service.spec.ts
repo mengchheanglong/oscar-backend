@@ -1,6 +1,6 @@
 import { SkillsService } from '../../src/modules/skills/skills.service';
 import { ConversationContextService } from '../../src/modules/assistant/context/conversation-context.service';
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { AssistantService } from '../../src/modules/assistant/assistant.service';
 import { ContextAssembler } from '../../src/modules/assistant/context/context-assembler';
@@ -379,6 +379,7 @@ describe('AssistantService', () => {
           ...request,
           includeKnowledge: true,
         });
+        expect(knowledge.retrieve).toHaveBeenCalledWith(request.content, mockUserId, 'all');
         expect(answer.assistantMessage.citations).toEqual([
           expect.objectContaining({
             sourceType: 'EXTERNAL_KNOWLEDGE',
@@ -414,6 +415,28 @@ describe('AssistantService', () => {
         Object.assign(service, { knowledge });
         await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
         expect(knowledge.retrieve).not.toHaveBeenCalled();
+      });
+
+      it('replays omitted and explicit unified scopes but rejects narrowing a saved request', async () => {
+        const knowledge = {
+          retrieve: jest.fn().mockResolvedValue({ evidence: [], unavailable: false }),
+        };
+        Object.assign(service, { knowledge });
+        const unified = { ...request, includeKnowledge: true };
+        const first = await service.postMessage(mockProjectId, mockUserId, 'conv-1', unified);
+        const replay = await service.postMessage(mockProjectId, mockUserId, 'conv-1', {
+          ...unified,
+          knowledgeScope: 'all',
+        });
+        expect(replay).toEqual(first);
+        expect(knowledge.retrieve).toHaveBeenCalledTimes(1);
+        expect(knowledge.retrieve).toHaveBeenCalledWith(request.content, mockUserId, 'all');
+        await expect(
+          service.postMessage(mockProjectId, mockUserId, 'conv-1', {
+            ...unified,
+            knowledgeScope: 'mba',
+          }),
+        ).rejects.toThrow(ConflictException);
       });
 
       it('replays a saved response after delivery is lost without another provider call or message', async () => {

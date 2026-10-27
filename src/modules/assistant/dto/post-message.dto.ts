@@ -15,7 +15,7 @@ import { KnowledgeSourceType, ACTIVE_KNOWLEDGE_SOURCE_TYPES } from '../../ingest
 export class PostMessageDto {
   @ApiPropertyOptional({
     enum: ['mba', 'social-systems', 'personal-library', 'all'],
-    default: 'mba',
+    default: 'all',
   })
   @IsOptional()
   @IsIn(['mba', 'social-systems', 'personal-library', 'all'])

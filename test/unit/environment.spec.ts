@@ -167,6 +167,15 @@ describe('Environment validation', () => {
     ).toThrow();
   });
 
+  it('bounds the optional large-library request budget', () => {
+    expect(
+      validateEnvironment({ ...valid, OSCAR_KNOWLEDGE_TIMEOUT_MS: '25000' })
+        .OSCAR_KNOWLEDGE_TIMEOUT_MS,
+    ).toBe(25000);
+    expect(() => validateEnvironment({ ...valid, OSCAR_KNOWLEDGE_TIMEOUT_MS: '30001' })).toThrow();
+    expect(validateEnvironment(valid).OSCAR_KNOWLEDGE_TIMEOUT_MS).toBe(2500);
+  });
+
   it('treats empty strings as defaults for AI configuration fields', () => {
     const config = validateEnvironment({
       ...valid,

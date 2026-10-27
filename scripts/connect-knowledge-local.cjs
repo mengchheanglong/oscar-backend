@@ -40,8 +40,11 @@ async function main() {
     OSCAR_KNOWLEDGE_BASE_URL: 'http://127.0.0.1:8010',
     OSCAR_KNOWLEDGE_SERVICE_TOKEN: token,
     OSCAR_KNOWLEDGE_COLLECTION: collection,
-    OSCAR_KNOWLEDGE_TIMEOUT_MS: '2500',
+    OSCAR_KNOWLEDGE_TIMEOUT_MS: backend.OSCAR_KNOWLEDGE_TIMEOUT_MS || '2500',
   };
+  const timeout = Number(desired.OSCAR_KNOWLEDGE_TIMEOUT_MS);
+  if (!Number.isInteger(timeout) || timeout < 100 || timeout > 30000)
+    throw new Error('INVALID_KNOWLEDGE_TIMEOUT');
   if (process.argv.includes('--check')) {
     if (Object.entries(desired).some(([key, value]) => backend[key] !== value))
       throw new Error('KNOWLEDGE_LOCAL_CONFIG_MISMATCH');

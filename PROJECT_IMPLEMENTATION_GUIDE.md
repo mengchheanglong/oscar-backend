@@ -1,5 +1,20 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-27 unified reference library: the local composer defaults Knowledge on
+> and removes the source-category selector. Project evidence and all permitted
+> reference sources share one answer/citation flow. Opted-in API requests default
+> omitted knowledgeScope to all; explicit legacy scopes and explicit opt-out remain.
+> Retry identity binds the effective scope. Private owner signatures, document
+> revisions, model settings and original data are preserved. A live combined-book
+> question exposed the five-second SQL budget; bounded local budgets are now ten
+> seconds per statement and 25 seconds per app retrieval request. Full PDF-content
+> cleaning remains deferred. See docs/operations/KNOWLEDGE_LOCAL.md for operation
+> and the ignored var/unified-knowledge directory for private live receipts.
+> Validation: 458 unit/173 E2E tests, lint/typecheck/build/format/OpenAPI passed;
+> sibling Knowledge 131 passed/one optional skipped and frontend 34 passed with
+> lint/typecheck/build. Real browser acceptance covered combined private/social
+> citations, shared MBA citations, source previews after reload and opt-out.
+
 > 2026-10-27 chat attachment lifecycle: composer uploads now create/select a chat
 > and store originals/extracted passages outside shared document/index tables.
 > Existing uploads remain project knowledge. The rail lists uploads before citation,

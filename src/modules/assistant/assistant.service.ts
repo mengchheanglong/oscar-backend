@@ -202,6 +202,7 @@ export class AssistantService implements OnModuleInit {
       throw new NotFoundException('Select the goal project before reviewing it.');
 
     const mode = dto.mode || conversation.defaultMode || AssistantMode.PM;
+    const knowledgeScope = dto.knowledgeScope ?? (dto.includeKnowledge ? 'all' : 'mba');
 
     const requestFingerprint = dto.clientRequestId
       ? createHash('sha256')
@@ -213,7 +214,7 @@ export class AssistantService implements OnModuleInit {
               dto.sourceType ?? null,
               dto.includeAllWorkspaces ?? null,
               ...(dto.includeKnowledge ? [true] : []),
-              ...(dto.knowledgeScope && dto.knowledgeScope !== 'mba' ? [dto.knowledgeScope] : []),
+              ...(knowledgeScope !== 'mba' ? [knowledgeScope] : []),
             ]),
           )
           .digest('hex')
@@ -300,7 +301,7 @@ export class AssistantService implements OnModuleInit {
 
     // Start bounded supplementary retrieval only for explicit opt-in.
     const knowledgePromise = dto.includeKnowledge
-      ? (this.knowledge?.retrieve(dto.content, userId, dto.knowledgeScope) ??
+      ? (this.knowledge?.retrieve(dto.content, userId, knowledgeScope) ??
         Promise.resolve({ evidence: [], unavailable: true }))
       : Promise.resolve({ evidence: [], unavailable: false });
     // Retrieve evidence

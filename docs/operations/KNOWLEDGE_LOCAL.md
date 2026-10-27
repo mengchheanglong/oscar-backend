@@ -1,5 +1,44 @@
 # Local external knowledge integration
 
+## Current unified chat behavior — 2026-10-27
+
+The local composer starts with one **Knowledge** checkbox enabled and searches
+all permitted reference sources alongside ordinary project context. There is no
+MBA/Personal Library/Social Systems selector. Categories remain metadata for
+provenance and access control; original data and grants are preserved.
+
+Authenticated chat API requests with `includeKnowledge: true` default omitted
+`knowledgeScope` to `all`. Explicit legacy scopes remain compatible. Omitted or
+false `includeKnowledge` still opts API callers out. Scope participates in retry
+identity: changing a saved unified request to MBA-only is rejected.
+
+The normal local authentication and private-owner readiness checks pass. A live
+combined-book question exposed the existing 5000 ms SQL statement limit. The
+local Knowledge budget is now 10000 ms per statement and the app request budget
+is 25000 ms. Tracked defaults remain 5000 and 2500 respectively; the app permits
+bounded overrides up to 30000 ms. The connector preserves a configured budget.
+Readiness is not inferred from a failed collection-status request. Missing or
+unavailable supplementary retrieval still produces an explicit answer notice.
+
+Do not change generation-provider settings, copy private data into shared
+collections, or reset databases to unify the experience. Existing source OCR,
+edition and full-transcription limitations remain. PDF cleaning is still deferred.
+
+The sections below describe earlier scoped-picker behavior and historical checks.
+
+Current verification: 458 backend unit and 173 E2E tests passed; lint,
+typecheck, build, format and regenerated OpenAPI passed. Knowledge passed 131
+tests with one optional model test skipped, plus Ruff/mypy. Frontend passed 34
+tests, lint, typecheck and production build. Real browser tests retrieved both
+personal-library and social-systems books in one answer, then shared mba-majors
+course citations through the same default scope. Physical-page previews survived
+reload; a fresh opt-out turn produced no external citation buttons. Authentication
+and owner-readiness scripts pass. Private screenshots/receipt are in
+`var/unified-knowledge` (ignored). This is bounded integration acceptance: one
+answer used prose bibliographic references without interactive markers; a later
+numbered-citation request returned both clickable previews. It does not establish
+universal citation or source-factual correctness.
+
 ## Private reference library
 
 The local private library is available through the same service and composer.

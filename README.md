@@ -3,15 +3,15 @@
 Main app document, memory and history embeddings default to pinned local Qwen
 0.6B. See [local embedding setup and rollback](docs/operations/LOCAL_EMBEDDINGS.md).
 
-Local curated reference retrieval is available through the independent sibling
-`oscar-knowledge` service. See [local knowledge integration](docs/operations/KNOWLEDGE_LOCAL.md)
-for connecting the private token, starting the stack, enabling **Course knowledge**
-per chat turn, and running the explicit live verification. Tracked defaults remain
-disabled; the current local installation has the approved MBA demo collection and
-owner-scoped private references. In Assistant, enable **Reference knowledge** and
-select the desired scope. See the sibling Knowledge repository's
-`docs/LIBRARY_COMPLETION_2026_10_26.md` and generated local reports for current
-coverage, processing status and source-quality limits.
+Chat uses one permissioned knowledge flow: project evidence and all permitted
+reference-library sources share the same answer and numbered citations. The
+frontend starts with **Knowledge** enabled; its checkbox provides per-turn opt-out.
+API callers still explicitly set `includeKnowledge`; when true, omitted
+`knowledgeScope` now means `all`. Explicit legacy scopes remain supported.
+See [local knowledge integration](docs/operations/KNOWLEDGE_LOCAL.md).
+The separate library service preserves owner isolation, source provenance and
+source-quality notices. Local installation is connected; tracked service enablement
+still defaults to disabled for an unconfigured installation.
 
 Chat composer uploads are now private [chat attachments](docs/product/CHAT_ATTACHMENTS.md).
 Existing uploads remain project knowledge. Files can be explicitly promoted to

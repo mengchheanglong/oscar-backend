@@ -11082,7 +11082,7 @@
               "personal-library",
               "all"
             ],
-            "default": "mba"
+            "default": "all"
           },
           "includeKnowledge": {
             "type": "boolean",
