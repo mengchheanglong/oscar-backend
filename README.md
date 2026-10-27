@@ -5,8 +5,12 @@ Main app document, memory and history embeddings default to pinned local Qwen
 
 Chat uses one permissioned knowledge flow: project evidence and all permitted
 reference-library sources share the same answer and numbered citations. The
-frontend starts with **Knowledge** enabled; its checkbox provides per-turn opt-out.
-API callers still explicitly set `includeKnowledge`; when true, omitted
+frontend starts with **Knowledge** enabled. This local installation now uses
+**Sources required**: every ordinary Assistant turn retrieves sources, and
+unsupported or uncited drafts are withheld. `OSCAR_KNOWLEDGE_REQUIRED=true`
+enforces this on the server even when a client omits or disables Knowledge.
+Unconfigured installations retain optional retrieval and per-turn opt-out.
+In optional mode, API callers explicitly set `includeKnowledge`; when true, omitted
 `knowledgeScope` now means `all`. Explicit legacy scopes remain supported.
 See [local knowledge integration](docs/operations/KNOWLEDGE_LOCAL.md).
 The separate library service preserves owner isolation, source provenance and

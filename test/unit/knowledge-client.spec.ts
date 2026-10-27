@@ -166,6 +166,23 @@ describe('optional curated knowledge', () => {
       unavailable: false,
     });
   });
+  it('uses the original focused query with a wider filtered candidate pool when sources are required', async () => {
+    const fetch = jest.spyOn(global, 'fetch').mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          retrieval_mode_used: 'hybrid',
+          results: [{ ...result, text: 'References\n' + 'https://example.org/paper\n'.repeat(4) }],
+        }),
+      ),
+    );
+    const query = 'How should we calculate contribution margin?';
+    expect(await client().retrieve(query, undefined, 'mba', true)).toEqual({
+      evidence: [],
+      unavailable: false,
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(fetch.mock.calls[0]![1]!.body as string)).toMatchObject({ query, top_k: 12 });
+  });
   it('combines shared and authenticated private scopes without accepting unrelated collections', async () => {
     const actor = 'c37c3283-30d8-4d43-99a3-2319f3bf2049';
     const scoped = new KnowledgeClientService(

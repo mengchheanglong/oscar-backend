@@ -1,3 +1,4 @@
+import { courtesyReply, sourceGap } from './context/source-grounding';
 import { AttachmentsService } from './attachments.service';
 import { SkillsService } from '../skills/skills.service';
 import { KnowledgeClientService } from '../knowledge-client/knowledge-client.service';
@@ -203,7 +204,9 @@ export class AssistantService implements OnModuleInit {
       throw new NotFoundException('Select the goal project before reviewing it.');
 
     const mode = dto.mode || conversation.defaultMode || AssistantMode.PM;
-    const knowledgeScope = dto.knowledgeScope ?? (dto.includeKnowledge ? 'all' : 'mba');
+    const groundingRequired = this.knowledge?.policy?.()?.required ?? false;
+    const includeKnowledge = groundingRequired || dto.includeKnowledge === true;
+    const knowledgeScope = dto.knowledgeScope ?? (includeKnowledge ? 'all' : 'mba');
 
     const requestFingerprint = dto.clientRequestId
       ? createHash('sha256')
@@ -214,8 +217,9 @@ export class AssistantService implements OnModuleInit {
               mode,
               dto.sourceType ?? null,
               dto.includeAllWorkspaces ?? null,
-              ...(dto.includeKnowledge ? [true] : []),
+              ...(includeKnowledge ? [true] : []),
               ...(knowledgeScope !== 'mba' ? [knowledgeScope] : []),
+              ...(groundingRequired ? ['sources-required-v1'] : []),
             ]),
           )
           .digest('hex')
@@ -300,9 +304,11 @@ export class AssistantService implements OnModuleInit {
       }
     }
 
-    // Start bounded supplementary retrieval only for explicit opt-in.
-    const knowledgePromise = dto.includeKnowledge
-      ? (this.knowledge?.retrieve(dto.content, userId, knowledgeScope) ??
+    // Required-source policy is enforced server-side, including omitted/false client flags.
+    const knowledgePromise = includeKnowledge
+      ? ((groundingRequired
+          ? this.knowledge?.retrieve(dto.content, userId, knowledgeScope, true)
+          : this.knowledge?.retrieve(dto.content, userId, knowledgeScope)) ??
         Promise.resolve({ evidence: [], unavailable: true }))
       : Promise.resolve({ evidence: [], unavailable: false });
     // Retrieve evidence
@@ -315,6 +321,7 @@ export class AssistantService implements OnModuleInit {
         filters: dto.sourceType ? { sourceType: dto.sourceType } : undefined,
         limit: includeAllWorkspaces ? 12 : 8,
         mode: 'hybrid',
+        ...(groundingRequired ? { allowWorkspaceFallback: false } : {}),
       })
       .catch(() => {
         this.logger.error('AI_RETRIEVAL_FAILED');
@@ -357,7 +364,8 @@ export class AssistantService implements OnModuleInit {
       : undefined;
     const mavisMemories = mavisPack?.approvedMemories ?? [];
     const supplementary = await knowledgePromise;
-    const referenceOverview = !!dto.includeKnowledge && referenceQueryPlan(dto.content).length > 1;
+    const learningOverview = includeKnowledge && referenceQueryPlan(dto.content).length > 1;
+    const referenceOverview = groundingRequired || learningOverview;
     const assembled = this.contextAssembler.assemble(
       includeAllWorkspaces ? 'All Workspaces' : projectName,
       mode,
@@ -370,13 +378,14 @@ export class AssistantService implements OnModuleInit {
       mavisMemories,
       [],
       referenceOverview,
+      groundingRequired,
     );
 
     assembled.systemPrompt += skillContext(selectedSkills);
-    if (referenceOverview)
+    if (learningOverview)
       assembled.systemPrompt +=
         '\nFor this broad learning request, stay within the subjects and constraints in the user question. Teach from the included reference passages across their covered topics, then apply the principles to the project when relevant. Do not force unrelated project or business applications. Project records supply application context, not a substitute for subject teaching. Cite the current numbered evidence. Distinguish source-backed principles from your recommendations. Reading indexes and tables of contents are pointers, not substantive support for lessons; glossary definitions support definitions only. Omit unsupported teaching claims or label them as general reasoning. Describe limitations of the retrieved excerpts; do not infer that the entire library is thin or lacks a subject from this bounded sample.';
-    if (dto.includeKnowledge) {
+    if (includeKnowledge) {
       assembled.systemPrompt +=
         '\nExternal knowledge retrieval status (server metadata): ' +
         (supplementary.unavailable
@@ -404,11 +413,22 @@ export class AssistantService implements OnModuleInit {
 
     // Generate LLM response
     let generateResult;
+    const courtesy = groundingRequired ? courtesyReply(dto.content) : undefined;
     try {
-      generateResult = await this.llmProvider.generateAnswer({
-        messages: prepared.messages,
-        evidence: assembled.evidenceItems,
-      });
+      generateResult =
+        groundingRequired && (courtesy || !assembled.evidenceItems.length)
+          ? {
+              content: courtesy ?? sourceGap(supplementary.unavailable),
+              citations: [],
+              modelName: 'source-policy',
+              promptTokens: 0,
+              completionTokens: 0,
+            }
+          : await this.llmProvider.generateAnswer({
+              messages: prepared.messages,
+              evidence: assembled.evidenceItems,
+              ...(groundingRequired ? { temperature: 0.2 } : {}),
+            });
     } catch {
       this.logger.error('AI_GENERATION_FAILED');
       const failedMessage = this.messageRepo.create({
@@ -463,17 +483,26 @@ export class AssistantService implements OnModuleInit {
         };
       });
 
+    const hasCurrentCitation = validatedCitations.some((citation) =>
+      generateResult.content.includes('[Evidence #' + citation.evidenceNumber + ']'),
+    );
+    const withholdDraft =
+      groundingRequired && !courtesy && assembled.evidenceItems.length > 0 && !hasCurrentCitation;
+
     const assistantMessage = this.messageRepo.create({
       ...(savedAnswer ? { id: savedAnswer.id, createdAt: savedAnswer.createdAt } : {}),
       conversationId: conversation.id,
       role: MessageRole.ASSISTANT,
       mode,
-      content:
-        (dto.includeKnowledge && supplementary.unavailable
-          ? 'Supplementary knowledge sources were unavailable for this turn.\n\n'
-          : '') + generateResult.content,
+      content: withholdDraft
+        ? sourceGap(supplementary.unavailable, true)
+        : (includeKnowledge &&
+          supplementary.unavailable &&
+          (!groundingRequired || (!courtesy && assembled.evidenceItems.length > 0))
+            ? 'Supplementary knowledge sources were unavailable for this turn.\n\n'
+            : '') + generateResult.content,
       status: MessageStatus.COMPLETED,
-      citations: validatedCitations,
+      citations: withholdDraft ? [] : validatedCitations,
       modelName: generateResult.modelName,
       promptTokens: generateResult.promptTokens,
       completionTokens: generateResult.completionTokens,

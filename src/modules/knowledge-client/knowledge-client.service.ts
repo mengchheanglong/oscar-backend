@@ -58,6 +58,13 @@ export class KnowledgeClientService {
   private readonly logger = new Logger(KnowledgeClientService.name);
   constructor(private readonly config: ConfigService) {}
 
+  policy() {
+    return {
+      enabled: this.config.get<boolean>('OSCAR_KNOWLEDGE_ENABLED', false),
+      required: this.config.get<boolean>('OSCAR_KNOWLEDGE_REQUIRED', false),
+    };
+  }
+
   private scopeHeaders(body: string, userId: string) {
     const key = this.config.get<string>('OSCAR_KNOWLEDGE_PRIVATE_SCOPE_SECRET', '');
     if (key.length < 32 || key === this.config.get<string>('OSCAR_KNOWLEDGE_SERVICE_TOKEN', ''))
@@ -131,9 +138,10 @@ export class KnowledgeClientService {
     query: string,
     userId?: string,
     scope: 'mba' | 'social-systems' | 'personal-library' | 'all' = 'mba',
+    requireSources = false,
   ): Promise<{ evidence: AssistantEvidence[]; unavailable: boolean }> {
     const queries = referenceQueryPlan(query);
-    if (queries.length === 1) return this.retrieveSingle(query, userId, scope);
+    if (queries.length === 1 && !requireSources) return this.retrieveSingle(query, userId, scope);
     const deadline = Date.now() + this.config.get<number>('OSCAR_KNOWLEDGE_TIMEOUT_MS', 2500);
     const batches: AssistantEvidence[][] = [];
     let successful = 0;

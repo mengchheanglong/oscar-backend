@@ -346,6 +346,32 @@
         ]
       }
     },
+    "/api/v1/knowledge/policy": {
+      "get": {
+        "operationId": "KnowledgeLibraryController_policy",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgePolicyDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Reference Knowledge"
+        ]
+      }
+    },
     "/api/v1/skills": {
       "get": {
         "operationId": "SkillsController_list",
@@ -8699,6 +8725,21 @@
         "required": [
           "id",
           "indexed_books"
+        ]
+      },
+      "KnowledgePolicyDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "required"
         ]
       },
       "SkillSummaryDto": {

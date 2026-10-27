@@ -1,5 +1,30 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-27 required-source business workspace: local `.env` now enables
+> OSCAR_KNOWLEDGE_REQUIRED. Every new ordinary Assistant turn retrieves permitted
+> knowledge despite omitted/false client flags. Required mode replaces general
+> fallback guidance, disables unrelated project fallback, uses the wider filtered
+> reference pool and preserves explicit source scope. No-evidence turns store an
+> evidence-gap reply without answer generation; drafts without a valid current
+> inline source citation are withheld. Courtesy uses bounded replies. Policy is
+> authenticated, visible as locked Sources required, and bound into retry identity.
+> This is source-use enforcement, not semantic proof or a measured 99% accuracy.
+> Hermes/T3/Paperclip execution outputs retain their own execution contracts.
+> Actual browser QA found the Rentify account saw zero private books while earlier
+> PAT tests used another account. An exact-book local read grant now exposes the
+> 1,042 approved existing entries to that signed-in identity without changing
+> ownership, revisions, vectors or shared visibility; other users/new books remain
+> denied. Historical PAT-only acceptance did not establish this human access.
+> Validation: 513 unit/176 E2E tests, lint/typecheck/build/format/OpenAPI passed;
+> frontend 34 tests and lint/typecheck/build passed. Knowledge 138 tests passed,
+> one optional skipped, plus Ruff/mypy and rebuilt healthy API. Six real answer
+> generations covered source-backed business/application, opt-out override,
+> unknown-fact abstention and citation-bypass resistance (four PAT cases), plus
+> two actual Rentify browser turns. The latter used shared courses, private Lean
+> Analytics and project plans with clickable physical-page preview. Saved API
+> messages/citations and idempotent replay passed. Private receipts/screenshots:
+> ignored var/source-required; private grant receipt in sibling data/private-ops.
+
 > 2026-10-27 library-wide learning retrieval: short broad learning questions keep
 > their original query and add at most two subject-aware searches under the same
 > deadline. Hints cover the library families plus psychology, physics and economics;

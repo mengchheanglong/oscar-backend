@@ -70,6 +70,7 @@ const schema = z
     SWAGGER_ENABLED: booleanString.default(false),
     AI_ENABLED: booleanString.default(false),
     OSCAR_KNOWLEDGE_ENABLED: booleanString.default(false),
+    OSCAR_KNOWLEDGE_REQUIRED: booleanString.default(false),
     OSCAR_KNOWLEDGE_BASE_URL: z
       .string()
       .url()
@@ -145,6 +146,12 @@ const schema = z
     SUPABASE_JWKS_URL: emptyStringToUndefined(z.string().url().optional()),
   })
   .superRefine((value, context) => {
+    if (value.OSCAR_KNOWLEDGE_REQUIRED && !value.OSCAR_KNOWLEDGE_ENABLED)
+      context.addIssue({
+        code: 'custom',
+        path: ['OSCAR_KNOWLEDGE_REQUIRED'],
+        message: 'Required source mode needs reference knowledge enabled.',
+      });
     if (value.AI_EMBEDDING_PROVIDER === 'ollama') {
       let validOrigin = false;
       try {

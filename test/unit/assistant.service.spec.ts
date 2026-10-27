@@ -417,6 +417,140 @@ describe('AssistantService', () => {
         expect(knowledge.retrieve).not.toHaveBeenCalled();
       });
 
+      describe('required source policy', () => {
+        const source = {
+          chunkId: 'grounded-chunk',
+          sourceId: 'grounded-book',
+          sourceType: 'EXTERNAL_KNOWLEDGE',
+          title: 'Synthetic contribution margin teaching',
+          revision: 1,
+          locator: 'Page 4',
+          text: 'Contribution margin is revenue minus variable cost. It contributes to fixed costs and profit.',
+          snippet: 'Contribution margin is revenue minus variable cost.',
+          score: 0.1,
+        };
+        function requireSources(evidence = [source], unavailable = false) {
+          const knowledge = {
+            policy: () => ({ enabled: true, required: true }),
+            retrieve: jest.fn().mockResolvedValue({ evidence, unavailable }),
+          };
+          Object.assign(service, { knowledge });
+          return knowledge;
+        }
+        it.each([undefined, false])(
+          'retrieves and grounds answers even when client opt-in is %s',
+          async (includeKnowledge) => {
+            const knowledge = requireSources();
+            mockLlmProvider.generateAnswer.mockResolvedValue({
+              content: 'First calculate contribution margin [Evidence #1].',
+              citations: [source],
+              modelName: 'test',
+            });
+            const result = await service.postMessage(mockProjectId, mockUserId, 'conv-1', {
+              ...request,
+              includeKnowledge,
+            });
+            expect(knowledge.retrieve).toHaveBeenCalledWith(
+              request.content,
+              mockUserId,
+              'all',
+              true,
+            );
+            expect(mockRetrievalService.retrieve).toHaveBeenCalledWith(
+              expect.objectContaining({
+                actorId: mockUserId,
+                projectId: mockProjectId,
+                allowWorkspaceFallback: false,
+              }),
+            );
+            expect(result.assistantMessage.citations).toEqual([
+              expect.objectContaining({ chunkId: source.chunkId, evidenceNumber: 1 }),
+            ]);
+            const prompt = mockLlmProvider.generateAnswer.mock.calls[0][0].messages[0].content;
+            expect(prompt).toContain('SOURCE-REQUIRED MODE');
+            expect(prompt).not.toContain(
+              'Use general knowledge and reasoning for explanations, brainstorming and plans even when no source matches',
+            );
+          },
+        );
+        it.each([false, true])(
+          'does not generate an unsourced answer when retrieval is empty (outage=%s)',
+          async (unavailable) => {
+            const knowledge = requireSources([], unavailable);
+            const result = await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
+            expect(mockLlmProvider.generateAnswer).not.toHaveBeenCalled();
+            expect(result.assistantMessage.modelName).toBe('source-policy');
+            expect(result.assistantMessage.citations).toEqual([]);
+            expect(result.assistantMessage.content).toContain(
+              unavailable ? 'library was unavailable' : 'do not provide usable source evidence',
+            );
+            expect(await service.postMessage(mockProjectId, mockUserId, 'conv-1', request)).toEqual(
+              result,
+            );
+            expect(knowledge.retrieve).toHaveBeenCalledTimes(1);
+          },
+        );
+        it.each(['missing', 'forged', 'stale-number'])(
+          'withholds a draft with %s citations',
+          async (kind) => {
+            requireSources();
+            mockLlmProvider.generateAnswer.mockResolvedValue({
+              content:
+                'Unsupported recommendation' +
+                (kind === 'stale-number' ? ' [Evidence #99]' : ' [Evidence #1]'),
+              citations:
+                kind === 'missing'
+                  ? []
+                  : kind === 'forged'
+                    ? [{ ...source, chunkId: 'forged' }]
+                    : [source],
+              modelName: 'test',
+              promptTokens: 20,
+              completionTokens: 10,
+            });
+            const result = await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
+            expect(result.assistantMessage.content).toContain('withheld the unsupported draft');
+            expect(result.assistantMessage.content).not.toContain('Unsupported recommendation');
+            expect(result.assistantMessage.citations).toEqual([]);
+            expect(result.assistantMessage.completionTokens).toBe(10);
+            expect(saved.find((m) => m.role === 'assistant')!.content).toBe(
+              result.assistantMessage.content,
+            );
+          },
+        );
+        it('can answer from project evidence during a reference outage while disclosing it', async () => {
+          requireSources([], true);
+          const local = { ...source, sourceType: KnowledgeSourceType.DOCUMENT };
+          mockRetrievalService.retrieve.mockResolvedValue([local]);
+          mockLlmProvider.generateAnswer.mockResolvedValue({
+            content: 'Recorded project information [Evidence #1].',
+            citations: [local],
+            modelName: 'test',
+          });
+          const result = await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
+          expect(result.assistantMessage.content).toContain('sources were unavailable');
+          expect(result.assistantMessage.citations[0]?.sourceType).toBe('DOCUMENT');
+        });
+        it('keeps pure courtesy usable without inventing a sourced business lesson', async () => {
+          const knowledge = requireSources([], true);
+          const result = await service.postMessage(mockProjectId, mockUserId, 'conv-1', {
+            ...request,
+            content: 'Thank you!',
+          });
+          expect(knowledge.retrieve).toHaveBeenCalled();
+          expect(mockLlmProvider.generateAnswer).not.toHaveBeenCalled();
+          expect(result.assistantMessage.content).toBe("You're welcome.");
+        });
+        it('does not replay a previously optional answer after required-source policy changes', async () => {
+          await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
+          requireSources();
+          await expect(
+            service.postMessage(mockProjectId, mockUserId, 'conv-1', request),
+          ).rejects.toThrow(ConflictException);
+          expect(mockLlmProvider.generateAnswer).toHaveBeenCalledTimes(1);
+        });
+      });
+
       it('replays omitted and explicit unified scopes but rejects narrowing a saved request', async () => {
         const knowledge = {
           retrieve: jest.fn().mockResolvedValue({ evidence: [], unavailable: false }),

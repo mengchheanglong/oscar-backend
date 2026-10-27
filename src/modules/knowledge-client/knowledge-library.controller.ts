@@ -12,15 +12,25 @@ class PrivateCollectionStatusDto {
   indexed_books!: number;
 }
 
+class KnowledgePolicyDto {
+  @ApiProperty() enabled!: boolean;
+  @ApiProperty() required!: boolean;
+}
+
 @ApiTags('Reference Knowledge')
 @ApiCookieAuth()
 @UseGuards(SessionAuthGuard)
-@Controller('knowledge/collections')
+@Controller('knowledge')
 export class KnowledgeLibraryController {
   constructor(private readonly knowledge: KnowledgeClientService) {}
-  @Get()
+  @Get('collections')
   @ApiOkResponse({ type: [PrivateCollectionStatusDto] })
   collections(@CurrentUser() user: User): Promise<PrivateCollectionStatusDto[]> {
     return this.knowledge.collections(user.id);
+  }
+  @Get('policy')
+  @ApiOkResponse({ type: KnowledgePolicyDto })
+  policy(): KnowledgePolicyDto {
+    return this.knowledge.policy();
   }
 }

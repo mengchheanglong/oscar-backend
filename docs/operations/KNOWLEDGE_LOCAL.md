@@ -1,5 +1,63 @@
 # Local external knowledge integration
 
+## Required sources and the actual signed-in account — 2026-10-27
+
+The local backend now has `OSCAR_KNOWLEDGE_REQUIRED=true` in ignored `.env`.
+Tracked defaults remain false for unconfigured installations. This is an
+installation policy for ordinary OSCAR Assistant chat, not an enforcement layer
+for Hermes/T3/Paperclip execution outputs. `GET /api/v1/knowledge/policy` requires
+normal authentication and exposes only enabled/required booleans. The composer
+shows **Sources required**, checked and locked; pending policy keeps Knowledge on.
+
+Required mode retrieves on every new turn regardless of omitted/false client
+flags, uses `all` when scope is omitted, disables unrelated workspace fallback,
+and applies the wider filtered candidate pool and reference context budget even
+to focused questions. Explicit scope restrictions still apply. All memberships,
+private owner signatures, attachment boundaries and source provenance remain.
+
+The strict prompt replaces the previous general-knowledge fallback rule. Business
+advice should explain a cited source principle and then apply it concretely;
+user inputs/assumptions and derived calculations must be identified. It forbids
+using navigation, endorsements or unrelated citations as lesson evidence. Other
+subjects remain supported rather than being forced into business framing.
+
+If no usable evidence is included, the server stores a deterministic evidence-gap
+reply without calling answer generation. If generation returns no valid current
+inline source citation, the unsupported draft is withheld and not saved as an
+answer. Pure greetings/thanks/acknowledgments use bounded deterministic replies;
+retrieval still runs. Available project evidence can support an answer during a
+reference outage, which is disclosed. Retry fingerprints bind required policy;
+do not reuse old optional-mode request IDs after changing the policy.
+
+Citation identity checks establish current source references, not semantic
+entailment of every sentence. This is not a measured 99% or 100% factual-accuracy
+claim. Sparse/unrelated retrieval can still require a narrower question or source.
+
+Browser verification found the real Rentify login had zero private books while
+the integration PAT account had 1,042. Earlier PAT-only live tests did not verify
+the human browser's private access. An explicit, local, exact-book reader grant
+now links the signed-in account to those approved existing books, without changing
+ownership, IDs, generations, vectors or shared visibility. New future books and
+other accounts are not automatically granted. The private manifest and receipt
+stay under `D:\AI\OSCAR\Knowledge\Catalog` and the sibling Knowledge ignored
+`data/private-ops`; neither is committed or exposed by HTTP. See the sibling
+Knowledge integration guide for grant format and revocation.
+
+Verification: 513 backend unit and 176 E2E tests passed, with lint/typecheck,
+build, formatting and generated OpenAPI; frontend passed 34 tests and
+lint/typecheck/build. Knowledge passed 138 tests (one optional skip), Ruff/mypy,
+and the rebuilt container's readiness check. Six real answer generations used
+the existing provider: four PAT cases checked normal business advice, ignored
+client opt-out, unknown-fact abstention and citation-bypass resistance; two browser
+turns tested the actual signed-in Rentify account. The browser now reports 585
+Personal Library and 457 Social Systems indexed references. Its acquisition
+answer combined Lean Analytics PDF pages 268/280, MIT scaling material and Rentify
+plans, retaining forecast/unverified-data qualifiers and opening the actual cited
+book preview. PAT response/citation reload and request replay passed. A separate
+pure-thanks case used the deterministic policy response. Private reports and
+screenshots remain in ignored `var/source-required`; this is sample acceptance,
+not exhaustive claim-grounding or complete MBA instruction.
+
 ## Broad learning across the library — 2026-10-27
 
 The current planner extends the business-only implementation below. A short broad

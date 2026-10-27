@@ -6,6 +6,17 @@ const valid = {
 };
 
 describe('Environment validation', () => {
+  it('requires the reference service to be enabled for required-source mode', () => {
+    expect(validateEnvironment(valid).OSCAR_KNOWLEDGE_REQUIRED).toBe(false);
+    expect(() => validateEnvironment({ ...valid, OSCAR_KNOWLEDGE_REQUIRED: 'true' })).toThrow();
+    expect(
+      validateEnvironment({
+        ...valid,
+        OSCAR_KNOWLEDGE_REQUIRED: 'true',
+        OSCAR_KNOWLEDGE_ENABLED: 'true',
+      }).OSCAR_KNOWLEDGE_REQUIRED,
+    ).toBe(true);
+  });
   it('defaults to pinned local Qwen without an OpenAI credential', () => {
     const config = validateEnvironment(valid);
     expect(config.AI_EMBEDDING_PROVIDER).toBe('ollama');
