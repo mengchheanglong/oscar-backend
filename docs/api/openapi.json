@@ -1,6 +1,322 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/projects/{projectId}/ai/conversations/{conversationId}/attachments": {
+      "get": {
+        "operationId": "AttachmentsController_list",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conversationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List private attachments in your chat",
+        "tags": [
+          "Chat attachments"
+        ]
+      },
+      "post": {
+        "operationId": "AttachmentsController_upload",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conversationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Upload a private chat attachment (20 MiB maximum)",
+        "tags": [
+          "Chat attachments"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai/conversations/{conversationId}/attachments/{id}/memories": {
+      "get": {
+        "operationId": "AttachmentsController_memories",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conversationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List reviewed private memories linked to this attachment",
+        "tags": [
+          "Chat attachments"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai/conversations/{conversationId}/attachments/{id}/download": {
+      "get": {
+        "operationId": "AttachmentsController_download",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conversationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Download an original attachment from your chat",
+        "tags": [
+          "Chat attachments"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai/conversations/{conversationId}/attachments/{id}": {
+      "delete": {
+        "operationId": "AttachmentsController_remove",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conversationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Remove attachment access and invalidate prior assistant context; reviewed memories remain separately managed",
+        "tags": [
+          "Chat attachments"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai/conversations/{conversationId}/attachments/{id}/project-knowledge": {
+      "post": {
+        "operationId": "AttachmentsController_promote",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conversationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Explicitly copy a chat attachment into shared project knowledge",
+        "tags": [
+          "Chat attachments"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai/conversations/{conversationId}/attachments/{id}/memory-draft": {
+      "post": {
+        "operationId": "AttachmentsController_draft",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conversationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Draft a short memory from file excerpts for review; does not save memory",
+        "tags": [
+          "Chat attachments"
+        ]
+      }
+    },
     "/api/v1/knowledge/collections": {
       "get": {
         "operationId": "KnowledgeLibraryController_collections",
@@ -11004,6 +11320,11 @@
             "format": "uuid",
             "nullable": true
           },
+          "sourceAttachmentId": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true
+          },
           "version": {
             "type": "integer",
             "minimum": 1
@@ -11053,6 +11374,10 @@
             "description": "Reuse this key when retrying the same save."
           },
           "sourceMessageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceAttachmentId": {
             "type": "string",
             "format": "uuid"
           }

@@ -16,7 +16,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { readFile, unlink } from 'node:fs/promises';
 import { extname } from 'node:path';
 import type { Readable } from 'node:stream';
-import { DataSource, IsNull, Repository } from 'typeorm';
+import { DataSource, EntityManager, IsNull, Repository } from 'typeorm';
 import { Document, ProcessingStatus } from './entities/document.entity';
 import { DocumentRevision } from './entities/document-revision.entity';
 import { ProjectMember, ProjectRole } from '../projects/entities/project-member.entity';
@@ -191,6 +191,7 @@ export class DocumentsService {
     file: Express.Multer.File,
     dto: CreateDocumentDto,
     requestId?: string,
+    transaction?: EntityManager,
   ): Promise<Document> {
     const { ext, detectedMime } = await this.validateFile(file);
     const documentId = randomUUID();
@@ -203,7 +204,7 @@ export class DocumentsService {
       const title = dto?.title?.trim() || file.originalname.slice(0, 500);
       const description = dto?.description?.trim() || null;
 
-      const document = await this.dataSource.transaction(async (manager) => {
+      const persist = async (manager: EntityManager) => {
         const docRepo = manager.getRepository(Document);
         const revRepo = manager.getRepository(DocumentRevision);
 
@@ -251,10 +252,13 @@ export class DocumentsService {
         });
 
         return savedDoc;
-      });
+      };
+      const document = transaction
+        ? await persist(transaction)
+        : await this.dataSource.transaction(persist);
 
       // Dispatch outbox events now that the document transaction is committed
-      void this.outboxService.processPending?.();
+      if (!transaction) void this.outboxService.processPending?.();
 
       await this.auditService.record({
         projectId,

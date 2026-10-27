@@ -13,6 +13,12 @@ select the desired scope. See the sibling Knowledge repository's
 `docs/LIBRARY_COMPLETION_2026_10_26.md` and generated local reports for current
 coverage, processing status and source-quality limits.
 
+Chat composer uploads are now private [chat attachments](docs/product/CHAT_ATTACHMENTS.md).
+Existing uploads remain project knowledge. Files can be explicitly promoted to
+project knowledge or summarized into reviewed private memory; upload alone does
+not share a file or save a memory. Apply the attachment migration and restart
+both rebuilt applications before using the updated UI.
+
 ## Current product plan: OSCAR & MAVIS
 
 The [OSCAR & MAVIS vision and architecture](docs/product/OSCAR_MAVIS_Vision_and_Architecture.md)

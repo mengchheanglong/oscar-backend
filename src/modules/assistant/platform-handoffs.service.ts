@@ -1,3 +1,4 @@
+import { AttachmentsService } from './attachments.service';
 import {
   BadRequestException,
   ConflictException,
@@ -45,6 +46,7 @@ export class PlatformHandoffsService implements OnModuleInit, OnModuleDestroy {
     @Inject('LLM_PROVIDER') private readonly llm: LlmProvider,
     private readonly paperclip: PaperclipAdapter,
     @Optional() private readonly skills?: SkillsService,
+    @Optional() private readonly attachments?: AttachmentsService,
   ) {}
   onModuleInit() {
     this.timer = setInterval(() => {
@@ -357,7 +359,11 @@ export class PlatformHandoffsService implements OnModuleInit, OnModuleDestroy {
               connection,
               row.remoteProjectId,
               this.title(row),
-              row.prompt + skillContext(row.skillContext),
+              row.prompt +
+                skillContext(row.skillContext) +
+                (this.attachments
+                  ? await this.attachments.handoff(this.scope(row), row.prompt)
+                  : ''),
               row.modelSelection,
             );
             if (
@@ -484,7 +490,9 @@ export class PlatformHandoffsService implements OnModuleInit, OnModuleDestroy {
           connection,
           row.id,
           this.title(row),
-          row.prompt + skillContext(row.skillContext),
+          row.prompt +
+            skillContext(row.skillContext) +
+            (this.attachments ? await this.attachments.handoff(this.scope(row), row.prompt) : ''),
           row.remoteAgentId,
           row.remoteProjectId,
         );

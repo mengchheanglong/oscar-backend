@@ -1,5 +1,28 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-27 chat attachment lifecycle: composer uploads now create/select a chat
+> and store originals/extracted passages outside shared document/index tables.
+> Existing uploads remain project knowledge. The rail lists uploads before citation,
+> offers explicit project promotion, and generates editable memory drafts that need
+> user confirmation before saving with attachment provenance. Removal lists linked
+> memories, clears chat summaries and excludes earlier assistant context; attachment
+> chats are excluded from cross-chat history/MAVIS raw recall even after removal.
+> Assistant/Hermes context and T3/Paperclip handoffs receive bounded excerpts from
+> the owning chat. Upload/removal refuse mutation during active work. See
+> [chat attachments](docs/product/CHAT_ATTACHMENTS.md) for limits and retention.
+> Validation: 456 unit, 173 HTTP and 152 PostgreSQL integration tests passed, with
+> one optional cross-service test skipped; frontend 34 tests passed. Both apps
+> passed lint/typecheck/build, backend formatting and OpenAPI generation passed.
+> A backed-up local database received the additive migration; existing document
+> data/vectors were untouched. Live ordinary APIs verified upload/download,
+> wrong-chat rejection, a cited DeepSeek Flash answer and replay, reviewed memory
+> provenance, repeatable promotion and removal/context invalidation. Desktop/mobile
+> browser checks verified first-upload chat creation, rail actions and editable
+> memory review. Synthetic QA data was cleaned through ordinary APIs. Local
+> Ollama/Qwen was started after the initial retrieval dependency failure; the
+> repeated live workflow passed. No live upstream agent execution was performed.
+> MCP was unavailable before startup, then returned no accepted AIW decisions.
+
 > 2026-10-26 embedding default follow-up: pinned local Qwen 0.6B/1024 is now
 > the application fallback and setup-template default, with compatible defaults
 > for explicit OpenAI and keyword-only overrides. Missing or blank provider

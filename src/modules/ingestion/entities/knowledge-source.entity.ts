@@ -13,6 +13,7 @@ import { Project } from '../../projects/entities/project.entity';
 import { KnowledgeChunk } from './knowledge-chunk.entity';
 
 export enum KnowledgeSourceType {
+  CHAT_ATTACHMENT = 'CHAT_ATTACHMENT',
   DOCUMENT = 'DOCUMENT',
   LOCAL_FILE = 'LOCAL_FILE',
   REQUIREMENT = 'REQUIREMENT',
@@ -26,7 +27,10 @@ export enum KnowledgeSourceType {
 
 // Legacy enum values above remain readable for preserved database records only.
 export const ACTIVE_KNOWLEDGE_SOURCE_TYPES = Object.values(KnowledgeSourceType).filter(
-  (type) => type !== KnowledgeSourceType.REQUIREMENT && type !== KnowledgeSourceType.MEETING,
+  (type) =>
+    type !== KnowledgeSourceType.CHAT_ATTACHMENT &&
+    type !== KnowledgeSourceType.REQUIREMENT &&
+    type !== KnowledgeSourceType.MEETING,
 );
 
 export enum KnowledgeSourceStatus {

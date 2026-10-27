@@ -69,6 +69,11 @@ export class CreateSavedMemoryDto {
   @IsOptional()
   @IsUUID()
   sourceMessageId?: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  sourceAttachmentId?: string;
 }
 
 export class DeleteSavedMemoryDto {
@@ -84,6 +89,7 @@ export class SavedMemoryResponseDto {
   @ApiProperty({ enum: SavedMemoryKind }) kind!: SavedMemoryKind;
   @ApiProperty() content!: string;
   @ApiPropertyOptional({ format: 'uuid', nullable: true }) sourceMessageId!: string | null;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true }) sourceAttachmentId!: string | null;
   @ApiProperty({ type: 'integer', minimum: 1 }) version!: number;
   @ApiProperty() createdAt!: string;
   @ApiProperty() updatedAt!: string;
@@ -94,6 +100,7 @@ export class SavedMemoryResponseDto {
       kind: memory.kind,
       content: memory.content,
       sourceMessageId: memory.sourceMessageId,
+      sourceAttachmentId: memory.sourceAttachmentId ?? null,
       version: memory.version,
       createdAt: memory.createdAt.toISOString(),
       updatedAt: memory.updatedAt.toISOString(),

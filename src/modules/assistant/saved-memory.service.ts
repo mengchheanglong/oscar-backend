@@ -1,8 +1,10 @@
+import { AttachmentsService } from './attachments.service';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHash } from 'node:crypto';
@@ -19,6 +21,7 @@ export class SavedMemoryService {
     @InjectRepository(SavedMemory) private readonly memories: Repository<SavedMemory>,
     @InjectRepository(ProjectMember) private readonly members: Repository<ProjectMember>,
     @InjectRepository(ChatMessage) private readonly messages: Repository<ChatMessage>,
+    @Optional() private readonly attachments?: AttachmentsService,
   ) {}
 
   private async assertAccess(projectId: string, userId: string, mutation = false): Promise<void> {
@@ -72,12 +75,22 @@ export class SavedMemoryService {
           message: 'Source message not found.',
         });
     }
+    if (dto.sourceAttachmentId) {
+      const rows: { conversation_id: string }[] = await this.memories.manager.query(
+        'SELECT conversation_id FROM chat_attachments WHERE id=$1 AND project_id=$2 AND user_id=$3 AND deleted_at IS NULL',
+        [dto.sourceAttachmentId, projectId, userId],
+      );
+      if (!rows[0] || !this.attachments)
+        throw new NotFoundException('Source attachment not found.');
+      await this.attachments.access({ projectId, userId, conversationId: rows[0].conversation_id });
+    }
     const payloadHash = createHash('sha256')
       .update(
         JSON.stringify({
           kind: dto.kind,
           content,
           sourceMessageId: dto.sourceMessageId ?? null,
+          ...(dto.sourceAttachmentId ? { sourceAttachmentId: dto.sourceAttachmentId } : {}),
         }),
       )
       .digest('hex');
@@ -92,6 +105,7 @@ export class SavedMemoryService {
         kind: dto.kind,
         content,
         sourceMessageId: dto.sourceMessageId ?? null,
+        sourceAttachmentId: dto.sourceAttachmentId ?? null,
         idempotencyKey: dto.idempotencyKey,
         payloadHash,
       })

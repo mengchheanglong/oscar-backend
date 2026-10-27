@@ -1,3 +1,4 @@
+import { AttachmentsService } from './attachments.service';
 import { SkillsService } from '../skills/skills.service';
 import { KnowledgeClientService } from '../knowledge-client/knowledge-client.service';
 import { skillContext } from '../skills/skill-context';
@@ -65,6 +66,7 @@ export class AssistantService implements OnModuleInit {
     @Optional() private readonly platformsService?: PlatformsService,
     @Optional() private readonly skills?: SkillsService,
     @Optional() private readonly knowledge?: KnowledgeClientService,
+    @Optional() private readonly attachments?: AttachmentsService,
   ) {}
 
   onModuleInit(): void {
@@ -320,6 +322,9 @@ export class AssistantService implements OnModuleInit {
         });
       });
 
+    const attachmentEvidence = this.attachments
+      ? await this.attachments.evidence({ projectId, userId, conversationId }, dto.content)
+      : [];
     // Build inventory overview for the target workspaces
     const inventoryOverview = await this.buildInventoryOverview(targetProjectIds);
 
@@ -353,7 +358,7 @@ export class AssistantService implements OnModuleInit {
     const assembled = this.contextAssembler.assemble(
       includeAllWorkspaces ? 'All Workspaces' : projectName,
       mode,
-      [...retrievedEvidence, ...supplementary.evidence],
+      [...attachmentEvidence, ...retrievedEvidence, ...supplementary.evidence],
       includeAllWorkspaces,
       inventoryOverview,
       memories,

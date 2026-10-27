@@ -17,7 +17,7 @@ export const historyOwner = `c.project_id=$1 AND c.user_id=$2 AND c.deleted_at I
     AND pm.removed_at IS NULL AND u.is_active=true)`;
 const owner = historyOwner;
 export const historyEligible = `${historyOwner} AND m.context_excluded=false AND m.status='COMPLETED'
-  AND m.role IN ('user','assistant')`;
+  AND c.has_private_attachments=false AND m.role IN ('user','assistant')`;
 
 @Injectable()
 export class ConversationHistoryRepository {

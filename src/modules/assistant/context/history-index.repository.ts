@@ -50,7 +50,7 @@ export class HistoryIndexRepository {
         JOIN users u ON u.id=c.user_id AND u.is_active=true
         JOIN project_members pm ON pm.project_id=c.project_id AND pm.user_id=c.user_id AND pm.removed_at IS NULL
         LEFT JOIN ai_history_index_usage b ON b.day=$2 AND b.scope_key=c.project_id::text||':'||c.user_id::text
-        WHERE c.deleted_at IS NULL AND m.context_excluded=false AND m.status='COMPLETED'
+        WHERE c.deleted_at IS NULL AND c.has_private_attachments=false AND m.context_excluded=false AND m.status='COMPLETED'
         AND m.role IN ('user','assistant') AND length(btrim(left(m.content,900)))>0
         AND NOT EXISTS(SELECT 1 FROM ai_history_vectors v WHERE v.message_id=m.id
           AND v.conversation_id=c.id AND v.project_id=c.project_id AND v.user_id=c.user_id

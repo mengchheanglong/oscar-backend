@@ -1,3 +1,7 @@
+import { AttachmentsController } from './attachments.controller';
+import { AttachmentsService } from './attachments.service';
+import { DocumentsModule } from '../documents/documents.module';
+import { StorageModule } from '../storage/storage.module';
 import { SkillsModule } from '../skills/skills.module';
 import { KnowledgeClientModule } from '../knowledge-client/knowledge-client.module';
 import { PlatformsModule } from '../platforms/platforms.module';
@@ -51,6 +55,8 @@ import {
 
 @Module({
   imports: [
+    DocumentsModule,
+    StorageModule,
     KnowledgeClientModule,
     SkillsModule,
     TypeOrmModule.forFeature([
@@ -75,6 +81,7 @@ import {
     PlatformsModule,
   ],
   controllers: [
+    AttachmentsController,
     AssistantController,
     ProposalsController,
     SavedMemoryController,
@@ -82,6 +89,7 @@ import {
     PlatformHandoffsController,
   ],
   providers: [
+    AttachmentsService,
     HistoryIndexRepository,
     HistoryIndexWorker,
     HistoryRecallService,

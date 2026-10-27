@@ -1,3 +1,4 @@
+import { AttachmentsService } from './attachments.service';
 import { SkillsService } from '../skills/skills.service';
 import { skillContext } from '../skills/skill-context';
 import { UploadedFoldersService } from '../local-folders/uploaded-folders.service';
@@ -66,6 +67,7 @@ export class AgentRunsService implements OnModuleDestroy {
     private readonly uploadedFolders: UploadedFoldersService,
     @Optional() @Inject('LLM_PROVIDER') private readonly llm?: LlmProvider,
     @Optional() private readonly skills?: SkillsService,
+    @Optional() private readonly attachments?: AttachmentsService,
   ) {}
 
   async onModuleDestroy(): Promise<void> {
@@ -450,6 +452,13 @@ export class AgentRunsService implements OnModuleDestroy {
       limit: 6,
       mode: 'keyword',
     });
+    if (r.conversationId && this.attachments)
+      initial.unshift(
+        ...(await this.attachments.evidence(
+          { projectId: r.projectId, userId: r.userId, conversationId: r.conversationId },
+          r.prompt,
+        )),
+      );
     rememberEvidence(initial);
     const memories = await this.memory.select(r.projectId, r.userId, r.prompt);
     const assembled = this.context.assemble(

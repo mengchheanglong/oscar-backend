@@ -46,6 +46,9 @@ export class SavedMemory {
   @Column({ type: 'text' })
   content!: string;
 
+  @Column({ name: 'source_attachment_id', type: 'uuid', nullable: true })
+  sourceAttachmentId!: string | null;
+
   @Column({ name: 'source_message_id', type: 'uuid', nullable: true })
   sourceMessageId!: string | null;
 

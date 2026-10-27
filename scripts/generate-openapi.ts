@@ -1,3 +1,5 @@
+import { AttachmentsController } from '../src/modules/assistant/attachments.controller';
+import { AttachmentsService } from '../src/modules/assistant/attachments.service';
 import {
   SkillsController,
   ConversationSkillsController,
@@ -77,6 +79,7 @@ import { ChiefController } from '../src/modules/chief-of-staff/chief.controller'
 import { ChiefService } from '../src/modules/chief-of-staff/chief.service';
 
 export const OPENAPI_CONTROLLERS = [
+  AttachmentsController,
   KnowledgeLibraryController,
   SkillsController,
   ConversationSkillsController,
@@ -114,6 +117,7 @@ export const OPENAPI_CONTROLLERS = [
 @Module({
   controllers: OPENAPI_CONTROLLERS,
   providers: [
+    { provide: AttachmentsService, useValue: {} },
     { provide: KnowledgeClientService, useValue: {} },
     { provide: SkillsService, useValue: {} },
     { provide: ChiefService, useValue: {} },

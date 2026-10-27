@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, IsNull, Repository } from 'typeorm';
+import { DataSource, IsNull, Raw, Repository } from 'typeorm';
 import { ProjectMember, ProjectRole } from '../projects/entities/project-member.entity';
 import { Project, ProjectStatus } from '../projects/entities/project.entity';
 import { User, SystemRole } from '../users/entities/user.entity';
@@ -744,6 +744,9 @@ export class MavisService {
         .innerJoin('msg.conversation', 'conv')
         .where('conv.projectId = :projectId', { projectId })
         .andWhere('conv.deletedAt IS NULL')
+        .andWhere('conv.hasPrivateAttachments = false')
+        .andWhere('msg.contextExcluded = false')
+        .andWhere("msg.status = 'COMPLETED'")
         .andWhere('conv.userId = :actorId', { actorId })
         .orderBy('msg.createdAt', 'DESC')
         .take(limit)
@@ -791,7 +794,15 @@ export class MavisService {
     const rawExecutionResults: MavisExecutionResultItem[] = [];
     if (request.includeExecutionResults !== false && projectId) {
       const runs = await this.agentRunRepo.find({
-        where: { projectId, userId: actorId, status: AgentRunStatus.SUCCEEDED },
+        where: {
+          projectId,
+          userId: actorId,
+          status: AgentRunStatus.SUCCEEDED,
+          conversationId: Raw(
+            (alias) =>
+              `(${alias} IS NULL OR EXISTS(SELECT 1 FROM ai_conversations c WHERE c.id=${alias} AND c.deleted_at IS NULL AND c.has_private_attachments=false))`,
+          ),
+        },
         order: { updatedAt: 'DESC' },
         take: Math.min(limit, 4),
       });

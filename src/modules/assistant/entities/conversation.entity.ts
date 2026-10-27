@@ -44,6 +44,9 @@ export class Conversation {
   @Column({ name: 'include_all_workspaces', type: 'boolean', default: false })
   includeAllWorkspaces!: boolean;
 
+  @Column({ name: 'has_private_attachments', type: 'boolean', default: false })
+  hasPrivateAttachments!: boolean;
+
   @Column({ name: 'is_pinned', type: 'boolean', default: false })
   isPinned!: boolean;
 
