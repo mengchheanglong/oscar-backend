@@ -83,7 +83,7 @@ describe('optional curated knowledge', () => {
     for (const [, request] of fetch.mock.calls) {
       const body = JSON.parse(request!.body as string);
       expect(body.collection_ids).toEqual(['mba-business', 'personal-library', 'social-systems']);
-      expect(body.top_k).toBe(4);
+      expect(body.top_k).toBe(12);
       const [payload, signature] = (request!.headers as Record<string, string>)[
         'X-OSCAR-Private-Scope'
       ]!.split('.');
@@ -109,6 +109,62 @@ describe('optional curated knowledge', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(answer.evidence).toHaveLength(1);
     expect(answer.unavailable).toBe(false);
+  });
+  it('finds explanatory candidates beyond the first four and deprioritizes index/reference lists', async () => {
+    const goodId = 'c37c3283-30d8-4d43-99a3-2319f3bf2055';
+    const results = Array.from({ length: 6 }, (_, index) => ({
+      ...result,
+      chunk_id: index === 5 ? goodId : `c37c3283-30d8-4d43-99a3-2319f3bf206${index}`,
+      text:
+        index === 5
+          ? 'Fault tolerance allows a system to continue operating when a component fails. '.repeat(
+              8,
+            )
+          : index % 2
+            ? 'References\nISBN: 123\nISBN: 456\nhttps://example.org/source\n' +
+              'A bibliography entry. '.repeat(20)
+            : 'Reliability, 10\nScalability, 20\nModularity, 30\nAbstraction, 40\nTesting, 50\nDesign, 60\n' +
+              'Index entry. '.repeat(25),
+    }));
+    jest
+      .spyOn(global, 'fetch')
+      .mockImplementation(
+        async () => new Response(JSON.stringify({ retrieval_mode_used: 'hybrid', results })),
+      );
+    const answer = await client().retrieve('Teach me software engineering basics');
+    expect(answer.evidence[0]!.chunkId).toBe(goodId);
+    expect(answer.evidence.length).toBeLessThanOrEqual(8);
+    expect(new Set(answer.evidence.map((item) => item.chunkId)).size).toBe(answer.evidence.length);
+    // All fixture chunks have the same source; its existing two-passage cap remains.
+    expect(answer.evidence.length).toBeLessThanOrEqual(2);
+  });
+  it('keeps specific-query responses bounded to the requested four candidates', async () => {
+    jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ retrieval_mode_used: 'hybrid', results: Array(5).fill(result) }),
+        ),
+      );
+    expect((await client().retrieve('pricing')).unavailable).toBe(true);
+  });
+  it('does not offer navigation-only matches as teaching evidence', async () => {
+    const index = {
+      ...result,
+      text:
+        'Newton\n195\nForces\n196\nFirst law\n200\nSecond law\n204\nMass\n215\nThird law\n217\n' +
+        'Section heading\n280\n'.repeat(20),
+    };
+    jest
+      .spyOn(global, 'fetch')
+      .mockImplementation(
+        async () =>
+          new Response(JSON.stringify({ retrieval_mode_used: 'hybrid', results: [index] })),
+      );
+    expect(await client().retrieve('Teach me physics fundamentals')).toEqual({
+      evidence: [],
+      unavailable: false,
+    });
   });
   it('combines shared and authenticated private scopes without accepting unrelated collections', async () => {
     const actor = 'c37c3283-30d8-4d43-99a3-2319f3bf2049';

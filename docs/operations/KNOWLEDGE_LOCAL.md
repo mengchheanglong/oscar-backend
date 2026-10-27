@@ -1,6 +1,67 @@
 # Local external knowledge integration
 
-## Broad business lessons — 2026-10-27
+## Broad learning across the library — 2026-10-27
+
+The current planner extends the business-only implementation below. A short broad
+learning request keeps its exact original query and adds at most two subject
+searches. Subject hints cover strategy/decisions, product/growth, Social
+Systems, leadership/execution, AI/software/engineering, finance/quantitative
+reasoning, communication/writing, psychology, physics and economics. More specific
+subjects take precedence over MBA/engineering umbrella labels; mixed subjects
+receive one expansion each for at most two subjects. Additional subjects remain
+in the original query, not a promise of exhaustive topic coverage.
+
+Unknown subjects and extra topic qualifiers use the original question with generic concepts/examples hints;
+they are not replaced by business queries. Explicit named-source, comparative,
+numeric and focused requests retain one original query. The detector uses English
+learning phrases and conservative guards; it is not a multilingual semantic
+planner. Permissioned collections are still selected by the existing scope, not
+by subject: books in any allowed collection may support any topic.
+
+Overview searches fetch up to 12 candidates each (36 maximum), rather than the
+ordinary four. Stable topic interleaving is softly reranked across all candidates
+to prefer explanatory passages over likely indexes, reference lists and navigation.
+The final evidence cap remains eight, with at most two passages per source.
+Strong navigation/reference signals (risk score at least two) are omitted from
+overview evidence, including dense page-number lists and reference identifiers.
+This is a conservative retrieval heuristic, not a source validity judgment, and
+can omit useful material. Original sources and ordinary focused retrieval are
+unchanged. Definitions and explanatory passages still need source-aware judgment.
+If only navigation candidates remain, the answer gets no reference evidence and
+the normal no-matches notice rather than a claim of source-backed teaching.
+
+The existing three-search deadline, source diversity bounds, context ceiling,
+citations, owner isolation and opt-out remain. Broader reference context and
+teaching guidance now apply across detected learning subjects. The assistant
+must stay within the question and avoid forcing a business/project application
+onto unrelated lessons. No PDF reprocessing, index mutation or provider change
+is part of this work.
+
+Verification: 501 backend unit tests and 173 E2E tests passed, along with lint,
+typecheck, production build and formatting. Checks include known and unknown
+subjects, mixed subjects, specific qualifiers, source-request guards, signed
+owner scoping, shared deadline expiry, partial retrieval failure, source caps,
+navigation-only evidence and the ordinary four-result bound. Live checks use
+ordinary authentication through the existing frontend API and stable retry IDs;
+private receipts and sample answers stay in ignored `var/library-learning`.
+No new browser UI flow is claimed: this change is in server retrieval/context.
+
+Three bounded live rounds (15 generation requests with the existing provider)
+tested unassisted short questions about leadership, psychology, software,
+physics and MBA lessons. Final responses had 4/4/5/5/6 external citations, with
+matching saved-message reload and idempotent replay. Manual sample review found
+substantive passages on Grove's task-relevant maturity, conditioning, software
+fault tolerance/testing, Newton's second law and contribution margins. Physics
+contents-page evidence in an earlier round was replaced by explanatory mechanics
+pages after the navigation filter and query refinement.
+
+Some glossary, reference-pointer and book-endorsement material still appears.
+The filter is not exhaustive metadata detection. The examples establish useful
+retrieval across subjects, not complete curricula, verified historical anecdotes,
+or claim-by-claim grounding of model output. Source-quality notices, edition
+uncertainty and the deferred PDF cleaning backlog remain applicable.
+
+## Earlier business-only implementation — 2026-10-27
 
 Short broad business/MBA learning requests use three bounded topic searches:
 strategy/customer value, unit economics/cash flow, and markets. This addresses

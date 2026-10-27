@@ -357,6 +357,7 @@ export class AssistantService implements OnModuleInit {
       : undefined;
     const mavisMemories = mavisPack?.approvedMemories ?? [];
     const supplementary = await knowledgePromise;
+    const referenceOverview = !!dto.includeKnowledge && referenceQueryPlan(dto.content).length > 1;
     const assembled = this.contextAssembler.assemble(
       includeAllWorkspaces ? 'All Workspaces' : projectName,
       mode,
@@ -368,13 +369,13 @@ export class AssistantService implements OnModuleInit {
       activeGoals,
       mavisMemories,
       [],
-      !!dto.includeKnowledge && referenceQueryPlan(dto.content).length > 1,
+      referenceOverview,
     );
 
     assembled.systemPrompt += skillContext(selectedSkills);
-    if (dto.includeKnowledge && referenceQueryPlan(dto.content).length > 1)
+    if (referenceOverview)
       assembled.systemPrompt +=
-        '\nFor this broad business-learning request, teach from the included reference passages across their covered topics, then apply the principles to the project. Project records supply application context, not a substitute for business teaching. Cite the current numbered evidence. Distinguish source-backed principles from your recommendations. Reading indexes and tables of contents are pointers, not substantive support for lessons; glossary definitions support definitions only. Omit unsupported teaching claims or label them as general reasoning. Describe limitations of the retrieved excerpts; do not infer that the entire library is thin or lacks a subject from this bounded sample.';
+        '\nFor this broad learning request, stay within the subjects and constraints in the user question. Teach from the included reference passages across their covered topics, then apply the principles to the project when relevant. Do not force unrelated project or business applications. Project records supply application context, not a substitute for subject teaching. Cite the current numbered evidence. Distinguish source-backed principles from your recommendations. Reading indexes and tables of contents are pointers, not substantive support for lessons; glossary definitions support definitions only. Omit unsupported teaching claims or label them as general reasoning. Describe limitations of the retrieved excerpts; do not infer that the entire library is thin or lacks a subject from this bounded sample.';
     if (dto.includeKnowledge) {
       assembled.systemPrompt +=
         '\nExternal knowledge retrieval status (server metadata): ' +

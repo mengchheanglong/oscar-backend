@@ -47,10 +47,11 @@ const evidenceSchema = z.object({
   start_ms: z.number().int().nonnegative().nullable(),
   end_ms: z.number().int().nonnegative().nullable(),
 });
-const responseSchema = z.object({
-  retrieval_mode_used: z.enum(['keyword', 'semantic', 'hybrid']),
-  results: z.array(evidenceSchema).max(4),
-});
+const responseSchema = (limit: number) =>
+  z.object({
+    retrieval_mode_used: z.enum(['keyword', 'semantic', 'hybrid']),
+    results: z.array(evidenceSchema).max(limit),
+  });
 
 @Injectable()
 export class KnowledgeClientService {
@@ -139,7 +140,7 @@ export class KnowledgeClientService {
     for (const topic of queries) {
       const remaining = deadline - Date.now();
       if (remaining <= 0) break;
-      const result = await this.retrieveSingle(topic, userId, scope, remaining);
+      const result = await this.retrieveSingle(topic, userId, scope, remaining, 12);
       if (!result.unavailable) successful++;
       // Soft ordering only: introductory text is not automatically invalid evidence.
       batches.push(result.evidence.sort((a, b) => this.navigationRisk(a) - this.navigationRisk(b)));
@@ -147,17 +148,23 @@ export class KnowledgeClientService {
     const evidence: AssistantEvidence[] = [];
     const seen = new Set<string>();
     const books = new Map<string, number>();
-    for (let rank = 0; rank < 4; rank++) {
-      for (const batch of batches) {
-        const item = batch[rank];
-        if (!item || seen.has(item.chunkId)) continue;
-        const key = item.bookId ?? item.sourceId;
-        if ((books.get(key) ?? 0) >= 2) continue;
-        seen.add(item.chunkId);
-        books.set(key, (books.get(key) ?? 0) + 1);
-        evidence.push(item);
-        if (evidence.length === 8) return { evidence, unavailable: false };
-      }
+    const interleaved: AssistantEvidence[] = [];
+    for (let rank = 0; rank < 12; rank++)
+      for (const batch of batches) if (batch[rank]) interleaved.push(batch[rank]!);
+    // Prefer explanatory passages across the whole plan, retaining stable topic
+    // order among equal-risk items. This is a soft hint, not source certification.
+    interleaved.sort((a, b) => this.navigationRisk(a) - this.navigationRisk(b));
+    for (const item of interleaved) {
+      // Strong navigation/reference signals are not teaching evidence. Keep the
+      // original source untouched and available to ordinary focused retrieval.
+      if (this.navigationRisk(item) >= 2) continue;
+      if (seen.has(item.chunkId)) continue;
+      const key = item.bookId ?? item.sourceId;
+      if ((books.get(key) ?? 0) >= 2) continue;
+      seen.add(item.chunkId);
+      books.set(key, (books.get(key) ?? 0) + 1);
+      evidence.push(item);
+      if (evidence.length === 8) return { evidence, unavailable: false };
     }
     return { evidence, unavailable: successful === 0 };
   }
@@ -166,10 +173,25 @@ export class KnowledgeClientService {
     const text = item.text ?? item.snippet;
     return (
       Number(
-        /learning objectives|table of contents|what.s in it for me|chapter outline|located reading evidence|glossary/i.test(
+        /learning objectives|table of contents|what.s in it for me|chapter outline|located reading evidence|glossary|faculty reviewers|contributing authors/i.test(
           text,
         ),
-      ) + Number(text.length < 300)
+      ) +
+      Number(text.length < 300) +
+      Number(
+        /(?:^|\n)\s*(?:index|references|bibliography|acknowledg[e]?ments|contents)\s*(?:\n|$)/i.test(
+          text,
+        ),
+      ) *
+        2 +
+      Number((text.match(/\b(?:doi:|isbn:?)|https?:\/\//gi) ?? []).length >= 3) * 2 +
+      Number((text.match(/(?:,\s*|\s{2,})\d+(?:[–-]\d+)?(?:,\s*\d+)*\s*$/gm) ?? []).length >= 6) *
+        2 +
+      Number(
+        (text.match(/^\s*\d+\s*$/gm) ?? []).length >= 6 &&
+          (text.match(/^\s*\d+\s*$/gm) ?? []).length / text.split('\n').length >= 0.2,
+      ) *
+        2
     );
   }
 
@@ -178,6 +200,7 @@ export class KnowledgeClientService {
     userId?: string,
     scope: 'mba' | 'social-systems' | 'personal-library' | 'all' = 'mba',
     timeoutMs = this.config.get<number>('OSCAR_KNOWLEDGE_TIMEOUT_MS', 2500),
+    topK = 4,
   ): Promise<{ evidence: AssistantEvidence[]; unavailable: boolean }> {
     if (!this.config.get<boolean>('OSCAR_KNOWLEDGE_ENABLED', false))
       return { evidence: [], unavailable: true };
@@ -197,7 +220,7 @@ export class KnowledgeClientService {
       const body = JSON.stringify({
         query: query.slice(0, 4000),
         collection_ids: collections,
-        top_k: 4,
+        top_k: topK,
         mode: 'hybrid',
       });
       if (scope !== 'mba' && !userId) throw new Error('PRIVATE_USER_REQUIRED');
@@ -231,7 +254,7 @@ export class KnowledgeClientService {
       } finally {
         await reader.cancel();
       }
-      const data = responseSchema.parse(JSON.parse(Buffer.concat(parts).toString('utf8')));
+      const data = responseSchema(topK).parse(JSON.parse(Buffer.concat(parts).toString('utf8')));
       if (
         data.results.some((item) => !collections.includes(item.collection_id)) ||
         new Set(data.results.map((item) => item.chunk_id)).size !== data.results.length

@@ -1,5 +1,31 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-27 library-wide learning retrieval: short broad learning questions keep
+> their original query and add at most two subject-aware searches under the same
+> deadline. Hints cover the library families plus psychology, physics and economics;
+> unknown or qualified subjects receive anchored generic expansion. Specific subjects precede
+> umbrella labels, and mixed subjects share the bounded expansion. Explicit focused,
+> numeric, comparative and named-source requests retain their original query.
+> Teaching context no longer assumes business or forces project applications.
+> Source access, generation settings, OCR and original files are unchanged. This
+> English heuristic improves discovery; it does not certify curriculum completeness.
+> Live passage review caught references/indexes despite valid citations; overview
+> searches now retrieve up to 12 candidates each, rerank the interleaved pool and
+> omit strong navigation/reference signals before retaining at most eight passages,
+> two per source. These are retrieval hints, not source certification. Ordinary specific
+> queries retain their four-candidate response bound and previous context budgets.
+> Validation: 501 unit tests and 173 E2E tests passed with lint, typecheck, build
+> and formatting. Signed private-owner scope, deadline expiry, partial failure,
+> navigation-only results, source caps and focused-query bounds are covered.
+> Real app acceptance receipts remain private under ignored var/library-learning.
+> Three bounded live rounds (15 generation requests) used the existing provider.
+> Final leadership/psychology/software/physics/MBA requests completed with 4/4/5/5/6
+> external citations; saved-message reload and idempotent replay passed. Reviewed
+> examples include Grove's task-relevant maturity, conditioning, fault tolerance,
+> testing, Newton's second law and contribution margins. Remaining glossary,
+> reading-pointer and endorsement material demonstrates that the heuristic is not
+> exhaustive source-quality filtering or universal generated-claim verification.
+
 > 2026-10-27 broad business learning: short MBA/business learning requests now
 > search strategy/customer value, unit economics/cash flow and markets separately
 > under one existing retrieval deadline. Results are interleaved, deduplicated and
