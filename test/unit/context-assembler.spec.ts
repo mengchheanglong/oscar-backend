@@ -348,4 +348,30 @@ describe('ContextAssembler', () => {
     const goalsSection = match![1]!;
     expect(goalsSection.length).toBeLessThanOrEqual(4000);
   });
+
+  it('captures exactExcerpt, fullTextLength, and isTruncated for EXTERNAL_KNOWLEDGE citations', () => {
+    const fullText =
+      'Scaling indicator 1: Customer buying. Scaling indicator 2: Pattern setting in. Scaling indicator 3: WOM possible.';
+    const externalItem = {
+      chunkId: 'mit-slide-19',
+      sourceId: 'doc-mit-21',
+      sourceType: 'EXTERNAL_KNOWLEDGE' as const,
+      title: 'MIT Lecture 21',
+      revision: 1,
+      locator: 'PDF page 19',
+      snippet: fullText.slice(0, 50),
+      text: fullText,
+      fullTextLength: fullText.length,
+      isTruncated: true,
+      score: 0.95,
+    };
+
+    const assembled = assembler.assemble('AI Workspace', AssistantMode.WORKSPACE, [externalItem]);
+
+    expect(assembled.evidenceItems).toHaveLength(1);
+    const item = assembled.evidenceItems[0]!;
+    expect(item.exactExcerpt).toBe(fullText);
+    expect(item.fullTextLength).toBe(fullText.length);
+    expect(item.isTruncated).toBe(true);
+  });
 });

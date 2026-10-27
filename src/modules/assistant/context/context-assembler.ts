@@ -152,16 +152,23 @@ Content:\n`;
       accumulatedChars += boundedBlock.length + separatorChars;
       const fullLen = item.fullTextLength ?? item.text?.length ?? content.length;
       const isTrunc = item.isTruncated ?? fullLen > item.snippet.length;
+      const isExternalOrEnriched = external || item.exactExcerpt !== undefined;
       includedEvidence.push(
         includedText.length === content.length
-          ? { ...item, exactExcerpt: includedText, fullTextLength: fullLen, isTruncated: isTrunc }
+          ? isExternalOrEnriched
+            ? { ...item, exactExcerpt: includedText, fullTextLength: fullLen, isTruncated: isTrunc }
+            : item
           : {
               ...item,
               text: includedText,
               snippet: includedText.slice(0, 240),
-              exactExcerpt: includedText,
-              fullTextLength: fullLen,
-              isTruncated: true,
+              ...(isExternalOrEnriched
+                ? {
+                    exactExcerpt: includedText,
+                    fullTextLength: fullLen,
+                    isTruncated: true,
+                  }
+                : {}),
             },
       );
       evidenceBlocks.push(boundedBlock);
