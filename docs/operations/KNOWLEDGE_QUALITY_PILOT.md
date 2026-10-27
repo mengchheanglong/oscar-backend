@@ -57,3 +57,59 @@ file over new credentials. Recreate the Knowledge API after changing the list.
 Page-role judgments in private review reports do not automatically change
 retrieval ranking. A bounded pilot cannot establish complete MBA coverage or
 corpus-wide extraction accuracy.
+
+## Focused recovery and answer review (2026-10-27)
+
+Focused required-source questions allow up to 3,400 characters per external
+item, retaining the overall 16,000-character source budget. Broad learning
+overviews retain the shorter allocation. Numeric tables with explanatory prose
+are no longer discarded solely because they resemble page-number lists;
+explicit navigation signals still apply. This is not table reconstruction or
+PDF fidelity verification.
+
+Required-source drafts with current citations receive a second structured call
+to the existing generation provider. It reviews every numbered paragraph,
+including uncited paragraphs and headings, against all bounded source excerpts.
+The reviewer selects numbered source segments; runtime validation resolves
+these to original text. Legacy quoted anchors accept only whitespace and
+typographic quotation equivalence, never numeric or mathematical rewriting.
+Unknown anchors, incomplete block coverage and malformed output fail closed.
+An unavailable reviewer withholds the draft with a retry message rather than
+claiming the library lacks the answer. Courtesy and deterministic no-evidence
+responses do not make this second call.
+
+Unsupported paragraphs are removed. Retained factual paragraphs require source
+anchors, retained applications require explicit reasoning labels, and citation
+identities come only from the original included evidence. A missing paragraph
+marker may be completed after review; irrelevant source identities cannot be
+introduced. Scoped source-limit text uses fixed wording. This remains a
+probabilistic semantic check: a valid anchor alone does not prove entailment,
+and the same provider can repeat its own mistakes.
+
+The existing private JSONB evidence snapshot stores `answerReview`, including
+block decisions, original source anchors, reviewer usage and the bounded
+unreviewed draft (at most 24,000 characters). No migration is required. This
+audit is not displayed as accepted answer text or supporting citations.
+Review tokens are included in message totals. There is one additional provider
+call for reviewed turns, increasing latency and cost; no cost figure or
+independent accuracy percentage is established here. At most 64 blocks and
+24 source anchors per block are accepted.
+
+The separate private run is under
+`D:\AI\OSCAR\Knowledge\Catalog\reports\retrieval-grounding\2026-10-27`.
+Four exposed regressions and eight frozen fresh questions ran through the
+signed-in app. The fresh run produced four substantive answers, two partial
+answers and two refusals of unsupported requests, with no generation failures.
+These are usefulness categories, not fully supported answer accuracy.
+Three of six answerable fresh questions included a preselected gold passage;
+another used a relevant alternative passage. The hiring limitation page and
+systems definition page were missed. Some generalizations also survived review.
+The semantic quality gate remains unpassed; do not claim 99% grounding.
+
+All twelve latest turns retained valid source hashes and citation identities
+after reload and were excluded from future conversation context. Three earlier
+failed development attempts remain preserved separately. The fifteen existing
+chunk exclusions remain effective. Next work should separate title/concept/
+qualifier search intents, recover missing qualifiers across book fragments,
+and evaluate atomic claim review on a new frozen question set. Do not tune on
+the eight final questions and then report them as unseen results.

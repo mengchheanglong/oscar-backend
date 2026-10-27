@@ -214,6 +214,11 @@ export class KnowledgeClientService {
 
   private navigationRisk(item: AssistantEvidence): number {
     const text = item.text ?? item.snippet;
+    // Numeric rows also occur in explanatory tables. Do not mistake a table
+    // with body prose/captions for a page-number index and discard definitions.
+    const hasTableOrProse =
+      /\btable\s+\d+(?:[-.]\d+)?\b/i.test(text) ||
+      (text.match(/[A-Za-z][^.!?\n]{30,}[.!?](?:\s|$)/g) ?? []).length >= 2;
     return (
       Number(
         /learning objectives|table of contents|what.s in it for me|chapter outline|located reading evidence|glossary|faculty reviewers|contributing authors/i.test(
@@ -228,10 +233,14 @@ export class KnowledgeClientService {
       ) *
         2 +
       Number((text.match(/\b(?:doi:|isbn:?)|https?:\/\//gi) ?? []).length >= 3) * 2 +
-      Number((text.match(/(?:,\s*|\s{2,})\d+(?:[–-]\d+)?(?:,\s*\d+)*\s*$/gm) ?? []).length >= 6) *
+      Number(
+        !hasTableOrProse &&
+          (text.match(/(?:,\s*|\s{2,})\d+(?:[–-]\d+)?(?:,\s*\d+)*\s*$/gm) ?? []).length >= 6,
+      ) *
         2 +
       Number(
-        (text.match(/^\s*\d+\s*$/gm) ?? []).length >= 6 &&
+        !hasTableOrProse &&
+          (text.match(/^\s*\d+\s*$/gm) ?? []).length >= 6 &&
           (text.match(/^\s*\d+\s*$/gm) ?? []).length / text.split('\n').length >= 0.2,
       ) *
         2

@@ -1,4 +1,5 @@
 import { ContextAssembler } from '../../src/modules/assistant/context/context-assembler';
+import { AssistantEvidence } from '../../src/modules/knowledge-client/knowledge-evidence';
 import { AssistantMode } from '../../src/modules/assistant/entities/assistant-mode.enum';
 import { KnowledgeSourceType } from '../../src/modules/ingestion/entities';
 import { RetrievedEvidence } from '../../src/modules/mavis/retrieval/retrieval.service';
@@ -10,6 +11,43 @@ describe('ContextAssembler', () => {
 
   beforeEach(() => {
     assembler = new ContextAssembler();
+  });
+
+  it('preserves a focused definition near the end of a retrieved chunk without expanding the total budget', () => {
+    const text =
+      'Explanatory context about strategic choices. '.repeat(40) +
+      'A pivot point magnifies the effect of effort.';
+    const item: AssistantEvidence = {
+      chunkId: 'focus',
+      sourceId: 'book',
+      sourceType: 'EXTERNAL_KNOWLEDGE',
+      title: 'Synthetic strategy source',
+      revision: 1,
+      locator: 'PDF p3',
+      text,
+      snippet: text.slice(0, 240),
+      score: 1,
+    };
+    const build = (focusedReference = false) =>
+      assembler.assemble(
+        'Project',
+        AssistantMode.WORKSPACE,
+        [item] as AssistantEvidence[],
+        false,
+        undefined,
+        [],
+        undefined,
+        [],
+        [],
+        [],
+        true,
+        true,
+        focusedReference,
+      );
+    const focused = build(true);
+    expect(focused.evidenceItems[0]!.exactExcerpt).toBe(text);
+    expect(focused.evidenceText.length).toBeLessThanOrEqual(16000);
+    expect(build().evidenceText).not.toContain('A pivot point');
   });
 
   it('keeps diverse reference passages and project application context for a learning overview', () => {

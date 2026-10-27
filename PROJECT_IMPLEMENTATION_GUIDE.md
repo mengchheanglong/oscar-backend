@@ -2303,3 +2303,27 @@ Provider generation was not exercised. No remote push or hosted deployment.
   enforce semantic answer support and plan qualifiers, verify quarantined math,
   and use new untouched final questions after tuning. Do not claim 99% grounding,
   complete MBA coverage or all-page fidelity from this pilot.
+
+### 2026-10-27 — Focused source recovery and semantic support review
+
+- Added bounded focused source excerpts and preserved explanatory numeric tables
+  that were mistaken for navigation. Required-source cited drafts now receive a
+  structured paragraph review against original source segments. Unsupported
+  blocks are removed, failures withhold drafts, and private evidence snapshots
+  retain review decisions, anchors and usage. Same provider/model retained;
+  no database migration or source ingestion performed.
+- Backend lint, typecheck, build and formatting passed; 551 unit and 177 HTTP
+  tests passed. Knowledge passed 153 tests (one skipped), Ruff and mypy, including
+  current-generation, exclusion and private-reader tests for focused recovery.
+  Frontend code was unchanged.
+- Actual signed-in Rentify app run: four exposed regressions plus eight frozen
+  fresh questions. Fresh usefulness: four answers, two partial answers, two
+  appropriate refusals; no generation failures. Exposed buyer and pivot-point
+  pages now reach the model. Twelve latest persisted snapshots/citation lists
+  survived reload, with valid hashes/anchors, unique turn pairs and no excluded
+  source chunks. QA turns remain preserved and excluded from future context.
+- Not complete as a semantic quality certification: hiring/system-definition
+  retrieval misses and surviving generalizations remain. Same-provider review
+  is not independent proof. Preserve the final run and use new questions after
+  future tuning. No claim of 99% grounding or full PDF cleaning. See
+  [quality-pilot operations](docs/operations/KNOWLEDGE_QUALITY_PILOT.md).

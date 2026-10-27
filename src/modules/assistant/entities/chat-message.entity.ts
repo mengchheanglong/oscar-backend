@@ -9,6 +9,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Conversation } from './conversation.entity';
+import type { AnswerSupportAudit } from '../context/answer-support';
 import { AssistantMode } from './assistant-mode.enum';
 
 export enum MessageRole {
@@ -60,6 +61,7 @@ export interface EvidenceSnapshot {
   version: 1;
   generationAttempted: boolean;
   items: (CitationItem & { textSha256: string })[];
+  answerReview?: AnswerSupportAudit;
 }
 
 @Entity('ai_messages')

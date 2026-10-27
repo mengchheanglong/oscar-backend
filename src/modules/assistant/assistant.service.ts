@@ -1,4 +1,5 @@
 import { courtesyReply, sourceGap } from './context/source-grounding';
+import { reviewSourceAnswer } from './context/answer-support';
 import { AttachmentsService } from './attachments.service';
 import { SkillsService } from '../skills/skills.service';
 import { KnowledgeClientService } from '../knowledge-client/knowledge-client.service';
@@ -29,6 +30,7 @@ import { PostMessageDto } from './dto/post-message.dto';
 import {
   ChatMessage,
   CitationItem,
+  EvidenceSnapshot,
   MessageRole,
   MessageStatus,
 } from './entities/chat-message.entity';
@@ -379,6 +381,7 @@ export class AssistantService implements OnModuleInit {
       [],
       referenceOverview,
       groundingRequired,
+      groundingRequired && !learningOverview,
     );
 
     assembled.systemPrompt += skillContext(selectedSkills);
@@ -414,7 +417,7 @@ export class AssistantService implements OnModuleInit {
     // Generate LLM response
     let generateResult;
     const courtesy = groundingRequired ? courtesyReply(dto.content) : undefined;
-    const evidenceSnapshot = {
+    const evidenceSnapshot: EvidenceSnapshot = {
       version: 1 as const,
       generationAttempted: !groundingRequired || (!courtesy && assembled.evidenceItems.length > 0),
       items: assembled.evidenceItems.map(({ text: _text, ...item }, index) => ({
@@ -458,51 +461,71 @@ export class AssistantService implements OnModuleInit {
     }
 
     // Validate citations: must correspond strictly to retrieved evidence
-    const evidenceByChunkId = new Map(assembled.evidenceItems.map((e) => [e.chunkId, e]));
-    const validatedCitations: CitationItem[] = (generateResult.citations || [])
-      .filter((citation) => evidenceByChunkId.has(citation.chunkId))
-      .map((citation) => {
-        const matched = evidenceByChunkId.get(citation.chunkId)!;
-        return {
-          chunkId: matched.chunkId,
-          sourceId: matched.sourceId,
-          sourceType: matched.sourceType,
-          title: matched.title,
-          bookId: matched.bookId,
-          author: matched.author,
-          edition: matched.edition,
-          chapter: matched.chapter,
-          extraction: matched.extraction,
-          reviewRequired: matched.reviewRequired,
-          coverageNote: matched.coverageNote,
-          revision: matched.revision,
-          locator: matched.locator,
-          snippet: matched.snippet,
-          score: matched.score,
-          evidenceNumber:
-            assembled.evidenceItems.findIndex((item) => item.chunkId === citation.chunkId) + 1,
-          projectName: matched.projectName,
-          projectKey: matched.projectKey,
-          documentId: matched.documentId,
-          collectionId: matched.collectionId,
-          sourceUrl: matched.sourceUrl,
-          courseCode: matched.courseCode,
-          institution: matched.institution,
-          pageStart: matched.pageStart,
-          pageEnd: matched.pageEnd,
-          startMs: matched.startMs,
-          endMs: matched.endMs,
-          fullTextLength: matched.fullTextLength,
-          isTruncated: matched.isTruncated,
-          exactExcerpt: matched.exactExcerpt,
-        };
-      });
+    const includedCitations: CitationItem[] = assembled.evidenceItems.map((matched, index) => {
+      return {
+        chunkId: matched.chunkId,
+        sourceId: matched.sourceId,
+        sourceType: matched.sourceType,
+        title: matched.title,
+        bookId: matched.bookId,
+        author: matched.author,
+        edition: matched.edition,
+        chapter: matched.chapter,
+        extraction: matched.extraction,
+        reviewRequired: matched.reviewRequired,
+        coverageNote: matched.coverageNote,
+        revision: matched.revision,
+        locator: matched.locator,
+        snippet: matched.snippet,
+        score: matched.score,
+        evidenceNumber: index + 1,
+        projectName: matched.projectName,
+        projectKey: matched.projectKey,
+        documentId: matched.documentId,
+        collectionId: matched.collectionId,
+        sourceUrl: matched.sourceUrl,
+        courseCode: matched.courseCode,
+        institution: matched.institution,
+        pageStart: matched.pageStart,
+        pageEnd: matched.pageEnd,
+        startMs: matched.startMs,
+        endMs: matched.endMs,
+        fullTextLength: matched.fullTextLength,
+        isTruncated: matched.isTruncated,
+        exactExcerpt: matched.exactExcerpt,
+      };
+    });
+    const validatedCitations = includedCitations.filter((c) =>
+      (generateResult.citations || []).some((g) => g.chunkId === c.chunkId),
+    );
 
     const hasCurrentCitation = validatedCitations.some((citation) =>
       generateResult.content.includes('[Evidence #' + citation.evidenceNumber + ']'),
     );
     const withholdDraft =
       groundingRequired && !courtesy && assembled.evidenceItems.length > 0 && !hasCurrentCitation;
+
+    let answerContent = generateResult.content;
+    let answerCitations = validatedCitations;
+    if (groundingRequired && !courtesy && hasCurrentCitation) {
+      const reviewed = await reviewSourceAnswer(
+        this.llmProvider,
+        dto.content,
+        answerContent,
+        assembled.evidenceItems,
+      );
+      answerContent = reviewed.content;
+      evidenceSnapshot.answerReview = reviewed.audit;
+      answerCitations = includedCitations.filter((c) =>
+        answerContent.includes('[Evidence #' + c.evidenceNumber + ']'),
+      );
+      generateResult.promptTokens =
+        (generateResult.promptTokens ?? 0) + reviewed.audit.promptTokens;
+      generateResult.completionTokens =
+        (generateResult.completionTokens ?? 0) + reviewed.audit.completionTokens;
+      if (reviewed.audit.status === 'UNAVAILABLE')
+        this.logger.warn('AI_SUPPORT_REVIEW_UNAVAILABLE');
+    }
 
     const assistantMessage = this.messageRepo.create({
       ...(savedAnswer ? { id: savedAnswer.id, createdAt: savedAnswer.createdAt } : {}),
@@ -515,9 +538,9 @@ export class AssistantService implements OnModuleInit {
           supplementary.unavailable &&
           (!groundingRequired || (!courtesy && assembled.evidenceItems.length > 0))
             ? 'Supplementary knowledge sources were unavailable for this turn.\n\n'
-            : '') + generateResult.content,
+            : '') + answerContent,
       status: MessageStatus.COMPLETED,
-      citations: withholdDraft ? [] : validatedCitations,
+      citations: withholdDraft ? [] : answerCitations,
       evidenceSnapshot,
       modelName: generateResult.modelName,
       promptTokens: generateResult.promptTokens,

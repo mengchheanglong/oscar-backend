@@ -166,6 +166,22 @@ describe('optional curated knowledge', () => {
       unavailable: false,
     });
   });
+  it('retains substantive definitions alongside numeric table rows', async () => {
+    const text =
+      'The marketplace distinguishes purchasing buyers from engaged buyers. Engaged buyers searched recently and completed a prior purchase.\nTable 13-2. Buyer engagement\n' +
+      Array.from({ length: 24 }, (_, i) => String(i + 1)).join('\n');
+    jest.spyOn(global, 'fetch').mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          retrieval_mode_used: 'hybrid',
+          results: [{ ...result, text, snippet: text.slice(0, 240) }],
+        }),
+      ),
+    );
+    const answer = await client().retrieve('How are buyers defined?', undefined, 'mba', true);
+    expect(answer.evidence[0]?.text).toBe(text);
+    expect(answer.unavailable).toBe(false);
+  });
   it('uses the original focused query with a wider filtered candidate pool when sources are required', async () => {
     const fetch = jest.spyOn(global, 'fetch').mockResolvedValueOnce(
       new Response(

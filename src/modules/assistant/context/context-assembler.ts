@@ -93,6 +93,7 @@ export class ContextAssembler {
     mavisRawRuns: MavisExecutionResultItem[] = [],
     referenceOverview = false,
     groundingRequired = false,
+    focusedReference = false,
   ): AssembledContext {
     const maxChars = this.maxEvidenceTokens * this.approxCharsPerToken;
     let accumulatedChars = 0;
@@ -142,7 +143,7 @@ Content:\n`;
       const available = Math.min(
         categoryRemaining,
         maxChars - accumulatedChars - separatorChars,
-        external && referenceOverview ? 1600 : maxChars,
+        external && referenceOverview ? (focusedReference ? 3400 : 1600) : maxChars,
       );
       if (available <= header.length + 1) continue;
       const includedText = content.slice(0, available - header.length - 1);

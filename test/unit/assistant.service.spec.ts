@@ -55,6 +55,7 @@ describe('AssistantService', () => {
   let contextAssembler: ContextAssembler;
   let mockLlmProvider: {
     generateAnswer: jest.Mock;
+    generateStructuredOutput: jest.Mock;
   };
   let mockIngestionService: {
     getEmbeddingProvider: jest.Mock;
@@ -107,6 +108,7 @@ describe('AssistantService', () => {
 
     mockLlmProvider = {
       generateAnswer: jest.fn(),
+      generateStructuredOutput: jest.fn(),
     };
 
     mockIngestionService = {
@@ -430,6 +432,23 @@ describe('AssistantService', () => {
           score: 0.1,
         };
         function requireSources(evidence = [source], unavailable = false) {
+          // Service wiring fixture only; semantic verdict/quote validation is
+          // independently exercised in answer-support.spec.ts.
+          mockLlmProvider.generateStructuredOutput.mockImplementation(async ({ userPrompt }) => {
+            const input = JSON.parse(userPrompt);
+            return {
+              data: {
+                blocks: input.blocks.map((b: { id: number }) => ({
+                  id: b.id,
+                  verdict: 'SUPPORTED',
+                  sources: [{ evidenceNumber: 1, segmentId: 0 }],
+                })),
+              },
+              modelName: 'test-review',
+              promptTokens: 10,
+              completionTokens: 5,
+            };
+          });
           const knowledge = {
             policy: () => ({ enabled: true, required: true }),
             retrieve: jest.fn().mockResolvedValue({ evidence, unavailable }),
@@ -437,6 +456,68 @@ describe('AssistantService', () => {
           Object.assign(service, { knowledge });
           return knowledge;
         }
+        it('persists the support audit, removes rejected citations and does not review again on replay', async () => {
+          const other = {
+            ...source,
+            chunkId: 'unrelated',
+            sourceId: 'second-book',
+            text: 'A different proposed plan.',
+          };
+          requireSources([source, other]);
+          mockLlmProvider.generateAnswer.mockResolvedValue({
+            content:
+              'Margin funds fixed costs. [Evidence #1]\n\nThe proposed pilot has already succeeded. [Evidence #2]',
+            citations: [source, other],
+            modelName: 'test',
+            promptTokens: 20,
+            completionTokens: 10,
+          });
+          mockLlmProvider.generateStructuredOutput.mockResolvedValueOnce({
+            data: {
+              blocks: [
+                {
+                  id: 0,
+                  verdict: 'SUPPORTED',
+                  sources: [{ evidenceNumber: 1, quote: source.text }],
+                },
+                { id: 1, verdict: 'UNSUPPORTED', sources: [] },
+              ],
+            },
+            modelName: 'test-review',
+            promptTokens: 10,
+            completionTokens: 5,
+          });
+          const result = await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
+          expect(result.assistantMessage.content).not.toContain('already succeeded');
+          expect(result.assistantMessage.citations).toHaveLength(1);
+          expect(result.assistantMessage.evidenceSnapshot?.items).toHaveLength(2);
+          expect(result.assistantMessage.evidenceSnapshot?.answerReview?.status).toBe('FILTERED');
+          expect(result.assistantMessage.promptTokens).toBe(30);
+          expect(await service.postMessage(mockProjectId, mockUserId, 'conv-1', request)).toEqual(
+            result,
+          );
+          expect(mockLlmProvider.generateStructuredOutput).toHaveBeenCalledTimes(1);
+        });
+        it('withholds a cited draft when source review fails without logging its private exception', async () => {
+          requireSources();
+          mockLlmProvider.generateAnswer.mockResolvedValue({
+            content: 'A draft. [Evidence #1]',
+            citations: [source],
+            modelName: 'test',
+            promptTokens: 20,
+            completionTokens: 10,
+          });
+          mockLlmProvider.generateStructuredOutput.mockRejectedValueOnce(
+            new Error('PRIVATE source body'),
+          );
+          const result = await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
+          expect(result.assistantMessage.content).toContain('source-support check');
+          expect(result.assistantMessage.content).not.toContain('PRIVATE');
+          expect(result.assistantMessage.citations).toEqual([]);
+          expect(result.assistantMessage.evidenceSnapshot?.answerReview?.status).toBe(
+            'UNAVAILABLE',
+          );
+        });
         it.each([undefined, false])(
           'retrieves and grounds answers even when client opt-in is %s',
           async (includeKnowledge) => {
