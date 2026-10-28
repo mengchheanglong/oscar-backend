@@ -113,3 +113,46 @@ chunk exclusions remain effective. Next work should separate title/concept/
 qualifier search intents, recover missing qualifiers across book fragments,
 and evaluate atomic claim review on a new frozen question set. Do not tune on
 the eight final questions and then report them as unseen results.
+
+## Sentence review and complementary evidence (2026-10-28)
+
+Review version 2 deterministically partitions the draft into sentence units,
+retaining paragraph identities, original text, headings and adjacent citation
+markers. The provider must return one decision and explicit entailment, scope,
+number/threshold, causal-direction and evidence-status checks per unit. A false
+check rejects the unit even if its verdict says supported. A paragraph is kept
+only when every unit passes; text is not assembled from disconnected fragments.
+A filtered answer reports that some draft material was omitted. Explicit
+author-only requests suppress labelled project applications in runtime checks.
+
+The private audit records version 2, sentence granularity, paragraph IDs and
+checks. Historical version-1 audits remain intact. Bounds are 64 paragraphs,
+128 units, 24,000 draft characters and the existing 16,000 source characters.
+This is finer review, not a verified exhaustive decomposition into atomic
+claims: a sentence can contain several claims, and the model can still
+misjudge them or approve an unsupported application. Conservative paragraph
+removal can also discard a useful supported explanation.
+
+Focused required-source questions retain up to three passages per source so
+definitions, caveats and examples can coexist. Broad multi-topic plans retain
+two; overall retrieval and context budgets stay bounded. Knowledge adds
+permission-preserving definition/qualification/direction pools. Role cues and
+ranking remain English heuristics, not factual confidence.
+
+The new private round is
+`D:\AI\OSCAR\Knowledge\Catalog\reports\retrieval-grounding\2026-10-28`.
+The prior final questions are exposed development regressions. New questions
+and source expectations were frozen separately; preserve failed attempts and
+distinguish internal retrieval or synthetic reviewer tests from signed-in app
+evaluation. No new migration, corpus import, reembedding, access expansion or
+quarantine removal is part of this continuation.
+
+The first shared-chat run in this continuation is invalid as a clean benchmark:
+the test helper excluded only one eligible user turn before each send and left
+the previous question in context. Receipts preserve that failure. The unchanged
+frozen code was then checked with six separate conversations and database-verified
+exclusions between cases. Two replies were substantive with support concerns,
+two partial, and two appropriate refusals. These exposed repeats do not establish
+held-out accuracy. Supported material can still be removed, and unsupported
+recommendation premises or contradictory limitation wording can still survive.
+Keep the semantic gate open and preserve these failures for independent review.

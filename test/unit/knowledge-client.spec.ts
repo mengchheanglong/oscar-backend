@@ -148,6 +148,26 @@ describe('optional curated knowledge', () => {
       );
     expect((await client().retrieve('pricing')).unavailable).toBe(true);
   });
+  it('retains three complementary passages for a focused required-source question but two for broad plans', async () => {
+    const results = Array.from({ length: 3 }, (_, i) => ({
+      ...result,
+      chunk_id: `c37c3283-30d8-4d43-99a3-2319f3bf207${i}`,
+      text: 'A substantive explanation of the concept with its qualifications and examples. '.repeat(
+        8,
+      ),
+    }));
+    jest
+      .spyOn(global, 'fetch')
+      .mockImplementation(
+        async () => new Response(JSON.stringify({ retrieval_mode_used: 'hybrid', results })),
+      );
+    expect(
+      (await client().retrieve('Define leverage points', undefined, 'mba', true)).evidence,
+    ).toHaveLength(3);
+    expect(
+      (await client().retrieve('MBA business lessons', undefined, 'mba', true)).evidence,
+    ).toHaveLength(2);
+  });
   it('does not offer navigation-only matches as teaching evidence', async () => {
     const index = {
       ...result,

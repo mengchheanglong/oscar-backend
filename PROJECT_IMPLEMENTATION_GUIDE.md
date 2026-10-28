@@ -2299,6 +2299,37 @@ Provider generation was not exercised. No remote push or hosted deployment.
   claimed. Other pilot pages remain unverified, and report-only page roles do not
   implement task-aware ranking. See
   [quality-pilot operations](docs/operations/KNOWLEDGE_QUALITY_PILOT.md).
+
+### 2026-10-28 — Source-role recovery and sentence support checks
+
+- Added permission-preserving definition, qualification and wrong-direction
+  source pools. Focused required-source questions retain three complementary
+  passages per source; broad plans retain two. Review version 2 checks sentence
+  units and explicit entailment/scope/numbers/causality/evidence-status dimensions,
+  preserving original paragraphs only when all units pass. Explicit author-only
+  requests suppress labelled project applications. Prior audits stay intact.
+- Backend lint, typecheck, build, formatting, 560 unit tests and 177 HTTP tests
+  passed. Knowledge passed 156 tests (one skipped), Ruff, formatting and mypy;
+  eight focused tests passed after the score-description update. Frontend
+  unchanged. Existing local services restarted with preserved volumes/config;
+  no new migration, corpus ingestion, source/vector rewrite or access expansion.
+- Preserved a contaminated shared-chat evaluation: the test helper excluded one
+  eligible user turn per send, leaving prior questions in context. Do not report
+  that run as clean held-out evidence. With code frozen, repeated six questions
+  in separate signed-in Rentify chats, verifying one user/reply pair and complete
+  exclusion before each next case. Repeat usefulness: two substantive answers
+  with concerns, two partial answers and two appropriate refusals. Repeats are
+  exposed verification, not new held-out results or accuracy percentages.
+- Ten latest persisted snapshots/citation lists survived reload with valid
+  hashes, source anchors and unique pairs; six isolated chats have verified
+  exclusion flags. All fifteen existing source exclusions remain unchanged.
+  Private receipts and corrections are under Catalog/reports/retrieval-grounding/
+  2026-10-28. Prior reports remain preserved.
+- Semantic gate remains unpassed: supported explanations can be over-filtered;
+  limitation prefaces can contradict retained answers; unsupported project
+  inferences can survive same-provider review. Next work must address answer
+  coverage/coherence and independently review material claims, using new frozen
+  questions and separate test conversations. Full PDF cleaning remains deferred.
 - Next: recover source-specific/adjacent passages for exposed retrieval misses,
   enforce semantic answer support and plan qualifiers, verify quarantined math,
   and use new untouched final questions after tuning. Do not claim 99% grounding,

@@ -24,7 +24,18 @@ const evidence: AssistantEvidence[] = [
 function provider(blocks: unknown[]) {
   return {
     generateStructuredOutput: jest.fn().mockResolvedValue({
-      data: { blocks },
+      data: {
+        blocks: blocks.map((b) => ({
+          checks: {
+            entailment: true,
+            scope: true,
+            numbers: true,
+            causality: true,
+            evidenceStatus: true,
+          },
+          ...(b as object),
+        })),
+      },
       modelName: 'same-provider-review',
       promptTokens: 12,
       completionTokens: 8,
@@ -34,6 +45,76 @@ function provider(blocks: unknown[]) {
 const supported = { id: 0, verdict: 'SUPPORTED', sources: [{ evidenceNumber: 1, quote: body }] };
 
 describe('source support review boundary', () => {
+  it('enforces an explicit author-only request even if the reviewer approves a project application', async () => {
+    const answer = await reviewSourceAnswer(
+      provider([supported, { ...supported, id: 1 }]),
+      'Keep the explanation attributed to the book.',
+      'The pilot is proposed. [Evidence #1]\n\nMy application: measure pilot usage. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.content).toContain('pilot is proposed');
+    expect(answer.content).not.toContain('My application');
+    expect(answer.audit.blocks[1]!.validation).toBe('OUTSIDE_REQUESTED_SCOPE');
+  });
+  it('reviews each sentence and drops the whole compound paragraph if any sentence fails', async () => {
+    const llm = provider([
+      supported,
+      { ...supported, id: 1, verdict: 'UNSUPPORTED', sources: [] },
+      { ...supported, id: 2 },
+    ]);
+    const answer = await reviewSourceAnswer(
+      llm,
+      'Q',
+      'The pilot is proposed. [Evidence #1] The pilot proved demand. [Evidence #1]\n\nThe pilot has not run. [Evidence #1]',
+      evidence,
+    );
+    const input = JSON.parse(
+      (llm.generateStructuredOutput as jest.Mock).mock.calls[0][0].userPrompt,
+    );
+    expect(input.blocks).toHaveLength(3);
+    expect(input.blocks.map((b: { paragraphId: number }) => b.paragraphId)).toEqual([0, 0, 1]);
+    expect(answer.content).not.toContain('proved demand');
+    expect(answer.content).not.toContain('pilot is proposed');
+    expect(answer.content).toContain('pilot has not run');
+    expect(answer.audit.granularity).toBe('sentence');
+  });
+  it.each(['entailment', 'scope', 'numbers', 'causality', 'evidenceStatus'])(
+    'rejects a SUPPORTED verdict with a false %s check',
+    async (dimension) => {
+      const answer = await reviewSourceAnswer(
+        provider([
+          {
+            ...supported,
+            checks: {
+              entailment: true,
+              scope: true,
+              numbers: true,
+              causality: true,
+              evidenceStatus: true,
+              [dimension]: false,
+            },
+          },
+        ]),
+        'Q',
+        'Claim. [Evidence #1]',
+        evidence,
+      );
+      expect(answer.audit.status).toBe('WITHHELD');
+      expect(answer.audit.blocks[0]!.validation).toBe('CLAIM_CHECK_FAILED');
+    },
+  );
+  it('fails closed when the reviewer omits the required claim checks', async () => {
+    const llm = {
+      generateStructuredOutput: jest.fn().mockResolvedValue({
+        data: { blocks: [supported] },
+        modelName: 'test',
+        promptTokens: 1,
+        completionTokens: 1,
+      }),
+    } as unknown as LlmProvider;
+    const answer = await reviewSourceAnswer(llm, 'Q', 'Claim. [Evidence #1]', evidence);
+    expect(answer.audit.status).toBe('UNAVAILABLE');
+  });
   it('maps PDF whitespace and typographic quotes to a real contiguous original anchor', () => {
     const original = 'The company’s\nproposed pilot has not run.';
     expect(sourceQuoteAnchor(original, "The company's proposed pilot has not run.")).toBe(original);
@@ -55,7 +136,8 @@ describe('source support review boundary', () => {
       'The pilot is proposed. [Evidence #1]\n\nThe pilot has already succeeded. [Evidence #1]',
       evidence,
     );
-    expect(answer.content).toBe('The pilot is proposed. [Evidence #1]');
+    expect(answer.content).toContain('The pilot is proposed. [Evidence #1]');
+    expect(answer.content).not.toContain('already succeeded');
     expect(answer.audit.status).toBe('FILTERED');
     const request = JSON.parse(
       (llm.generateStructuredOutput as jest.Mock).mock.calls[0][0].userPrompt,

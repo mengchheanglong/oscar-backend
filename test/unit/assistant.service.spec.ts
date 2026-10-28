@@ -441,6 +441,13 @@ describe('AssistantService', () => {
                 blocks: input.blocks.map((b: { id: number }) => ({
                   id: b.id,
                   verdict: 'SUPPORTED',
+                  checks: {
+                    entailment: true,
+                    scope: true,
+                    numbers: true,
+                    causality: true,
+                    evidenceStatus: true,
+                  },
                   sources: [{ evidenceNumber: 1, segmentId: 0 }],
                 })),
               },
@@ -478,9 +485,27 @@ describe('AssistantService', () => {
                 {
                   id: 0,
                   verdict: 'SUPPORTED',
+                  checks: {
+                    entailment: true,
+                    scope: true,
+                    numbers: true,
+                    causality: true,
+                    evidenceStatus: true,
+                  },
                   sources: [{ evidenceNumber: 1, quote: source.text }],
                 },
-                { id: 1, verdict: 'UNSUPPORTED', sources: [] },
+                {
+                  id: 1,
+                  verdict: 'UNSUPPORTED',
+                  checks: {
+                    entailment: false,
+                    scope: false,
+                    numbers: false,
+                    causality: false,
+                    evidenceStatus: false,
+                  },
+                  sources: [],
+                },
               ],
             },
             modelName: 'test-review',

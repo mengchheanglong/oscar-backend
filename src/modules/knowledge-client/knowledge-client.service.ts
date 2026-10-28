@@ -203,7 +203,9 @@ export class KnowledgeClientService {
       if (this.navigationRisk(item) >= 2) continue;
       if (seen.has(item.chunkId)) continue;
       const key = item.bookId ?? item.sourceId;
-      if ((books.get(key) ?? 0) >= 2) continue;
+      // Focused questions can need a definition, caveat and example from one
+      // book. Broad multi-topic plans retain their two-passage diversity cap.
+      if ((books.get(key) ?? 0) >= (requireSources && queries.length === 1 ? 3 : 2)) continue;
       seen.add(item.chunkId);
       books.set(key, (books.get(key) ?? 0) + 1);
       evidence.push(item);
