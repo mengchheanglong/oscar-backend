@@ -12,7 +12,12 @@ import { createHash, createHmac } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 import { AssistantEvidence } from './knowledge-evidence';
-import { referenceQueryPlan } from './knowledge-query-plan';
+import {
+  referenceQueryPlan,
+  isBusinessReview,
+  businessReviewSearches,
+} from './knowledge-query-plan';
+import { KnowledgeRetrievalAudit } from './knowledge-retrieval-audit';
 
 const publicUrl = z
   .string()
@@ -174,7 +179,12 @@ export class KnowledgeClientService {
     userId?: string,
     scope: 'mba' | 'social-systems' | 'personal-library' | 'all' = 'mba',
     requireSources = false,
-  ): Promise<{ evidence: AssistantEvidence[]; unavailable: boolean }> {
+  ): Promise<{
+    evidence: AssistantEvidence[];
+    unavailable: boolean;
+    audit?: KnowledgeRetrievalAudit;
+  }> {
+    if (isBusinessReview(query)) return this.retrieveBusinessReview(query, userId, scope);
     const queries = referenceQueryPlan(query);
     if (queries.length === 1 && !requireSources) return this.retrieveSingle(query, userId, scope);
     const deadline = Date.now() + this.config.get<number>('OSCAR_KNOWLEDGE_TIMEOUT_MS', 2500);
@@ -212,6 +222,90 @@ export class KnowledgeClientService {
       if (evidence.length === 8) return { evidence, unavailable: false };
     }
     return { evidence, unavailable: successful === 0 };
+  }
+
+  private async retrieveBusinessReview(
+    question: string,
+    userId: string | undefined,
+    scope: 'mba' | 'social-systems' | 'personal-library' | 'all',
+  ): Promise<{
+    evidence: AssistantEvidence[];
+    unavailable: boolean;
+    audit: KnowledgeRetrievalAudit;
+  }> {
+    const deadline = Date.now() + this.config.get<number>('OSCAR_KNOWLEDGE_TIMEOUT_MS', 2500);
+    const plans = businessReviewSearches(question);
+    const audit: KnowledgeRetrievalAudit = {
+      version: 1,
+      strategy: 'business-aspects',
+      searches: [],
+      selectedChunkIds: [],
+      deadlineReached: false,
+      followUpUsed: false,
+    };
+    const batches: AssistantEvidence[][] = [];
+    let successful = 0;
+    const search = async (index: number, followUp = false) => {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) return;
+      const plan = plans[index]!;
+      const started = Date.now();
+      const result = await this.retrieveSingle(
+        followUp ? plan.followUp : plan.query,
+        userId,
+        scope,
+        remaining,
+        12,
+      );
+      if (!result.unavailable) successful++;
+      const usable = result.evidence.filter((e) => this.navigationRisk(e) < 2);
+      usable.sort((a, b) => this.navigationRisk(a) - this.navigationRisk(b));
+      audit.searches.push({
+        aspect: plan.aspect,
+        followUp,
+        elapsedMs: Date.now() - started,
+        unavailable: result.unavailable,
+        candidateChunkIds: result.evidence.map((e) => e.chunkId),
+        usableCount: usable.length,
+      });
+      if (followUp) batches[index]!.push(...usable);
+      else batches[index] = usable;
+    };
+    for (let i = 0; i < plans.length; i++) {
+      batches[i] = [];
+      await search(i);
+    }
+    // At most one extra search, only for an aspect with no usable evidence.
+    // Zero hits is a coverage signal, not a claim that the whole library is empty.
+    const missing = batches.findIndex((batch) => batch.length === 0);
+    if (missing >= 0 && Date.now() < deadline) {
+      audit.followUpUsed = true;
+      await search(missing, true);
+    }
+    const evidence: AssistantEvidence[] = [];
+    const seenIds = new Set<string>();
+    const seenBodies = new Set<string>();
+    const books = new Map<string, number>();
+    // Round-robin selection preserves aspect coverage before extra depth.
+    for (let rank = 0; rank < 24 && evidence.length < 12; rank++) {
+      for (const batch of batches) {
+        const item = batch[rank];
+        if (!item || seenIds.has(item.chunkId)) continue;
+        const body = createHash('sha256')
+          .update((item.text ?? item.snippet).replace(/\s+/g, ' ').trim())
+          .digest('hex');
+        const source = item.bookId ?? item.sourceId;
+        if (seenBodies.has(body) || (books.get(source) ?? 0) >= 2) continue;
+        seenIds.add(item.chunkId);
+        seenBodies.add(body);
+        books.set(source, (books.get(source) ?? 0) + 1);
+        evidence.push(item);
+        if (evidence.length === 12) break;
+      }
+    }
+    audit.deadlineReached = Date.now() >= deadline;
+    audit.selectedChunkIds = evidence.map((e) => e.chunkId);
+    return { evidence, unavailable: successful === 0, audit };
   }
 
   private navigationRisk(item: AssistantEvidence): number {

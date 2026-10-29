@@ -13,6 +13,45 @@ describe('ContextAssembler', () => {
     assembler = new ContextAssembler();
   });
 
+  it('keeps complete business-review passages including late qualifications within a bounded budget', () => {
+    const text =
+      'Pricing experiments require observable commitments and context. '.repeat(30) +
+      'This is a proposed experiment, not evidence of actual demand.';
+    const evidence = Array.from({ length: 10 }, (_, i) => ({
+      chunkId: `chunk-${i}`,
+      sourceId: `source-${i}`,
+      sourceType: 'EXTERNAL_KNOWLEDGE' as const,
+      title: `Source ${i}`,
+      revision: 1,
+      locator: 'PDF page 9',
+      text,
+      snippet: text.slice(0, 240),
+      score: 1,
+    }));
+    const result = assembler.assemble(
+      'Business',
+      AssistantMode.WORKSPACE,
+      evidence,
+      false,
+      undefined,
+      [],
+      undefined,
+      [],
+      [],
+      [],
+      true,
+      true,
+      false,
+      true,
+    );
+    expect(result.evidenceText.length).toBeLessThanOrEqual(32000);
+    expect(result.evidenceItems).toHaveLength(10);
+    expect(result.evidenceItems.every((item) => item.exactExcerpt === text)).toBe(true);
+    expect(
+      result.evidenceItems.every((item) => item.exactExcerpt?.endsWith('actual demand.')),
+    ).toBe(true);
+  });
+
   it('preserves a focused definition near the end of a retrieved chunk without expanding the total budget', () => {
     const text =
       'Explanatory context about strategic choices. '.repeat(40) +

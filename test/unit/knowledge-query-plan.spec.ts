@@ -1,6 +1,24 @@
-import { referenceQueryPlan } from '../../src/modules/knowledge-client/knowledge-query-plan';
+import {
+  referenceQueryPlan,
+  businessReviewSearches,
+} from '../../src/modules/knowledge-client/knowledge-query-plan';
 
 describe('reference query planning', () => {
+  it('uses merchant context only when present and avoids irrelevant marketplace expansion', () => {
+    const generic = businessReviewSearches('Review this business plan for a consulting practice');
+    expect(generic.map((s) => s.query).join(' ')).not.toMatch(/merchant|marketplace/);
+    const merchant = businessReviewSearches(
+      'Refine a business solution: merchant storefront, marketplace, subscription and POS analytics',
+    );
+    expect(merchant.map((s) => s.aspect)).toEqual([
+      'customers',
+      'marketplace',
+      'pricing',
+      'measurement',
+    ]);
+    expect(merchant[2]!.query).toContain('merchant software subscription');
+  });
+
   it('decomposes a business review into complementary topics while preserving the original query', () => {
     const query =
       'Please refine this business solution and recommend validation experiments.\nUSER-PROVIDED V2 BRIEF:\n' +
@@ -8,9 +26,9 @@ describe('reference query planning', () => {
     const plan = referenceQueryPlan(query);
     expect(plan).toHaveLength(4);
     expect(plan[0]).toBe(query);
-    expect(plan[1]).toContain('segmentation');
-    expect(plan[2]).toContain('liquidity');
-    expect(plan[3]).toContain('unit economics');
+    expect(plan[1]).toContain('target customer segment');
+    expect(plan[2]).toContain('distribution channel');
+    expect(plan[3]).toContain('willingness to pay');
     expect(
       referenceQueryPlan(
         'Review this subscription-only business model; use book principles, not only my uploaded brief.',

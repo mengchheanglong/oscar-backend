@@ -384,6 +384,7 @@ export class AssistantService implements OnModuleInit {
       referenceOverview,
       groundingRequired,
       groundingRequired && !learningOverview && !businessReview,
+      businessReview,
     );
 
     assembled.systemPrompt += skillContext(selectedSkills);
@@ -424,6 +425,7 @@ export class AssistantService implements OnModuleInit {
     const courtesy = groundingRequired ? courtesyReply(dto.content) : undefined;
     const evidenceSnapshot: EvidenceSnapshot = {
       version: 1 as const,
+      ...('audit' in supplementary ? { retrievalAudit: supplementary.audit } : {}),
       generationAttempted: !groundingRequired || (!courtesy && assembled.evidenceItems.length > 0),
       items: assembled.evidenceItems.map(({ text: _text, ...item }, index) => ({
         ...item,

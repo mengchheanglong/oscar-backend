@@ -94,8 +94,9 @@ export class ContextAssembler {
     referenceOverview = false,
     groundingRequired = false,
     focusedReference = false,
+    businessReview = false,
   ): AssembledContext {
-    const maxChars = this.maxEvidenceTokens * this.approxCharsPerToken;
+    const maxChars = businessReview ? 32000 : this.maxEvidenceTokens * this.approxCharsPerToken;
     let accumulatedChars = 0;
     const includedEvidence: RetrievedEvidence[] = [];
 
@@ -109,8 +110,8 @@ export class ContextAssembler {
       const external = item.sourceType === 'EXTERNAL_KNOWLEDGE';
       const categoryRemaining = hasExternal
         ? external
-          ? (referenceOverview ? 9000 : 5000) - externalChars
-          : (referenceOverview ? 6000 : 10000) - workspaceChars
+          ? (businessReview ? 26000 : referenceOverview ? 9000 : 5000) - externalChars
+          : (businessReview ? 5000 : referenceOverview ? 6000 : 10000) - workspaceChars
         : maxChars - accumulatedChars;
       if (categoryRemaining < 500) continue;
       const workspaceLine = item.projectName
@@ -143,10 +144,25 @@ Content:\n`;
       const available = Math.min(
         categoryRemaining,
         maxChars - accumulatedChars - separatorChars,
-        external && referenceOverview ? (focusedReference ? 3400 : 1600) : maxChars,
+        external && referenceOverview
+          ? businessReview
+            ? 4200
+            : focusedReference
+              ? 3400
+              : 1600
+          : maxChars,
       );
       if (available <= header.length + 1) continue;
-      const includedText = content.slice(0, available - header.length - 1);
+      const bodyLimit = available - header.length - 1;
+      let includedText = content.slice(0, bodyLimit);
+      if (businessReview && includedText.length < content.length) {
+        // Keep original contiguous source text; prefer a complete sentence or
+        // line rather than splitting a word/formula at an arbitrary character.
+        const boundaries = [...includedText.matchAll(/[.!?](?:["')\]]+)?(?=\s|$)|\n/g)];
+        const last = boundaries.at(-1);
+        if (last && last.index >= bodyLimit / 2)
+          includedText = includedText.slice(0, last.index + last[0].length);
+      }
       const boundedBlock = header + includedText + '\n';
       if (external) externalChars += boundedBlock.length;
       else workspaceChars += boundedBlock.length;

@@ -2390,3 +2390,44 @@ Provider generation was not exercised. No remote push or hosted deployment.
 - Private user artifacts and detailed source audit are outside Git under
   `D:\AI\OSCAR\Projects\Rentify_Uniprenuer\2026-10-29`. Next: use this draft,
   validate business assumptions and address observed retrieval/support failures.
+
+### 2026-10-29 — Quick business retrieval and readable support filtering
+
+- Replaced business-review keyword bags with focused natural-language aspect
+  searches, optional measurement discovery, normalized-body deduplication and
+  round-robin selection of up to twelve passages, two per source. One zero-usable
+  aspect may receive a follow-up within the existing deadline and signed scope.
+  This heuristic does not detect every semantic gap or implement neural reranking.
+- Business-only evidence assembly now allows 32,000 characters total, 26,000 for
+  references and 5,000 for project context; complete chunks are preferred with
+  sentence/line truncation boundaries. Other question paths/budgets are retained.
+  Private evidence snapshots carry optional aspect-search timing/candidate/choice
+  audit data. No database columns or HTTP route changes were introduced.
+- Support review v4 retains explicit recommendation labels across sections,
+  keeps quoted-question continuations and question/list labels together, visibly
+  labels inherited applications and rejects obvious dangling pronouns after
+  antecedent removal. Existing source/claim/scope checks remain enabled.
+- Live authenticated MCP evaluation used separate chats for business refinement,
+  pricing, named-source marketplace advice, contribution margin and unknown
+  implementation readiness. Development failures and repeated exposed questions
+  remain preserved. The broad review includes twelve reference chunks, eleven
+  complete, versus six/one in the earlier comparison. Saved text, citations,
+  snapshots, hashes and contiguous anchors survived reload, without duplicate
+  turn pairs. Observed final cases took approximately 12–27 seconds; this is not
+  a latency benchmark or a measured overall-accuracy claim.
+- Manual inspection found useful commitment-based pricing, curated-network
+  recommendations and honest implementation uncertainty. Remaining formula-label
+  and recommendation-overstatement concerns are documented; use with review.
+  Same-provider approval is not independent proof. An edited working refinement
+  corrects the broad reply's marketing-funding wording without overwriting raw
+  model output or the user's original brief.
+- Private receipts and review: `D:\AI\OSCAR\Projects\Rentify_Uniprenuer\quickpass-ready-2026-10-29`,
+  with focused case receipts in the sibling `quickpass-final-2026-10-29` folder.
+  Generation provider/model, embeddings, originals, access grants and all source
+  exclusions are unchanged. Frontend and Knowledge-service code were not changed.
+- Verification: lint, typecheck, build, 580 unit tests, 177 HTTP tests, formatting
+  and OpenAPI generation passed; the generated HTTP contract was unchanged. No
+  database integration run was needed for this code-only change. Deferred:
+  learned reranking, exact token accounting, adjacent-section expansion, broader
+  independent evaluation and full PDF repair. Follow observed issues while using
+  the improved local app; do not reingest the entire corpus or loosen source gates.

@@ -31,6 +31,98 @@ function client(enabled = true) {
 }
 describe('optional curated knowledge', () => {
   afterEach(() => jest.restoreAllMocks());
+  it('retries only one empty business aspect and preserves the same private subject and collection scope', async () => {
+    const scoped = new KnowledgeClientService(
+      new ConfigService({
+        OSCAR_KNOWLEDGE_ENABLED: true,
+        OSCAR_KNOWLEDGE_TIMEOUT_MS: 25000,
+        OSCAR_KNOWLEDGE_PRIVATE_SCOPE_SECRET: 'independent-private-test-signing-key-123456789',
+      }),
+    );
+    const actor = 'c37c3283-30d8-4d43-99a3-2319f3bf2049';
+    const requests: { query: string; collection_ids: string[] }[] = [];
+    const fetch = jest.spyOn(global, 'fetch').mockImplementation(async (_url, init) => {
+      requests.push(JSON.parse(String(init!.body)));
+      const n = requests.length;
+      const scope = (init!.headers as Record<string, string>)['X-OSCAR-Private-Scope']!;
+      const payload = JSON.parse(Buffer.from(scope.split('.')[0]!, 'base64url').toString());
+      expect(payload.sub).toBe(actor);
+      expect(payload.body_sha256).toBe(
+        createHash('sha256').update(String(init!.body)).digest('hex'),
+      );
+      return new Response(
+        JSON.stringify({
+          retrieval_mode_used: 'hybrid',
+          results:
+            n === 3
+              ? []
+              : [
+                  {
+                    ...result,
+                    collection_id: 'personal-library',
+                    chunk_id: `c37c3283-30d8-4d43-99a3-2319f3bf20${40 + n}`,
+                    document_id: `c37c3283-30d8-4d43-99a3-2319f3bf20${50 + n}`,
+                    text:
+                      `Distinct explanatory passage ${n}. ` +
+                      'Customer commitments inform experiments and value delivery. '.repeat(8),
+                  },
+                ],
+        }),
+      );
+    });
+    const response = await scoped.retrieve(
+      'Please review our subscription marketplace business plan.',
+      actor,
+      'all',
+      true,
+    );
+    expect(fetch).toHaveBeenCalledTimes(4);
+    expect(requests[2]!.query).toContain('willingness to pay');
+    expect(requests[3]!.query).toContain('concrete customer commitments');
+    expect(
+      requests.every(
+        (r) => r.collection_ids.join(',') === 'mba-business,personal-library,social-systems',
+      ),
+    ).toBe(true);
+    expect(response.evidence).toHaveLength(3);
+    expect(response.audit?.followUpUsed).toBe(true);
+    expect(response.audit?.searches.map((s) => [s.aspect, s.followUp])).toEqual([
+      ['customers', false],
+      ['marketplace', false],
+      ['pricing', false],
+      ['pricing', true],
+    ]);
+    expect(response.audit?.selectedChunkIds).toEqual(response.evidence.map((e) => e.chunkId));
+  });
+  it('deduplicates identical source bodies across aspect searches without an unnecessary retry', async () => {
+    const fetch = jest.spyOn(global, 'fetch').mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            retrieval_mode_used: 'hybrid',
+            results: [
+              { ...result, text: 'A substantive explanation of customer needs. '.repeat(12) },
+            ],
+          }),
+        ),
+    );
+    const answer = await client().retrieve('Refine this business plan.', undefined, 'mba', true);
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(answer.evidence).toHaveLength(1);
+    expect(answer.audit?.followUpUsed).toBe(false);
+  });
+  it('does not retry or issue later business searches after the shared deadline', async () => {
+    let clock = 100;
+    jest.spyOn(Date, 'now').mockImplementation(() => clock);
+    const fetch = jest.spyOn(global, 'fetch').mockImplementation(async () => {
+      clock = 10000;
+      return new Response(JSON.stringify({ retrieval_mode_used: 'hybrid', results: [] }));
+    });
+    const answer = await client().retrieve('Review this business model.', undefined, 'mba', true);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(answer.audit?.deadlineReached).toBe(true);
+    expect(answer.audit?.followUpUsed).toBe(false);
+  });
   it('uses bounded signed topic searches and preserves valid evidence if one topic fails', async () => {
     const actor = 'c37c3283-30d8-4d43-99a3-2319f3bf2049';
     const scoped = new KnowledgeClientService(

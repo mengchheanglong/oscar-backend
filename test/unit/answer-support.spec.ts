@@ -50,6 +50,70 @@ function provider(blocks: unknown[]) {
 const supported = { id: 0, verdict: 'SUPPORTED', sources: [{ evidenceNumber: 1, quote: body }] };
 
 describe('source support review boundary', () => {
+  it('does not publish a dangling pronoun after its antecedent was filtered even if marked standalone', async () => {
+    const llm = provider([
+      { ...supported, verdict: 'UNSUPPORTED', sources: [] },
+      { ...supported, id: 1 },
+    ]);
+    const answer = await reviewSourceAnswer(
+      llm,
+      'Q',
+      'Two benefits are proven. Neither is measured. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.content).not.toContain('Neither is measured');
+    expect(answer.audit.status).toBe('WITHHELD');
+  });
+  it('keeps a bold question under a section heading attached to its answer', async () => {
+    const llm = provider([
+      { ...supported, verdict: 'REASONING' },
+      { ...supported, id: 1, verdict: 'UNSUPPORTED', sources: [] },
+    ]);
+    const answer = await reviewSourceAnswer(
+      llm,
+      'Recommend a pilot.',
+      '## Proposed experiments\n\n**1. What should we measure?** Measure pilot usage. [Evidence #1] It already proves demand. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.content).toContain('**1. What should we measure?** Measure pilot usage.');
+    expect(answer.content).not.toContain('already proves demand');
+  });
+  it('preserves a source-checked experiment inheriting a recommendation heading and keeps its label visible', async () => {
+    const llm = provider([supported, { ...supported, id: 1, verdict: 'REASONING' }]);
+    const answer = await reviewSourceAnswer(
+      llm,
+      'Recommend a pilot.',
+      '**My recommendation.** The pilot has not run. [Evidence #1]\n\nMeasure pilot usage. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.content).toContain('Proposed application: Measure pilot usage.');
+    expect(answer.audit.status).toBe('APPROVED');
+  });
+  it('reviews a quoted question and its lowercase predicate as one complete sentence', async () => {
+    const llm = provider([{ ...supported, verdict: 'UNSUPPORTED', sources: [] }]);
+    const answer = await reviewSourceAnswer(
+      llm,
+      'Q',
+      'Asking "would you buy this?" invites an unreliable promise. [Evidence #1]',
+      evidence,
+    );
+    const input = JSON.parse(
+      (llm.generateStructuredOutput as jest.Mock).mock.calls[0][0].userPrompt,
+    );
+    expect(input.blocks).toHaveLength(1);
+    expect(input.blocks[0].text).toContain('Asking "would you buy this?" invites');
+    expect(answer.content).not.toContain('invites an unreliable promise');
+  });
+  it('preserves explicitly recommended proposals only when source checks also pass', async () => {
+    const answer = await reviewSourceAnswer(
+      provider([{ ...supported, verdict: 'REASONING' }]),
+      'Please recommend an experiment.',
+      '**Recommended validation (my proposal):** Measure satisfaction separately. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.audit.status).toBe('APPROVED');
+    expect(answer.content).toContain('Measure satisfaction separately.');
+  });
   it('recognizes recommendation section labels while retaining all source checks', async () => {
     const text =
       '## Revised solution (recommendation)\n\nMeasure satisfaction separately. [Evidence #1]';

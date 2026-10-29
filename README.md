@@ -213,6 +213,22 @@ business decisions or tasks. Business-plan reviews use bounded searches for
 customer strategy, marketplace dynamics and subscription economics; focused
 questions retain their existing retrieval path and all private-reader checks.
 
+Business reviews use focused natural-language aspect questions, retain up to
+twelve distinct source passages (two per source), and allow one follow-up for an
+aspect with no usable results, within the existing shared deadline. A private
+`evidenceSnapshot.retrievalAudit` records aspect searches, candidate/selected IDs,
+timing and deadline/retry outcomes; zero usable hits is a heuristic coverage
+signal, not proof of missing knowledge. This is relevance selection and duplicate
+removal, not a neural reranker.
+
+Only business reviews use the larger 32,000-character source ceiling, reserving
+up to 26,000 for references and 5,000 for project sources. Full retrieved passages
+are preferred; necessary truncation favors sentence/line boundaries. These are
+character limits, not exact tokenizer counts. Source-support review v4 preserves
+section attribution and quoted-question continuations; inherited recommendations
+remain explicitly labelled when published. All source anchors and claim checks
+remain required. No extraction, vector migration or reader expansion is involved.
+
 ## Verification
 
 ```powershell

@@ -178,3 +178,38 @@ library title; final cited five passages across three titles, alongside the
 user-provided plan. One long review failed closed; request errors were recovered
 idempotently. No claim of broad accuracy, all-book use, current product readiness,
 local market validation or complete PDF extraction follows from this case.
+
+## 2026-10-29 — Quick business retrieval pass
+
+Business-plan reviews use focused natural-language customer, distribution or
+marketplace, pricing, and optional measurement questions. Search uses the same
+signed private subject and explicitly selected collections, with a shared
+existing timeout and at most one retry for a zero-usable-result aspect. This
+coverage trigger is heuristic; it does not detect every semantically missing
+answer. Round-robin selection retains at most twelve distinct passage bodies,
+two per source, without installing a learned reranker.
+
+Only business reviews expand source assembly to 32,000 characters (reference
+budget 26,000, workspace budget 5,000). A reference item may occupy 4,200
+characters including provenance. Necessary truncation prefers sentence/line
+boundaries. Focused/named-source questions and broad learning retain their
+previous query path and budgets. These remain character estimates, not exact
+token accounting or adjacent-page expansion.
+
+Support review v4 preserves quoted-question continuations, list/question labels
+and recommendation section context, while retaining source anchors, every
+claim check, explicit application scope and rejection of empirical guesses.
+An inherited supported recommendation receives a visible application label.
+Obvious pronouns losing their antecedent in a filtered paragraph are withheld.
+These controls reduce observed failures, not certify semantic correctness.
+
+Private development runs are preserved under
+`D:\AI\OSCAR\Projects\Rentify_Uniprenuer\quickpass-2026-10-29`,
+`quickpass-final-2026-10-29`, `quickpass-release-2026-10-29` and
+`quickpass-ready-2026-10-29`. They are exposed regressions, not held-out accuracy.
+Read the private QUICKPASS_REPORT.md for manual usefulness findings, including
+remaining formula-label and unsupported-recommendation concerns. Normal MCP
+message reload verifies private evidence integrity separately from usefulness.
+No source repairs, reembedding, access expansion, provider change or public
+publishing occurred. Future repairs should follow observed failures rather than
+reingesting the entire corpus or weakening support checks.

@@ -117,15 +117,61 @@ export function isBusinessReview(query: string): boolean {
   );
 }
 
+export interface BusinessSearch {
+  aspect: string;
+  query: string;
+  followUp: string;
+}
+
+export function businessReviewSearches(question: string): BusinessSearch[] {
+  const merchant = /\b(merchants?|storefront|POS|retailers?)\b/i.test(question);
+  const market = /\bmarketplace\b|two[- ]sided/i.test(question);
+  const software = merchant || /\b(SaaS|software|subscription)\b/i.test(question);
+  const subject = merchant ? 'merchant software' : software ? 'software' : 'a business';
+  const searches: BusinessSearch[] = [
+    {
+      aspect: 'customers',
+      query: `How should ${subject} identify its target customer segment and validate unmet needs and a differentiated value proposition?`,
+      followUp:
+        'How do customer interviews reveal current behavior and unmet needs rather than compliments and hypothetical future demand?',
+    },
+    market
+      ? {
+          aspect: 'marketplace',
+          query:
+            'How can a two-sided marketplace attract its first buyers and sellers and measure liquidity, repeat purchases and sustainable growth?',
+          followUp:
+            'How can a marketplace build its initial network and test buyer demand before scaling acquisition spending?',
+        }
+      : {
+          aspect: 'distribution',
+          query: `How should ${subject} choose a focused distribution channel and test customer acquisition and retention before scaling?`,
+          followUp:
+            'How can a business test whether a distribution channel acquires customers economically?',
+        },
+    {
+      aspect: 'pricing',
+      query: software
+        ? 'How can we validate willingness to pay for a merchant software subscription before setting pricing tiers?'
+        : 'How can a business test customer willingness to pay and contribution margins before setting prices?',
+      followUp: software
+        ? 'How do software businesses test pricing with concrete customer commitments rather than hypothetical purchase promises?'
+        : 'How can customer commitments and pricing experiments test a business model before scaling?',
+    },
+  ];
+  if (/\b(analytics|time savings?|save[sd]? time|operational effort|POS)\b/i.test(question))
+    searches.push({
+      aspect: 'measurement',
+      query:
+        'How should a business establish a baseline and measure whether an operational change saves time, using actionable metrics rather than vanity metrics?',
+      followUp:
+        'How can before and after measurements and experiments test an operational improvement without confusing assumptions with measured results?',
+    });
+  return searches;
+}
+
 export function referenceQueryPlan(query: string): string[] {
-  if (isBusinessReview(query)) {
-    return [
-      query,
-      'customer discovery target customer segmentation beachhead value proposition differentiation competitive strategy',
-      'two sided marketplace liquidity chicken egg buyer acquisition network effects retention distribution',
-      'subscription pricing willingness to pay contribution margin unit economics acquisition cost validation experiments metrics',
-    ];
-  }
+  if (isBusinessReview(query)) return [query, ...businessReviewSearches(query).map((s) => s.query)];
   const original = query.trim();
   const broad =
     /\b(learn\w*|teach\w*|lesson\w*|fundamentals|basics|overview|principles|introduction)\b/i.test(

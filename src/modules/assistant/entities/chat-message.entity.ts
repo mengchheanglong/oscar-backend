@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Conversation } from './conversation.entity';
 import type { AnswerSupportAudit } from '../context/answer-support';
+import type { KnowledgeRetrievalAudit } from '../../knowledge-client/knowledge-retrieval-audit';
 import { AssistantMode } from './assistant-mode.enum';
 
 export enum MessageRole {
@@ -62,6 +63,7 @@ export interface EvidenceSnapshot {
   generationAttempted: boolean;
   items: (CitationItem & { textSha256: string })[];
   answerReview?: AnswerSupportAudit;
+  retrievalAudit?: KnowledgeRetrievalAudit;
 }
 
 @Entity('ai_messages')
