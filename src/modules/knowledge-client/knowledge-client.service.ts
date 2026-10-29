@@ -19,6 +19,7 @@ import {
   requestedSynthesisTitles,
 } from './knowledge-query-plan';
 import { KnowledgeRetrievalAudit } from './knowledge-retrieval-audit';
+import { knowledgeGraphSchema } from './knowledge-graph';
 
 const publicUrl = z
   .string()
@@ -37,6 +38,7 @@ const publicUrl = z
     );
   });
 const evidenceSchema = z.object({
+  discovery_path: z.array(z.string().max(256)).max(5).optional(),
   extraction: z.string().max(100).nullable().optional(),
   review_required: z.boolean().optional(),
   coverage_note: z.string().max(300).nullable().optional(),
@@ -197,7 +199,11 @@ export class KnowledgeClientService {
       const result = await this.retrieveSingle(topic, userId, scope, remaining, 12);
       if (!result.unavailable) successful++;
       // Soft ordering only: introductory text is not automatically invalid evidence.
-      batches.push(result.evidence.sort((a, b) => this.navigationRisk(a) - this.navigationRisk(b)));
+      batches.push(
+        this.promoteGraph(
+          result.evidence.sort((a, b) => this.navigationRisk(a) - this.navigationRisk(b)),
+        ),
+      );
     }
     const evidence: AssistantEvidence[] = [];
     const seen = new Set<string>();
@@ -233,6 +239,8 @@ export class KnowledgeClientService {
       // original source untouched and available to ordinary focused retrieval.
       if (this.navigationRisk(item) >= 2) continue;
       if (seen.has(item.chunkId)) continue;
+      if (item.discoveryPath?.length && evidence.filter((e) => e.discoveryPath?.length).length >= 2)
+        continue;
       const key = item.bookId ?? item.sourceId;
       // Focused questions can need a definition, caveat and example from one
       // book. Broad multi-topic plans retain their two-passage diversity cap.
@@ -279,8 +287,9 @@ export class KnowledgeClientService {
         12,
       );
       if (!result.unavailable) successful++;
-      const usable = result.evidence.filter((e) => this.navigationRisk(e) < 2);
+      let usable = result.evidence.filter((e) => this.navigationRisk(e) < 2);
       usable.sort((a, b) => this.navigationRisk(a) - this.navigationRisk(b));
+      usable = this.promoteGraph(usable);
       audit.searches.push({
         aspect: plan.aspect,
         followUp,
@@ -317,6 +326,11 @@ export class KnowledgeClientService {
           .digest('hex');
         const source = item.bookId ?? item.sourceId;
         if (seenBodies.has(body) || (books.get(source) ?? 0) >= 2) continue;
+        if (
+          item.discoveryPath?.length &&
+          evidence.filter((e) => e.discoveryPath?.length).length >= 2
+        )
+          continue;
         seenIds.add(item.chunkId);
         seenBodies.add(body);
         books.set(source, (books.get(source) ?? 0) + 1);
@@ -327,6 +341,12 @@ export class KnowledgeClientService {
     audit.deadlineReached = Date.now() >= deadline;
     audit.selectedChunkIds = evidence.map((e) => e.chunkId);
     return { evidence, unavailable: successful === 0, audit };
+  }
+
+  private promoteGraph(items: AssistantEvidence[]): AssistantEvidence[] {
+    const neighbor = items.find((e) => e.discoveryPath?.length && this.navigationRisk(e) === 0);
+    if (!neighbor || !items.length || neighbor === items[0]) return items;
+    return [items[0]!, neighbor, ...items.slice(1).filter((e) => e.chunkId !== neighbor.chunkId)];
   }
 
   private navigationRisk(item: AssistantEvidence): number {
@@ -436,6 +456,7 @@ export class KnowledgeClientService {
           sourceId: item.document_id,
           documentId: item.document_id,
           sourceType: 'EXTERNAL_KNOWLEDGE',
+          ...(item.discovery_path?.length ? { discoveryPath: item.discovery_path } : {}),
           collectionId: item.collection_id,
           title: item.title,
           bookId: item.book_id ?? undefined,
@@ -464,6 +485,80 @@ export class KnowledgeClientService {
     } catch {
       this.logger.warn('KNOWLEDGE_UNAVAILABLE');
       return { evidence: [], unavailable: true };
+    }
+  }
+
+  async graph(
+    userId: string,
+    params: {
+      query?: string;
+      topicId?: string;
+      sourceId?: string;
+      limit?: number;
+      offset?: number;
+    },
+  ) {
+    if (!this.config.get<boolean>('OSCAR_KNOWLEDGE_ENABLED', false))
+      throw new ServiceUnavailableException('KNOWLEDGE_SERVICE_DISABLED');
+    const body = JSON.stringify({
+      collection_ids: [
+        this.config.get<string>('OSCAR_KNOWLEDGE_COLLECTION', 'mba-business'),
+        'personal-library',
+        'social-systems',
+      ],
+      query: params.query ?? '',
+      topic_id: params.topicId ?? null,
+      source_id: params.sourceId ?? null,
+      limit: params.limit ?? 20,
+      offset: params.offset ?? 0,
+    });
+    try {
+      const response = await fetch(
+        this.config.get<string>('OSCAR_KNOWLEDGE_BASE_URL', 'http://127.0.0.1:8010') +
+          '/internal/v1/graph',
+        {
+          method: 'POST',
+          redirect: 'error',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.config.get<string>('OSCAR_KNOWLEDGE_SERVICE_TOKEN', '')}`,
+            ...this.scopeHeaders(body, userId),
+          },
+          body,
+          signal: AbortSignal.timeout(25000),
+        },
+      );
+      if (!response.ok || !response.body) throw new Error('GRAPH_UNAVAILABLE');
+      const reader = response.body.getReader();
+      const parts: Uint8Array[] = [];
+      let size = 0;
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          size += value.byteLength;
+          if (size > 1500000) throw new Error('GRAPH_RESPONSE_LIMIT');
+          parts.push(value);
+        }
+      } finally {
+        await reader.cancel();
+      }
+      const graph = knowledgeGraphSchema.parse(JSON.parse(Buffer.concat(parts).toString('utf8')));
+      const collections = JSON.parse(body).collection_ids as string[];
+      const sources = new Set(graph.sources.map((s) => s.id));
+      const topics = new Set(graph.topics.map((t) => t.id));
+      if (
+        graph.edges.some(
+          (e) =>
+            !collections.includes(e.collection_id) ||
+            !sources.has(e.source_id) ||
+            !topics.has(e.topic_id),
+        )
+      )
+        throw new Error('GRAPH_SCOPE_MISMATCH');
+      return graph;
+    } catch {
+      throw new ServiceUnavailableException('KNOWLEDGE_GRAPH_UNAVAILABLE');
     }
   }
 

@@ -268,6 +268,8 @@ historical test counts as a current readiness guarantee.
 
 ## Documentation
 
+- [Reference topic graph and MCP browsing](docs/architecture/KNOWLEDGE_GRAPH.md)
+
 - [Documentation map](docs/README.md)
 - [Product vision and architecture](docs/product/OSCAR_MAVIS_Vision_and_Architecture.md)
 - [Implementation guide and progress ledger](PROJECT_IMPLEMENTATION_GUIDE.md)

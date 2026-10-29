@@ -31,6 +31,68 @@ function client(enabled = true) {
 }
 describe('optional curated knowledge', () => {
   afterEach(() => jest.restoreAllMocks());
+  it('signs graph browsing with the current reader and fails closed on malformed upstream data', async () => {
+    const scoped = new KnowledgeClientService(
+      new ConfigService({
+        OSCAR_KNOWLEDGE_ENABLED: true,
+        OSCAR_KNOWLEDGE_PRIVATE_SCOPE_SECRET: 'independent-private-test-signing-key-123456789',
+      }),
+    );
+    const fetch = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ready: false,
+          method: 'topics-v1',
+          topics: [],
+          sources: [],
+          edges: [],
+          related_topics: [],
+          summary: {},
+        }),
+      ),
+    );
+    await scoped.graph('fixture-owner', { topicId: 'pricing' });
+    const init = fetch.mock.calls[0]![1]!;
+    const payload = (init.headers as Record<string, string>)['X-OSCAR-Private-Scope']!.split(
+      '.',
+    )[0]!;
+    expect(JSON.parse(Buffer.from(payload, 'base64url').toString()).sub).toBe('fixture-owner');
+    expect(JSON.parse(String(init.body)).collection_ids).toEqual([
+      'mba-business',
+      'personal-library',
+      'social-systems',
+    ]);
+    fetch.mockResolvedValue(
+      new Response(JSON.stringify({ ready: true, sources: [{ id: 'bad-source' }] })),
+    );
+    await expect(scoped.graph('fixture-owner', {})).rejects.toThrow('KNOWLEDGE_GRAPH_UNAVAILABLE');
+  });
+  it('preserves seed evidence while admitting a bounded graph neighbor into business context', async () => {
+    const fetch = jest.spyOn(global, 'fetch').mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            retrieval_mode_used: 'hybrid',
+            results: Array.from({ length: 12 }, (_, i) => ({
+              ...result,
+              chunk_id: `c37c3283-30d8-4d43-99a3-2319f3bf20${40 + i}`,
+              document_id: `c37c3283-30d8-4d43-99a3-2319f3bf20${60 + i}`,
+              title: `Source ${i}`,
+              text:
+                `Distinct explanatory source ${i}. ` +
+                'Customer benefit and validation require evidence. '.repeat(10),
+              discovery_path:
+                i === 10 ? ['Seed passage', 'Customer value', 'related_topic', 'Pricing'] : [],
+            })),
+          }),
+        ),
+    );
+    const answer = await client().retrieve('Review our business plan.', undefined, 'mba', true);
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(answer.evidence[0]!.title).toBe('Source 0');
+    expect(answer.evidence.some((e) => e.discoveryPath?.length)).toBe(true);
+    expect(answer.evidence.filter((e) => e.discoveryPath?.length).length).toBeLessThanOrEqual(2);
+  });
   it('keeps explicit cross-book synthesis within requested sources when both have usable passages', async () => {
     jest.spyOn(global, 'fetch').mockImplementation(
       async () =>

@@ -26,6 +26,7 @@ export enum MessageStatus {
 }
 
 export interface CitationItem {
+  discoveryPath?: string[];
   bookId?: string;
   author?: string;
   edition?: string;

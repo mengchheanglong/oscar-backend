@@ -12,7 +12,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { IsInt, IsUUID, Min } from 'class-validator';
+import { IsInt, IsUUID, Min, Max, MaxLength, IsOptional, IsString, Matches } from 'class-validator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SessionAuthGuard } from '../../common/guards/session-auth.guard';
 import { User } from '../users/entities/user.entity';
@@ -31,6 +31,36 @@ export class PassageInspectDto {
   @IsInt()
   @Min(1)
   revision!: number;
+}
+
+export class KnowledgeGraphDto {
+  @ApiPropertyOptional({ maxLength: 200 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  query?: string;
+
+  @ApiPropertyOptional({ minimum: 0, maximum: 100000, default: 0 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100000)
+  offset?: number;
+  @ApiPropertyOptional({ maxLength: 80 })
+  @IsOptional()
+  @IsString()
+  @Matches(/^[a-z0-9-]{1,80}$/)
+  topicId?: string;
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  sourceId?: string;
+  @ApiPropertyOptional({ minimum: 1, maximum: 40, default: 20 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(40)
+  limit?: number;
 }
 
 export class PassageInspectResultDto {
@@ -75,6 +105,13 @@ class KnowledgePolicyDto {
 @Controller('knowledge')
 export class KnowledgeLibraryController {
   constructor(private readonly knowledge: KnowledgeClientService) {}
+  @Post('graph')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Browse the permitted passage/topic knowledge graph' })
+  @ApiOkResponse({ schema: { type: 'object', additionalProperties: true } })
+  graph(@CurrentUser() user: User, @Body() dto: KnowledgeGraphDto) {
+    return this.knowledge.graph(user.id, dto);
+  }
   @Get('collections')
   @ApiOkResponse({ type: [PrivateCollectionStatusDto] })
   collections(@CurrentUser() user: User): Promise<PrivateCollectionStatusDto[]> {

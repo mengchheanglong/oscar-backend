@@ -2470,3 +2470,38 @@ Provider generation was not exercised. No remote push or hosted deployment.
   177 HTTP tests, formatting and unchanged OpenAPI generation. The short follow-up
   retains correct benefit ordering but can still lose its standalone draft pitch;
   this is a documented partial result, not complete semantic acceptance.
+
+### 2026-10-29 — Reference topic graph and connected discovery
+
+- Added authenticated `/knowledge/graph` and MCP `get_knowledge_graph`, scoped to
+  the authenticated reader's permitted MBA/personal/social reference collections.
+  Signed private scope, bounded response parsing and graph contract validation
+  remain mandatory; no reader or collection override is accepted from clients.
+- Knowledge service migration `0007` adds derived topic/mention tables. The local
+  build scanned 297,993 active passages and produced 81,143 mention links over
+  32 starter topics. Current reader sees 1,776 linked reference records and 640
+  unmapped records, which remain searchable. These are not unique-book counts
+  or a measure of extraction faithfulness. Source/vector counts stayed unchanged;
+  200 sampled passage hashes matched before/after.
+- Added Knowledge map navigation, searchable/paginated source and topic browsing,
+  keyboard-accessible diagram controls, and original-passage inspection. Graph
+  neighbors preserve the leading normal result, use at most one related-topic
+  hop and at most two selected passages, reject index-like pages and duplicate
+  text, and carry a discovery path into model context and persisted evidence.
+  Mentions and curated related-topic hints never establish agreement/support.
+- Checks: backend lint/typecheck/build/OpenAPI/formatting; 591 unit and 178 HTTP
+  tests; 55 focused assistant/context tests after citation-provenance changes.
+  Frontend lint/typecheck/build and 37 tests. Final Knowledge full suite: 163
+  passed, 1 skipped, including graph SQL-failure rollback. Python lint/mypy passed.
+- Live MCP verified graph browsing, nonoverlapping pagination and original anchor
+  hashes. Existing signed-in app session verified search, source/topic navigation,
+  keyboard graph controls, pagination and full original indexed passage preview.
+  A concise Rentify pricing question included and cited a graph-discovered
+  passage, with matching saved response/citations/snapshot and quote anchors.
+- Limits: the graph is lexical starter coverage, not a full semantic/claim graph.
+  The answer support review filtered the draft and synthesis remained limited.
+  A long instruction-heavy question hit the existing SQL timeout and returned
+  no library evidence. Graph SQL failures now roll back independently to preserve
+  ordinary results; long-query planning and broader relevance evaluation remain
+  open. Model, embeddings, source files and grants are unchanged. Private reports:
+  `D:\AI\OSCAR\Knowledge\Catalog\reports\knowledge-graph\2026-10-29`.

@@ -511,6 +511,7 @@ export class AssistantService implements OnModuleInit {
         fullTextLength: matched.fullTextLength,
         isTruncated: matched.isTruncated,
         exactExcerpt: matched.exactExcerpt,
+        ...(matched.discoveryPath?.length ? { discoveryPath: matched.discoveryPath } : {}),
       };
     });
     const validatedCitations = includedCitations.filter((c) =>

@@ -72,6 +72,12 @@ export class ChatMessageResponseDto {
         fullTextLength: { type: 'number', nullable: true },
         isTruncated: { type: 'boolean', nullable: true },
         exactExcerpt: { type: 'string', nullable: true },
+        discoveryPath: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Graph discovery hint; does not establish factual support or author agreement.',
+        },
       },
     },
   })

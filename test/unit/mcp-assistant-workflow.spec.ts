@@ -17,6 +17,28 @@ describe('MCP document and source-backed assistant workflow', () => {
     return { server, client };
   }
   afterEach(() => jest.restoreAllMocks());
+  it('browses the knowledge graph without changing project or identity scope', async () => {
+    const { server, client } = await connected();
+    const fetch = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response(JSON.stringify({ data: { ready: false, topics: [] } })));
+    try {
+      const result = await client.callTool({
+        name: 'get_knowledge_graph',
+        arguments: { topicId: 'pricing', offset: 20 },
+      });
+      expect(result.isError).not.toBe(true);
+      expect(String(fetch.mock.calls[0]![0])).toBe('http://localhost/api/v1/knowledge/graph');
+      expect(JSON.parse(String(fetch.mock.calls[0]![1]!.body))).toEqual({
+        topicId: 'pricing',
+        offset: 20,
+        limit: 20,
+      });
+    } finally {
+      await client.close();
+      await server.server.close();
+    }
+  });
   it('uploads text without reading arbitrary files and preserves multipart authentication', async () => {
     const { server, client } = await connected();
     const fetch = jest

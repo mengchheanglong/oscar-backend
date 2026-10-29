@@ -317,6 +317,44 @@
         ]
       }
     },
+    "/api/v1/knowledge/graph": {
+      "post": {
+        "operationId": "KnowledgeLibraryController_graph",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeGraphDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Browse the permitted passage/topic knowledge graph",
+        "tags": [
+          "Reference Knowledge"
+        ]
+      }
+    },
     "/api/v1/knowledge/collections": {
       "get": {
         "operationId": "KnowledgeLibraryController_collections",
@@ -8759,6 +8797,35 @@
       }
     },
     "schemas": {
+      "KnowledgeGraphDto": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "offset": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100000,
+            "default": 0
+          },
+          "topicId": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "sourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "limit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 40,
+            "default": 20
+          }
+        }
+      },
       "PrivateCollectionStatusDto": {
         "type": "object",
         "properties": {
@@ -11139,6 +11206,13 @@
                 "exactExcerpt": {
                   "type": "string",
                   "nullable": true
+                },
+                "discoveryPath": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Graph discovery hint; does not establish factual support or author agreement."
                 }
               }
             }

@@ -128,6 +128,8 @@ Content:\n`;
           ? 'Machine OCR evidence: mathematical notation may be wrong. Qualify formula claims and direct the reader to the original PDF page.\n'
           : 'Extracted or visually described evidence may omit content or layout; verify details, formulas and diagrams against the original PDF page.\n'
         : '';
+      if (item.discoveryPath?.length)
+        header += `Discovery path (retrieval hint, not proof): ${item.discoveryPath.join(' → ')}\n`;
       header += extractionNotice;
       if (item.coverageNote) header += `Coverage: ${item.coverageNote}\n`;
       const content = item.text ?? item.snippet;

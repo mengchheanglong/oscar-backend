@@ -56,6 +56,24 @@ export class OscarMcpServer {
   }
 
   private registerAssistantWorkflowTools(): void {
+    this.server.tool(
+      'get_knowledge_graph',
+      'Browse permitted books and source passages connected by topic mentions. Links are discovery hints, not author agreement or factual support. Use knowledge/passages for the original evidence.',
+      {
+        query: z.string().max(200).optional(),
+        topicId: z
+          .string()
+          .regex(/^[a-z0-9-]{1,80}$/)
+          .optional(),
+        sourceId: z.string().uuid().optional(),
+        offset: z.number().int().min(0).max(100000).default(0),
+        limit: z.number().int().min(1).max(40).default(20),
+      },
+      async (args) => {
+        const result = await this.request('/knowledge/graph', { method: 'POST', body: args });
+        return { content: [{ type: 'text', text: JSON.stringify(this.recordData(result)) }] };
+      },
+    );
     const projectKeyOrId = z
       .string()
       .optional()

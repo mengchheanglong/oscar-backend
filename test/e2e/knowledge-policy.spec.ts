@@ -42,8 +42,42 @@ describe('Reference policy HTTP boundary', () => {
   });
   afterAll(async () => app.close());
   it('requires authentication on policy and existing collection routes', async () => {
+    await request(app.getHttpServer()).post('/api/v1/knowledge/graph').send({}).expect(401);
     await request(app.getHttpServer()).get('/api/v1/knowledge/policy').expect(401);
     await request(app.getHttpServer()).get('/api/v1/knowledge/collections').expect(401);
+  });
+  it('binds graph browsing to the authenticated reader and rejects owner overrides or unbounded paging', async () => {
+    const graph = jest.spyOn(knowledge, 'graph').mockResolvedValue({
+      ready: false,
+      method: 'topics-v1',
+      topics: [],
+      sources: [],
+      edges: [],
+      related_topics: [],
+      summary: {},
+    });
+    await request(app.getHttpServer())
+      .post('/api/v1/knowledge/graph')
+      .set('Authorization', 'Bearer fixture-session')
+      .send({ limit: 200 })
+      .expect(400);
+    await request(app.getHttpServer())
+      .post('/api/v1/knowledge/graph')
+      .set('Authorization', 'Bearer fixture-session')
+      .send({ userId: 'other-owner' })
+      .expect(400);
+    expect(graph).not.toHaveBeenCalled();
+    await request(app.getHttpServer())
+      .post('/api/v1/knowledge/graph')
+      .set('Authorization', 'Bearer fixture-session')
+      .send({ topicId: 'pricing', limit: 20, offset: 20 })
+      .expect(200);
+    expect(graph).toHaveBeenCalledWith('fixture-owner', {
+      topicId: 'pricing',
+      limit: 20,
+      offset: 20,
+    });
+    graph.mockRestore();
   });
   it('exposes only the effective nonsecret source policy', async () => {
     const result = await request(app.getHttpServer())

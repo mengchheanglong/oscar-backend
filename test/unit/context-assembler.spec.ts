@@ -461,6 +461,7 @@ describe('ContextAssembler', () => {
       sourceId: 'doc-mit-21',
       sourceType: 'EXTERNAL_KNOWLEDGE' as const,
       title: 'MIT Lecture 21',
+      discoveryPath: ['Seed passage original', 'Pricing', 'related_topic', 'Unit economics'],
       revision: 1,
       locator: 'PDF page 19',
       snippet: fullText.slice(0, 50),
@@ -477,5 +478,7 @@ describe('ContextAssembler', () => {
     expect(item.exactExcerpt).toBe(fullText);
     expect(item.fullTextLength).toBe(fullText.length);
     expect(item.isTruncated).toBe(true);
+    expect(item.discoveryPath).toEqual(externalItem.discoveryPath);
+    expect(assembled.evidenceText).toContain('Discovery path (retrieval hint, not proof):');
   });
 });
