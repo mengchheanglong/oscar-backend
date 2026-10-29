@@ -50,6 +50,67 @@ function provider(blocks: unknown[]) {
 const supported = { id: 0, verdict: 'SUPPORTED', sources: [{ evidenceNumber: 1, quote: body }] };
 
 describe('source support review boundary', () => {
+  it('does not strand a closing quotation from a rejected earlier sentence', async () => {
+    const answer = await reviewSourceAnswer(
+      provider([
+        { ...supported, verdict: 'UNSUPPORTED', sources: [] },
+        { ...supported, id: 1 },
+        { ...supported, id: 2 },
+      ]),
+      'Q',
+      '"An unsupported guarantee. Manage from one place." [Evidence #1]\n\nThe pilot is proposed. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.content).not.toContain('Manage from one place');
+    expect(answer.content).toContain('The pilot is proposed.');
+  });
+  it.each(['The bridge', 'Conditional implication', 'Decision gate'])(
+    'retains an explicitly requested, source-checked reasoning section labelled %s',
+    async (label) => {
+      const answer = await reviewSourceAnswer(
+        provider([{ ...supported, verdict: 'REASONING' }]),
+        'Connect ideas from the books and recommend a test.',
+        `**${label}.** Measure satisfaction separately from retention. [Evidence #1]`,
+        evidence,
+      );
+      expect(answer.audit.status).toBe('APPROVED');
+      expect(answer.content).toContain('Measure satisfaction separately');
+    },
+  );
+  it('recognizes advice requested for a named business while respecting an explicit exclusion', () => {
+    expect(requestsApplication('How should ExampleShop validate pricing?')).toBe(true);
+    expect(
+      requestsApplication(
+        'How should ExampleShop validate pricing? Do not apply it to my business.',
+      ),
+    ).toBe(false);
+  });
+  it('does not leave an orphaned closing emphasis marker after filtering a preceding sentence', async () => {
+    const answer = await reviewSourceAnswer(
+      provider([
+        { ...supported, verdict: 'UNSUPPORTED', sources: [] },
+        { ...supported, id: 1 },
+      ]),
+      'Q',
+      'The chain is **value leads to guaranteed revenue.** The pilot is proposed. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.content).toContain('The pilot is proposed.');
+    expect(answer.content).not.toContain('**');
+  });
+  it('withholds an unsupported table as a unit without publishing broken row fragments', async () => {
+    const answer = await reviewSourceAnswer(
+      provider([
+        { ...supported, verdict: 'UNSUPPORTED', sources: [] },
+        { ...supported, id: 1 },
+      ]),
+      'Q',
+      '| Claim | Outcome |\n| --- | --- |\n| The pilot is proposed. | Guaranteed success. |\n\nThe pilot has not run. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.content).toContain('The pilot has not run.');
+    expect(answer.content).not.toContain('|');
+  });
   it('does not open with commentary about a withheld draft in an earlier paragraph', async () => {
     const llm = provider([
       { ...supported, verdict: 'UNSUPPORTED', sources: [] },

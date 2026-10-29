@@ -211,6 +211,26 @@ export function referenceQueryPlan(query: string): string[] {
       const task = request.replace(/["“][^"”\n]+["”]/g, '').slice(0, 600);
       return [query, ...titles.slice(0, 3).map((title) => `According to "${title}", ${task}`)];
     }
+    if (!titles.length) {
+      const subjects = /\b(?:connect|combine|integrate|relationship between)\s+([^?!.\n]+)/i.exec(
+        request,
+      )?.[1];
+      const concepts =
+        subjects
+          ?.split(/,\s*|\s+and\s+/i)
+          .map((s) => s.trim())
+          .filter(Boolean) ?? [];
+      if (
+        concepts.length >= 2 &&
+        concepts.length <= 6 &&
+        concepts.every((s) => s.length <= 100 && s.split(/\s+/).length <= 9)
+      ) {
+        // Topics come from the user's own enumeration, not a fixed MBA script.
+        // The full question remains the anchor; bounded concept searches keep
+        // a less frequent requested concept from being crowded out by the rest.
+        return [query, ...concepts.slice(-3).map((s) => `What is ${s}?`)];
+      }
+    }
   }
   const original = query.trim();
   const broad =
@@ -258,4 +278,15 @@ export function referenceQueryPlan(query: string): string[] {
         `${original}: practical examples applications limitations`,
       ]
     : [query];
+}
+
+export function referenceSearchText(query: string): string {
+  const questionEnd = query.indexOf('?');
+  if (query.length < 300 || questionEnd < 30) return query;
+  const tail = query.slice(questionEnd + 1).trim();
+  // Remove answer-format instructions from the search representation only.
+  // The original question, constraints and pasted material remain model input.
+  if (/^(?:cite|synthesi[sz]e|separate|under \d+|please cite)\b/i.test(tail))
+    return query.slice(0, questionEnd + 1);
+  return query;
 }

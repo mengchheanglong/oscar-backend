@@ -2505,3 +2505,40 @@ Provider generation was not exercised. No remote push or hosted deployment.
   ordinary results; long-query planning and broader relevance evaluation remain
   open. Model, embeddings, source files and grants are unchanged. Private reports:
   `D:\AI\OSCAR\Knowledge\Catalog\reports\knowledge-graph\2026-10-29`.
+
+### 2026-10-29 — Retrieval reliability and usable source synthesis
+
+- Isolated keyword/vector ranking in SQL savepoints and bounded alternatives:
+  adjacent content-term pairs precede a union of up to sixteen terms. Failed
+  ranking does not abort a healthy channel; mode/fallback metadata stays honest.
+  Private eligibility, revisions/generations, source exclusions and embedding
+  identity checks remain on every retrieval/hydration path. No schema change.
+- Prioritized explicitly requested books, shared the existing search deadline,
+  and added bounded user-enumerated concept searches. Answer-format tails may
+  be omitted from search only; complete questions/constraints remain model input.
+  General required-source turns now persist reference-plan diagnostics.
+- Explicit no-application requests exclude project evidence, instructions,
+  memories and goals from assembled reference context. Review v6 recognizes
+  advice to named businesses and labelled reasoning bridges/conditional
+  implications/decision gates without weakening source or claim checks. It
+  preserves emphasis boundaries and treats tables atomically; incomplete quoted
+  sentences cannot survive independently after their context is removed.
+- Live diagnostic baseline returned zero library passages for long pricing,
+  three-book synthesis and book-only synthesis. Corrected cases included 8, 6
+  and 4 respectively; named synthesis explains and cites all three books.
+  Full observed pricing latency increased from about 26s to 37s as coverage
+  improved; this is not a speed or overall-accuracy claim. Two additional smoke
+  questions took about 13s and 16s and retained relevant book evidence.
+- Persisted replies/citations/snapshots, hashes, contiguous reviewer anchors,
+  single-pair retries and 30 current permissioned passage reads passed. Source
+  counts and 200 sampled hashes are unchanged; runtime Python hashes match.
+  Same-provider review still misses semantic qualifications (including a
+  financial condition and an overconfident behavioral inference), recorded
+  explicitly in the private report. Broader relevance/independent evaluation,
+  graph disambiguation and PDF fidelity remain incomplete.
+- Verification: Knowledge 171 passed, 1 skipped, Ruff/mypy; backend 178 HTTP
+  tests, 602 unit tests, lint/typecheck/build/format and unchanged OpenAPI.
+  Follow-up smoke receipts are recorded in the private
+  report at `D:\AI\OSCAR\Knowledge\Catalog\reports\rag-improvement\2026-10-29`.
+  Existing local model/provider and grants preserved; no reingestion, migration,
+  model swap, external deployment or push is part of this change.

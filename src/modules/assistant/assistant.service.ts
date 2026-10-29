@@ -1,5 +1,5 @@
 import { courtesyReply, sourceGap } from './context/source-grounding';
-import { reviewSourceAnswer } from './context/answer-support';
+import { reviewSourceAnswer, forbidsApplication } from './context/answer-support';
 import { requestsPositioning, requestsSynthesis } from './context/reasoning-intent';
 import { AttachmentsService } from './attachments.service';
 import { SkillsService } from '../skills/skills.service';
@@ -375,16 +375,19 @@ export class AssistantService implements OnModuleInit {
       !synthesisRequest &&
       referenceQueryPlan(dto.content).length > 1;
     const referenceOverview = groundingRequired || learningOverview;
+    const referenceOnly = includeKnowledge && forbidsApplication(dto.content);
     const assembled = this.contextAssembler.assemble(
       includeAllWorkspaces ? 'All Workspaces' : projectName,
       mode,
-      [...attachmentEvidence, ...retrievedEvidence, ...supplementary.evidence],
+      referenceOnly
+        ? supplementary.evidence
+        : [...attachmentEvidence, ...retrievedEvidence, ...supplementary.evidence],
       includeAllWorkspaces,
-      inventoryOverview,
-      memories,
-      includeAllWorkspaces ? undefined : (project?.instructions ?? undefined),
-      activeGoals,
-      mavisMemories,
+      referenceOnly ? undefined : inventoryOverview,
+      referenceOnly ? [] : memories,
+      referenceOnly || includeAllWorkspaces ? undefined : (project?.instructions ?? undefined),
+      referenceOnly ? [] : activeGoals,
+      referenceOnly ? [] : mavisMemories,
       [],
       referenceOverview,
       groundingRequired,
@@ -393,6 +396,9 @@ export class AssistantService implements OnModuleInit {
     );
 
     assembled.systemPrompt += skillContext(selectedSkills);
+    if (referenceOnly)
+      assembled.systemPrompt +=
+        '\nREFERENCE-ONLY REQUEST: Explain the requested sources without project personalization. Workspace facts, memories and project instructions are excluded from this evidence context. If a named source is missing, identify that scoped retrieval gap; do not replace its ideas with project documents.';
     if (includeKnowledge && requestsPositioning(dto.content))
       assembled.systemPrompt +=
         "\nPOSITIONING REQUEST: Answer how to present the business, not a general strategy audit. Preserve the user's explicit primary value, additional value and current uncertainty. Write a clear proposed positioning sentence, explain the primary and additional benefits, then briefly connect the wording to relevant source principles. When only proposed benefits are established, phrase the pitch as intended purpose (for example, designed to help) rather than unqualified claims of achieved savings or verified functionality. Cite the intended-value source next to the draft. Do not replace the user's primary customer benefit with secondary features or internal management capabilities. Offer a different emphasis only if the user asks for alternatives or strategic critique; label it optional, never as the company's actual or defensible core. Do not claim proposed benefits have produced traffic, sales or other measured results without evidence. Keep recommendations separate from observed results.";

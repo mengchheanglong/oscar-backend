@@ -2,9 +2,33 @@ import {
   referenceQueryPlan,
   businessReviewSearches,
   requestedSynthesisTitles,
+  referenceSearchText,
 } from '../../src/modules/knowledge-client/knowledge-query-plan';
 
 describe('reference query planning', () => {
+  it('covers the user-enumerated concepts in an unnamed cross-source synthesis', () => {
+    const question =
+      'Connect customer value, subscription pricing and contribution margin using library principles.';
+    const plan = referenceQueryPlan(question);
+    expect(plan[0]).toBe(question);
+    expect(plan.slice(1)).toHaveLength(3);
+    expect(plan[1]).toContain('customer value');
+    expect(plan[3]).toContain('contribution margin');
+    expect(plan.join(' ')).not.toContain('marketplace');
+  });
+  it('keeps substantive second questions and removes only a long answer-format tail from search', () => {
+    const first = 'How should a merchant connect pricing and contribution margin?';
+    expect(
+      referenceSearchText(
+        first +
+          ' Synthesize useful principles across the library. Cite original passages. ' +
+          'Formatting instructions. '.repeat(12),
+      ),
+    ).toBe(first);
+    const second =
+      first + ' What changes when shipping costs rise? ' + 'Business context. '.repeat(20);
+    expect(referenceSearchText(second)).toBe(second);
+  });
   it('searches customer benefit and positioning instead of forcing an unrelated pricing review', () => {
     const question =
       'How do we present ourselves? Our business primary value is a merchant storefront; marketplace exposure is additional.';

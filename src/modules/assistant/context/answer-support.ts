@@ -5,7 +5,7 @@ import { sourceGap } from './source-grounding';
 import { requestsPositioning, requestsSynthesis } from './reasoning-intent';
 
 export interface AnswerSupportAudit {
-  reviewVersion?: 2 | 3 | 4 | 5;
+  reviewVersion?: 2 | 3 | 4 | 5 | 6;
   granularity?: 'sentence';
   status: 'APPROVED' | 'FILTERED' | 'WITHHELD' | 'UNAVAILABLE';
   blocks: {
@@ -80,15 +80,16 @@ SOURCE_LIMIT: only a scoped statement that the CURRENT supplied passages do not 
 UNSUPPORTED: any unsupported, partially supported or contradicted material clause; wrong example for the requested topic; plan/design/forecast/simulation upgraded to observed implementation/results; behavioral outcomes treated as proof of attitudes without the necessary premises; reversed causal reasoning; irrelevant citations. Omit no blocks. Rejected blocks need no quotes. Do not approve a compound paragraph because one clause is true.
 Do not treat a glossary/title as proof of a detailed lesson, analogy as measured fact, or unverified OCR as a reliable formula. Preserve an author's account as attribution, not independent verification.`;
 
+export function forbidsApplication(question: string): boolean {
+  return /\b(?:no (?:business|project) application|(?:do not|don't|never) apply|without (?:a |any )?(?:business|project) application|keep[^.?!]{0,80}attributed to (?:the )?(?:book|author))\b/i.test(
+    question.split(/\n(?:USER-PROVIDED|SOURCE|ATTACHED|BRIEF|DOCUMENT)\b/i)[0]!,
+  );
+}
+
 export function requestsApplication(question: string): boolean {
-  if (
-    /\b(?:no (?:business|project) application|(?:do not|don't|never) apply|without (?:a |any )?(?:business|project) application|keep[^.?!]{0,80}attributed to (?:the )?(?:book|author))\b/i.test(
-      question,
-    )
-  )
-    return false;
+  if (forbidsApplication(question)) return false;
   if (requestsPositioning(question)) return true;
-  return /\b(?:apply|applying|application|adapt|recommend|advise|advice|calculate|compute|estimate|hypothetical|should (?:I|we)|how (?:can|should|do) (?:I|we)|for (?:our|my) (?:business|startup|project))\b/i.test(
+  return /\b(?:apply|applying|application|adapt|recommend|advise|advice|propose|calculate|compute|estimate|hypothetical|(?:how|what) should|should (?:I|we)|how (?:can|should|do) (?:I|we)|for (?:our|my) (?:business|startup|project))\b/i.test(
     question,
   );
 }
@@ -99,6 +100,13 @@ function bareLabel(text: string): boolean {
     /^#{1,6}\s[^\n]+$/.test(plain) ||
     /^\*\*[^*\n]{1,160}\*\*[:.]?$/.test(plain) ||
     (plain.endsWith(':') && !plain.includes('\n'))
+  );
+}
+
+function closedQuotation(text: string): boolean {
+  return (
+    (text.match(/(?<!\\)"/g) ?? []).length % 2 === 0 &&
+    (text.match(/“/g) ?? []).length === (text.match(/”/g) ?? []).length
   );
 }
 
@@ -167,6 +175,9 @@ export async function reviewSourceAnswer(
   }
   const blocks = paragraphs
     .flatMap((text, paragraphId) => {
+      // A table is one structured claim block. Sentence splicing inside cells
+      // destroys headers and row boundaries; retain or withhold it as a unit.
+      if (/(?:^|\n)\s*\|.+\|/.test(text)) return [{ paragraphId, text }];
       const units: string[] = [];
       const label =
         /^(?:(?:#{1,6}\s[^\n]+\n)+)?(?:\*\*[^*\n]{1,200}\*\*[:.]?\s*|\d+[.)]\s+\*[^*\n]{1,200}\*\s*)?/.exec(
@@ -176,6 +187,15 @@ export async function reviewSourceAnswer(
         text.slice(label.length),
       )) {
         let sentence = segment.segment.trim();
+        const closer = /^(\*\*|__|\*|_|`)(?=\s|$)/.exec(sentence)?.[1];
+        if (closer && units.length) {
+          const previous = units[units.length - 1]!;
+          const escaped = closer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          if ((previous.match(new RegExp(escaped, 'g')) ?? []).length % 2 === 1) {
+            units[units.length - 1] += closer;
+            sentence = sentence.slice(closer.length).trim();
+          }
+        }
         const leading = /^(\[Evidence #\d+\](?:\s*\[Evidence #\d+\])*)\s*/.exec(sentence);
         if (leading && units.length) {
           units[units.length - 1] += ' ' + leading[1];
@@ -199,7 +219,7 @@ export async function reviewSourceAnswer(
     promptTokens: 0,
     completionTokens: 0,
     unreviewedDraft: draft.length <= 24000 ? draft : undefined,
-    reviewVersion: 5,
+    reviewVersion: 6,
     granularity: 'sentence',
   };
   if (!blocks.length || paragraphs.length > 64 || blocks.length > 128 || draft.length > 24000)
@@ -235,7 +255,7 @@ export async function reviewSourceAnswer(
       completionTokens: result.completionTokens,
       unreviewedDraft: draft,
       citationRepairs: 0,
-      reviewVersion: 5,
+      reviewVersion: 6,
       granularity: 'sentence',
     };
     const accepted: string[] = [];
@@ -243,6 +263,10 @@ export async function reviewSourceAnswer(
       const text = blocks[block.id]!.text;
       const paragraphId = blocks[block.id]!.paragraphId;
       const outsideScope =
+        (forbidsApplication(question) &&
+          block.sources.some(
+            (s) => evidence[s.evidenceNumber - 1]?.sourceType !== 'EXTERNAL_KNOWLEDGE',
+          )) ||
         (!applicationRequested && !synthesisRequested && block.verdict === 'REASONING') ||
         (!applicationRequested &&
           (/\b(?:applied to|application to|my recommendation|my application)\b/i.test(
@@ -271,6 +295,11 @@ export async function reviewSourceAnswer(
       const cited = markers.every((n) => numbers.includes(n));
       const derived =
         block.verdict !== 'REASONING' ||
+        (synthesisRequested &&
+          /\b(?:the bridge|reasoning bridge|conditional implication)\b/i.test(
+            paragraphLabels[paragraphId]!,
+          )) ||
+        (applicationRequested && /\bdecision gate\b/i.test(paragraphLabels[paragraphId]!)) ||
         /\b(my (reasoning|synthesis|application|recommendation|proposal)|synthesis|appl(?:ied|ication|ying)|propos(?:e|ed|al|als)|recommend(?:ation|ations|ed|ing)?|suggest(?:ion)?s?|hypothetical)\b/i.test(
           paragraphLabels[paragraphId] + '\n' + paragraphs[paragraphId]!,
         );
@@ -327,6 +356,7 @@ export async function reviewSourceAnswer(
           ['SUPPORTED', 'REASONING'].includes(b.verdict) &&
           (complete ||
             (b.standalone &&
+              closedQuotation(blocks[b.id]!.text) &&
               !/^(?:(?:Neither|Both|It|They)\b|(?:This|That|These|Those)\s+(?:is|are|was|were|means|shows|suggests|does|do|can|cannot)\b)/i.test(
                 blocks[b.id]!.text,
               ))),

@@ -465,6 +465,42 @@ describe('AssistantService', () => {
           Object.assign(service, { knowledge });
           return knowledge;
         }
+        it('excludes project records and memories when a source synthesis forbids project application', async () => {
+          requireSources();
+          mockRetrievalService.retrieve.mockResolvedValue([
+            {
+              ...source,
+              sourceType: KnowledgeSourceType.DOCUMENT,
+              chunkId: 'workspace-fact',
+              text: 'Private project-specific operating assumptions.',
+            },
+          ]);
+          mockMemoryService.select.mockResolvedValue([
+            {
+              id: 'personal-memory',
+              kind: SavedMemoryKind.LESSON,
+              content: 'Private project-specific remembered recommendation.',
+              version: 1,
+            },
+          ]);
+          mockLlmProvider.generateAnswer.mockResolvedValue({
+            content: 'Contribution margin is revenue minus variable cost. [Evidence #1]',
+            citations: [source],
+            modelName: 'test',
+            promptTokens: 10,
+            completionTokens: 10,
+          });
+          const result = await service.postMessage(mockProjectId, mockUserId, 'conv-1', {
+            ...request,
+            content: 'Combine the book principles. Do not apply them to my project.',
+          });
+          expect(result.assistantMessage.evidenceSnapshot?.items.map((i) => i.sourceType)).toEqual([
+            'EXTERNAL_KNOWLEDGE',
+          ]);
+          const prompt = mockLlmProvider.generateAnswer.mock.calls[0]![0].messages[0].content;
+          expect(prompt).not.toContain('Private project-specific');
+          expect(prompt).toContain('REFERENCE-ONLY REQUEST');
+        });
         it('persists the support audit, removes rejected citations and does not review again on replay', async () => {
           const other = {
             ...source,

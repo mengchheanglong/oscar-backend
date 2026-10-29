@@ -30,6 +30,30 @@ function client(enabled = true) {
   return new KnowledgeClientService(new ConfigService({ OSCAR_KNOWLEDGE_ENABLED: enabled }));
 }
 describe('optional curated knowledge', () => {
+  it('searches explicitly named books before the broad anchor and records the actual plan', async () => {
+    const fetch = jest
+      .spyOn(global, 'fetch')
+      .mockImplementation(
+        async () =>
+          new Response(JSON.stringify({ retrieval_mode_used: 'hybrid', results: [result] })),
+      );
+    const response = await client().retrieve(
+      'Connect ideas from "Alpha Source" and "Beta Source".',
+      undefined,
+      'mba',
+      true,
+    );
+    const queries = fetch.mock.calls.map((call) => JSON.parse(String(call[1]!.body)).query);
+    expect(queries[0]).toContain('According to "Alpha Source"');
+    expect(queries[1]).toContain('According to "Beta Source"');
+    expect(queries[2]).toBe('Connect ideas from "Alpha Source" and "Beta Source".');
+    expect(response.audit?.strategy).toBe('reference-plan');
+    expect(response.audit?.searches.map((s) => s.aspect)).toEqual([
+      'named-source',
+      'named-source',
+      'reference',
+    ]);
+  });
   afterEach(() => jest.restoreAllMocks());
   it('signs graph browsing with the current reader and fails closed on malformed upstream data', async () => {
     const scoped = new KnowledgeClientService(
@@ -362,7 +386,7 @@ describe('optional curated knowledge', () => {
         async () =>
           new Response(JSON.stringify({ retrieval_mode_used: 'hybrid', results: [index] })),
       );
-    expect(await client().retrieve('Teach me physics fundamentals')).toEqual({
+    expect(await client().retrieve('Teach me physics fundamentals')).toMatchObject({
       evidence: [],
       unavailable: false,
     });
@@ -393,7 +417,7 @@ describe('optional curated knowledge', () => {
       ),
     );
     const query = 'How should we calculate contribution margin?';
-    expect(await client().retrieve(query, undefined, 'mba', true)).toEqual({
+    expect(await client().retrieve(query, undefined, 'mba', true)).toMatchObject({
       evidence: [],
       unavailable: false,
     });

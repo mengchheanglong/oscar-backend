@@ -17,6 +17,7 @@ import {
   isBusinessReview,
   businessReviewSearches,
   requestedSynthesisTitles,
+  referenceSearchText,
 } from './knowledge-query-plan';
 import { KnowledgeRetrievalAudit } from './knowledge-retrieval-audit';
 import { knowledgeGraphSchema } from './knowledge-graph';
@@ -192,29 +193,54 @@ export class KnowledgeClientService {
     if (queries.length === 1 && !requireSources) return this.retrieveSingle(query, userId, scope);
     const deadline = Date.now() + this.config.get<number>('OSCAR_KNOWLEDGE_TIMEOUT_MS', 2500);
     const batches: AssistantEvidence[][] = [];
+    const audit: KnowledgeRetrievalAudit = {
+      version: 1,
+      strategy: 'reference-plan',
+      searches: [],
+      selectedChunkIds: [],
+      deadlineReached: false,
+      followUpUsed: false,
+    };
     let successful = 0;
-    for (const topic of queries) {
+    const namedTitles = requestedSynthesisTitles(query);
+    // Resolve explicitly requested books before a broad anchor can consume the
+    // entire shared deadline. Keep original indices for round-robin selection.
+    const order =
+      namedTitles.length > 1 ? [...queries.keys()].slice(1).concat(0) : [...queries.keys()];
+    for (const [position, index] of order.entries()) {
+      const topic = queries[index]!;
       const remaining = deadline - Date.now();
       if (remaining <= 0) break;
-      const result = await this.retrieveSingle(topic, userId, scope, remaining, 12);
+      const started = Date.now();
+      const budget = Math.min(
+        remaining,
+        Math.max(1500, Math.floor(remaining / (order.length - position))),
+      );
+      const result = await this.retrieveSingle(topic, userId, scope, budget, 12);
       if (!result.unavailable) successful++;
       // Soft ordering only: introductory text is not automatically invalid evidence.
-      batches.push(
-        this.promoteGraph(
-          result.evidence.sort((a, b) => this.navigationRisk(a) - this.navigationRisk(b)),
-        ),
+      batches[index] = this.promoteGraph(
+        result.evidence.sort((a, b) => this.navigationRisk(a) - this.navigationRisk(b)),
       );
+      audit.searches.push({
+        aspect: namedTitles.length > 1 && index > 0 ? 'named-source' : 'reference',
+        followUp: false,
+        elapsedMs: Date.now() - started,
+        unavailable: result.unavailable,
+        candidateChunkIds: result.evidence.map((e) => e.chunkId),
+        usableCount: batches[index]!.length,
+        queryChars: topic.length,
+      });
     }
     const evidence: AssistantEvidence[] = [];
     const seen = new Set<string>();
     const books = new Map<string, number>();
     const interleaved: AssistantEvidence[] = [];
     for (let rank = 0; rank < 12; rank++)
-      for (const batch of batches) if (batch[rank]) interleaved.push(batch[rank]!);
+      for (const batch of batches) if (batch?.[rank]) interleaved.push(batch[rank]!);
     // Prefer explanatory passages across the whole plan, retaining stable topic
     // order among equal-risk items. This is a soft hint, not source certification.
     interleaved.sort((a, b) => this.navigationRisk(a) - this.navigationRisk(b));
-    const namedTitles = requestedSynthesisTitles(query);
     const normalize = (text: string) =>
       text
         .normalize('NFKC')
@@ -248,9 +274,11 @@ export class KnowledgeClientService {
       seen.add(item.chunkId);
       books.set(key, (books.get(key) ?? 0) + 1);
       evidence.push(item);
-      if (evidence.length === 8) return { evidence, unavailable: false };
+      if (evidence.length === 8) break;
     }
-    return { evidence, unavailable: successful === 0 };
+    audit.selectedChunkIds = evidence.map((e) => e.chunkId);
+    audit.deadlineReached = Date.now() >= deadline;
+    return { evidence, unavailable: successful === 0, audit };
   }
 
   private async retrieveBusinessReview(
@@ -407,7 +435,7 @@ export class KnowledgeClientService {
             ]
           : [collection];
       const body = JSON.stringify({
-        query: query.slice(0, 4000),
+        query: referenceSearchText(query).slice(0, 4000),
         collection_ids: collections,
         top_k: topK,
         mode: 'hybrid',

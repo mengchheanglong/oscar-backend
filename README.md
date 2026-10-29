@@ -35,7 +35,8 @@ OSCAR answers or own project records.
 - MCP tools for permitted workspace operations and reviewed proposals.
 
 Meetings, requirements, and the old dashboard are retired. Historical data and
-migration identifiers remain preserved. The knowledge graph is planned. Feature
+migration identifiers remain preserved. The reference topic graph supports bounded
+source discovery. Feature
 implementation does not establish that every runtime or deployment is configured.
 
 ## Local development
@@ -267,6 +268,8 @@ the dated progress ledger for checks actually performed rather than treating
 historical test counts as a current readiness guarantee.
 
 ## Documentation
+
+- [Reference retrieval reliability and synthesis limits](docs/architecture/REFERENCE_RETRIEVAL_RELIABILITY.md)
 
 - [Reference topic graph and MCP browsing](docs/architecture/KNOWLEDGE_GRAPH.md)
 
