@@ -2431,3 +2431,42 @@ Provider generation was not exercised. No remote push or hosted deployment.
   learned reranking, exact token accounting, adjacent-section expansion, broader
   independent evaluation and full PDF repair. Follow observed issues while using
   the improved local app; do not reingest the entire corpus or loosen source gates.
+
+### 2026-10-29 — Preserve user positioning and connect source premises
+
+- A concrete user counterexample exposed an interpretation being presented as
+  the company's defensible core. Added distinct positioning intent and focused
+  customer-benefit/value-communication searches. Current explicit user intent
+  remains an input about desired positioning, not proof of product readiness,
+  demand or measured performance. Alternatives require an explicit request.
+- Added explicit cross-source synthesis intent, bounded per-quoted-source
+  searches and comparison scope from permission-filtered candidates. When every
+  named source has usable evidence, unrelated authors are excluded unless the
+  request asks for broader sources. Additional requested names are retained for
+  matching; query expansion remains capped at three extra searches.
+- Source review v5 permits explicitly labelled conditional derivations with
+  anchored premises, without requiring a combined interpretation to appear
+  verbatim in one book. It continues to reject empirical guesses, unsupported
+  causal/consensus claims and unsolicited applications. Removed orphaned opening
+  commentary about a withheld draft. Proposed positioning uses intended-purpose
+  language when only intended benefits are established.
+- Saved the user's current clarification as a separate private project document
+  via normal MCP upload/indexing; original brief and prior responses remain.
+  No book source changes, vector migration, model/provider swap or reader-grant
+  changes. Baseline and corrected runs combine code and source-context changes,
+  so they are exposed diagnostic cases rather than held-out accuracy evidence.
+- Live MCP cases cover the user's full positioning counterexample, a three-book
+  reasoning chain, synthesis with project application prohibited, and a short
+  follow-up. Private receipts and edited presentation are in
+  `D:\AI\OSCAR\Projects\Rentify_Uniprenuer\positioning-final-2026-10-29`;
+  subsequent short-question failures and final verification are preserved in
+  sibling `positioning-short-2026-10-29` and `positioning-ready-2026-10-29` folders.
+- Baseline three-book response omitted one requested book and a useful bridge.
+  Corrected explicit tests retrieve all three and connect learning, behavior
+  measurement and accountable decisions. Generic synthesis remains separate from
+  project advice. Source anchors/hashes and persisted replies are checked apart
+  from usefulness. This does not establish full-library mastery or independent
+  semantic accuracy. Final checks passed: lint, typecheck, build, 588 unit tests,
+  177 HTTP tests, formatting and unchanged OpenAPI generation. The short follow-up
+  retains correct benefit ordering but can still lose its standalone draft pitch;
+  this is a documented partial result, not complete semantic acceptance.

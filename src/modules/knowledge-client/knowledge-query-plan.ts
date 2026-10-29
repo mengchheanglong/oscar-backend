@@ -1,3 +1,5 @@
+import { requestsPositioning, requestsSynthesis } from '../assistant/context/reasoning-intent';
+
 // Retrieval hints, not claims about the library's contents or coverage.
 // Specific subjects precede umbrella subjects when both are mentioned.
 const SUBJECTS: { match: RegExp; topics: [string, string]; umbrella?: boolean }[] = [
@@ -104,6 +106,7 @@ const SUBJECTS: { match: RegExp; topics: [string, string]; umbrella?: boolean }[
 ];
 
 export function isBusinessReview(query: string): boolean {
+  if (requestsPositioning(query)) return true;
   // Inspect the actual request, not long pasted source material after it.
   const request = query
     .split(/\n(?:USER-PROVIDED|SOURCE|ATTACHED|BRIEF|DOCUMENT)\b/i)[0]!
@@ -123,7 +126,34 @@ export interface BusinessSearch {
   followUp: string;
 }
 
+export function requestedSynthesisTitles(query: string): string[] {
+  if (!requestsSynthesis(query)) return [];
+  const request = query.split(/\n(?:USER-PROVIDED|SOURCE|ATTACHED|BRIEF|DOCUMENT)\b/i)[0]!;
+  if (
+    /\b(?:other|additional|related)\s+(?:books|sources)|\b(?:whole|entire)\s+library/i.test(request)
+  )
+    return [];
+  return [...new Set([...request.matchAll(/["“]([^"”\n]{3,120})["”]/g)].map((m) => m[1]!))];
+}
+
 export function businessReviewSearches(question: string): BusinessSearch[] {
+  if (requestsPositioning(question))
+    return [
+      {
+        aspect: 'customer-value',
+        query:
+          'How should a business express the customer problem and primary benefit of its solution rather than listing features?',
+        followUp:
+          'How does a customer value proposition connect customer jobs and pains to the benefits of a solution?',
+      },
+      {
+        aspect: 'positioning',
+        query:
+          'How should a business communicate a primary customer benefit and additional benefits without claiming unvalidated competitive advantage or demand?',
+        followUp:
+          'How can a business distinguish its proposed customer value from validated customer demand?',
+      },
+    ];
   const merchant = /\b(merchants?|storefront|POS|retailers?)\b/i.test(question);
   const market = /\bmarketplace\b|two[- ]sided/i.test(question);
   const software = merchant || /\b(SaaS|software|subscription)\b/i.test(question);
@@ -172,6 +202,16 @@ export function businessReviewSearches(question: string): BusinessSearch[] {
 
 export function referenceQueryPlan(query: string): string[] {
   if (isBusinessReview(query)) return [query, ...businessReviewSearches(query).map((s) => s.query)];
+  if (requestsSynthesis(query)) {
+    // Only expand explicitly quoted sources supplied in the request, never titles
+    // found in attached content. Keep the original question as an anchor.
+    const request = query.split(/\n(?:USER-PROVIDED|SOURCE|ATTACHED|BRIEF|DOCUMENT)\b/i)[0]!;
+    const titles = requestedSynthesisTitles(query);
+    if (titles.length > 1) {
+      const task = request.replace(/["“][^"”\n]+["”]/g, '').slice(0, 600);
+      return [query, ...titles.slice(0, 3).map((title) => `According to "${title}", ${task}`)];
+    }
+  }
   const original = query.trim();
   const broad =
     /\b(learn\w*|teach\w*|lesson\w*|fundamentals|basics|overview|principles|introduction)\b/i.test(

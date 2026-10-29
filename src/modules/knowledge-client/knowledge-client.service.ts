@@ -16,6 +16,7 @@ import {
   referenceQueryPlan,
   isBusinessReview,
   businessReviewSearches,
+  requestedSynthesisTitles,
 } from './knowledge-query-plan';
 import { KnowledgeRetrievalAudit } from './knowledge-retrieval-audit';
 
@@ -207,7 +208,27 @@ export class KnowledgeClientService {
     // Prefer explanatory passages across the whole plan, retaining stable topic
     // order among equal-risk items. This is a soft hint, not source certification.
     interleaved.sort((a, b) => this.navigationRisk(a) - this.navigationRisk(b));
+    const namedTitles = requestedSynthesisTitles(query);
+    const normalize = (text: string) =>
+      text
+        .normalize('NFKC')
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
+        .trim();
+    const matches = (item: AssistantEvidence, title: string) => {
+      const actual = normalize(item.title),
+        requested = normalize(title);
+      return actual === requested || actual.startsWith(requested + ' ');
+    };
+    // Keep a fully available named-source comparison within those sources.
+    // Titles are matched only against permission-filtered candidate evidence.
+    const allNamedFound =
+      namedTitles.length > 1 &&
+      namedTitles.every((title) =>
+        interleaved.some((item) => this.navigationRisk(item) < 2 && matches(item, title)),
+      );
     for (const item of interleaved) {
+      if (allNamedFound && !namedTitles.some((title) => matches(item, title))) continue;
       // Strong navigation/reference signals are not teaching evidence. Keep the
       // original source untouched and available to ordinary focused retrieval.
       if (this.navigationRisk(item) >= 2) continue;

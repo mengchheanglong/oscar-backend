@@ -31,6 +31,33 @@ function client(enabled = true) {
 }
 describe('optional curated knowledge', () => {
   afterEach(() => jest.restoreAllMocks());
+  it('keeps explicit cross-book synthesis within requested sources when both have usable passages', async () => {
+    jest.spyOn(global, 'fetch').mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            retrieval_mode_used: 'hybrid',
+            results: ['Unrequested book', 'Book Alpha: subtitle', 'Book Beta'].map((title, i) => ({
+              ...result,
+              title,
+              chunk_id: `c37c3283-30d8-4d43-99a3-2319f3bf20${40 + i}`,
+              document_id: `c37c3283-30d8-4d43-99a3-2319f3bf20${50 + i}`,
+              text: `${title} provides explanatory source principles. `.repeat(12),
+            })),
+          }),
+        ),
+    );
+    const answer = await client().retrieve(
+      'Connect ideas from "Book Alpha" and "Book Beta".',
+      undefined,
+      'mba',
+      true,
+    );
+    expect(answer.evidence.map((e) => e.title).sort()).toEqual([
+      'Book Alpha: subtitle',
+      'Book Beta',
+    ]);
+  });
   it('retries only one empty business aspect and preserves the same private subject and collection scope', async () => {
     const scoped = new KnowledgeClientService(
       new ConfigService({

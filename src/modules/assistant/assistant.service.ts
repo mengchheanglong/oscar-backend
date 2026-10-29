@@ -1,5 +1,6 @@
 import { courtesyReply, sourceGap } from './context/source-grounding';
 import { reviewSourceAnswer } from './context/answer-support';
+import { requestsPositioning, requestsSynthesis } from './context/reasoning-intent';
 import { AttachmentsService } from './attachments.service';
 import { SkillsService } from '../skills/skills.service';
 import { KnowledgeClientService } from '../knowledge-client/knowledge-client.service';
@@ -367,8 +368,12 @@ export class AssistantService implements OnModuleInit {
     const mavisMemories = mavisPack?.approvedMemories ?? [];
     const supplementary = await knowledgePromise;
     const businessReview = includeKnowledge && isBusinessReview(dto.content);
+    const synthesisRequest = includeKnowledge && requestsSynthesis(dto.content);
     const learningOverview =
-      includeKnowledge && !businessReview && referenceQueryPlan(dto.content).length > 1;
+      includeKnowledge &&
+      !businessReview &&
+      !synthesisRequest &&
+      referenceQueryPlan(dto.content).length > 1;
     const referenceOverview = groundingRequired || learningOverview;
     const assembled = this.contextAssembler.assemble(
       includeAllWorkspaces ? 'All Workspaces' : projectName,
@@ -384,10 +389,16 @@ export class AssistantService implements OnModuleInit {
       referenceOverview,
       groundingRequired,
       groundingRequired && !learningOverview && !businessReview,
-      businessReview,
+      businessReview || synthesisRequest,
     );
 
     assembled.systemPrompt += skillContext(selectedSkills);
+    if (includeKnowledge && requestsPositioning(dto.content))
+      assembled.systemPrompt +=
+        "\nPOSITIONING REQUEST: Answer how to present the business, not a general strategy audit. Preserve the user's explicit primary value, additional value and current uncertainty. Write a clear proposed positioning sentence, explain the primary and additional benefits, then briefly connect the wording to relevant source principles. When only proposed benefits are established, phrase the pitch as intended purpose (for example, designed to help) rather than unqualified claims of achieved savings or verified functionality. Cite the intended-value source next to the draft. Do not replace the user's primary customer benefit with secondary features or internal management capabilities. Offer a different emphasis only if the user asks for alternatives or strategic critique; label it optional, never as the company's actual or defensible core. Do not claim proposed benefits have produced traffic, sales or other measured results without evidence. Keep recommendations separate from observed results.";
+    if (synthesisRequest)
+      assembled.systemPrompt +=
+        "\nCROSS-SOURCE SYNTHESIS: Connect the relevant source principles into one reasoning chain, rather than separate book summaries or quote lists. Explain the bridge: source premise A, premise B, conditional implication, and its limitation. Label your combined interpretation My synthesis; cite all source premises. A conclusion need not appear verbatim in one book if its derivation is explicit and supported. Do not invent causality, validation, consensus or project facts. If a requested source has no included evidence, identify that gap instead of substituting another author's premise. Apply to a project only when requested. Do not claim to have generalized every book in the library from this sample.";
     if (businessReview)
       assembled.systemPrompt +=
         '\nBUSINESS REVIEW: Refine the user-provided business plan as proposed choices and hypotheses, not verified customer demand or production functionality. Answer requested business questions using the relevant supplied reference principles. Preserve explicit user constraints, label your recommendations, and identify missing measurement or implementation evidence. Unless a longer answer is requested, aim for at most 600 words so every claim can be checked. Use a separate short paragraph for each requested question, with its question label and an explicit proposed/recommendation label in that paragraph. Use complete paragraphs and bullets; avoid tables. Do not substitute a book survey for a coherent revised solution.';

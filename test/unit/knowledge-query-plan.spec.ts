@@ -1,9 +1,31 @@
 import {
   referenceQueryPlan,
   businessReviewSearches,
+  requestedSynthesisTitles,
 } from '../../src/modules/knowledge-client/knowledge-query-plan';
 
 describe('reference query planning', () => {
+  it('searches customer benefit and positioning instead of forcing an unrelated pricing review', () => {
+    const question =
+      'How do we present ourselves? Our business primary value is a merchant storefront; marketplace exposure is additional.';
+    expect(businessReviewSearches(question).map((s) => s.aspect)).toEqual([
+      'customer-value',
+      'positioning',
+    ]);
+  });
+  it('retrieves each explicitly requested quoted source for synthesis and ignores quoted titles in pasted material', () => {
+    const question =
+      'Connect ideas from "Book Alpha" and "Book Beta" about learning from customers.\nSOURCE:\n"Book Gamma"';
+    const plan = referenceQueryPlan(question);
+    expect(plan).toHaveLength(3);
+    expect(plan[0]).toBe(question);
+    expect(plan[1]).toContain('According to "Book Alpha"');
+    expect(plan[2]).toContain('According to "Book Beta"');
+    expect(plan.slice(1).join(' ')).not.toContain('Book Gamma');
+    expect(
+      requestedSynthesisTitles('Combine ideas from "Book A", "Book B", "Book C" and "Book D".'),
+    ).toHaveLength(4);
+  });
   it('uses merchant context only when present and avoids irrelevant marketplace expansion', () => {
     const generic = businessReviewSearches('Review this business plan for a consulting practice');
     expect(generic.map((s) => s.query).join(' ')).not.toMatch(/merchant|marketplace/);

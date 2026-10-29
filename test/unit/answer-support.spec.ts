@@ -50,6 +50,44 @@ function provider(blocks: unknown[]) {
 const supported = { id: 0, verdict: 'SUPPORTED', sources: [{ evidenceNumber: 1, quote: body }] };
 
 describe('source support review boundary', () => {
+  it('does not open with commentary about a withheld draft in an earlier paragraph', async () => {
+    const llm = provider([
+      { ...supported, verdict: 'UNSUPPORTED', sources: [] },
+      { ...supported, id: 1 },
+    ]);
+    const answer = await reviewSourceAnswer(
+      llm,
+      'Q',
+      'An unsupported pitch.\n\nThis leads with the primary benefit. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.audit.status).toBe('WITHHELD');
+    expect(answer.content).not.toContain('This leads');
+  });
+  it('allows requested labelled cross-source synthesis while still rejecting unsupported causal claims', async () => {
+    const llm = provider([
+      { ...supported, verdict: 'REASONING' },
+      { ...supported, id: 1, verdict: 'UNSUPPORTED', sources: [] },
+    ]);
+    const answer = await reviewSourceAnswer(
+      llm,
+      'Connect ideas from these books.',
+      'My synthesis: retention need not imply satisfaction. [Evidence #1] This proves our customers will stay forever. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.content).toContain('retention need not imply satisfaction');
+    expect(answer.content).not.toContain('stay forever');
+  });
+  it('does not treat a request for synthesis as permission for project-specific advice', async () => {
+    const llm = provider([{ ...supported, verdict: 'REASONING' }]);
+    const answer = await reviewSourceAnswer(
+      llm,
+      'Combine the ideas from these books; do not apply to my business.',
+      'My application: measure Rentify pilot usage. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.audit.status).toBe('WITHHELD');
+  });
   it('does not publish a dangling pronoun after its antecedent was filtered even if marked standalone', async () => {
     const llm = provider([
       { ...supported, verdict: 'UNSUPPORTED', sources: [] },

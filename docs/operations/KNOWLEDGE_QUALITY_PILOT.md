@@ -213,3 +213,32 @@ message reload verifies private evidence integrity separately from usefulness.
 No source repairs, reembedding, access expansion, provider change or public
 publishing occurred. Future repairs should follow observed failures rather than
 reingesting the entire corpus or weakening support checks.
+
+## 2026-10-29 — User positioning and cross-source reasoning
+
+A user-supplied counterexample showed that a business review had promoted an
+assistant interpretation into the company's supposedly defensible core. Current
+explicit user positioning is now distinguished from source principles and market
+validation. Presenting a business searches primary customer benefit and value
+communication, not an unrelated pricing/marketplace strategy audit.
+
+Explicit synthesis now has its own intent and instruction path. A labelled
+conditional bridge between supported premises is permitted without requiring the
+conclusion to be verbatim in one author; unsolicited project applications and
+unsupported empirical conclusions remain denied. Support review version is 5.
+Quoted source names receive at most three additional searches under the existing
+shared deadline. All requested names remain available for matching; when every
+named source has usable eligible evidence, unrelated authors are excluded from
+that comparison. A request for broader related sources does not impose this
+restriction. No source titles are discovered from an unfiltered catalog.
+
+Private counterexample, clarification document, before/after messages and
+integrity receipts are under
+`D:\AI\OSCAR\Projects\Rentify_Uniprenuer\positioning-baseline-2026-10-29`,
+`positioning-fix-2026-10-29` and `positioning-final-2026-10-29`.
+The user clarification was saved as a separate project document; the original
+brief and prior failures were preserved. This changes both source context and
+code, so it is not a clean single-variable or held-out accuracy experiment.
+The wider corpus, vector identities, access grants and source exclusions remain
+unchanged. Review combined interpretations for overstatement; same-model checks
+are not independent proof of cross-book entailment or whole-library coverage.

@@ -229,6 +229,18 @@ section attribution and quoted-question continuations; inherited recommendations
 remain explicitly labelled when published. All source anchors and claim checks
 remain required. No extraction, vector migration or reader expansion is involved.
 
+Positioning requests preserve the user's primary/additional value choices and
+search customer-benefit and positioning principles rather than forcing a general
+strategy audit. Current user intent is an input, not proof of market validation.
+Explicit cross-source synthesis is distinguished from an unsolicited project
+application. Quoted source names receive bounded individual searches; when all
+requested sources have usable candidate passages, comparisons stay within those
+sources unless broader sources were requested. Missing sources are not replaced
+silently with another author's premise. Support review v5 permits labelled
+conditional synthesis with anchored premises, while retaining every factual,
+scope, numeric and causality check. This does not summarize or validate every
+book in the library.
+
 ## Verification
 
 ```powershell
