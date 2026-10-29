@@ -1,5 +1,31 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-30 business usefulness iteration: added a reusable live MCP evaluation
+> runner with private question/answer receipts, stable retry identity, development
+> and reserved splits, and separate mechanical versus human-review fields. The
+> local Rentify project received one normally uploaded/indexed dated brief that
+> distinguishes owner intent from proposed features, hypotheses and measurements;
+> private source text and benchmark cases remain outside Git. Concept enumeration
+> now works without requiring the words books/principles. Conditional business
+> guidance covers trade-offs, proposed experiments, total variable costs, units,
+> target-profit versus break-even, and alternative explanations. Review v9 retains
+> checked labelled hypotheses, recognizes next-action requests, preserves a fixed
+> scoped gap notice, and reviews requested numbered interview questions atomically.
+> Access, source exclusions, database schema and configured models are unchanged.
+> Live baseline, candidate, frozen-code reserved and post-fix diagnostics are kept
+> privately under the dated business-usefulness report. Reserved failures guided
+> later fixes and therefore are no longer an independent final holdout. Numerical
+> dimensional mistakes, causal leaps, filtering and occasional review unavailability
+> remain observed limitations; provenance checks and passing software tests do not
+> certify business correctness. See docs/architecture/BUSINESS_USEFULNESS_EVALUATION.md.
+> Verification: 611 unit/178 HTTP tests and five runner integrity checks passed;
+> lint/typecheck/build/format/OpenAPI passed, with generated contract unchanged.
+> Forty-seven live generation attempts, including two unavailable reviews, are
+> retained. Final script QA retained all five questions; identical-request replay
+> returned the same saved answer. Ninety-nine distinct library excerpts were
+> re-read through the authorized passage API and matched their captures. Knowledge
+> counts are unchanged; backend, frontend proxy and Knowledge readiness are 200.
+
 > 2026-10-27 required-source business workspace: local `.env` now enables
 > OSCAR_KNOWLEDGE_REQUIRED. Every new ordinary Assistant turn retrieves permitted
 > knowledge despite omitted/false client flags. Required mode replaces general

@@ -1,4 +1,4 @@
-import { courtesyReply, sourceGap } from './context/source-grounding';
+import { BUSINESS_DECISION_GUIDANCE, courtesyReply, sourceGap } from './context/source-grounding';
 import { reviewSourceAnswer, forbidsApplication } from './context/answer-support';
 import { requestsPositioning, requestsSynthesis } from './context/reasoning-intent';
 import { AttachmentsService } from './attachments.service';
@@ -396,6 +396,8 @@ export class AssistantService implements OnModuleInit {
     );
 
     assembled.systemPrompt += skillContext(selectedSkills);
+    if (includeKnowledge && !referenceOnly)
+      assembled.systemPrompt += '\n' + BUSINESS_DECISION_GUIDANCE;
     if (referenceOnly)
       assembled.systemPrompt +=
         '\nREFERENCE-ONLY REQUEST: Explain the requested sources without project personalization. Workspace facts, memories and project instructions are excluded from this evidence context. If a named source is missing, identify that scoped retrieval gap; do not replace its ideas with project documents.';

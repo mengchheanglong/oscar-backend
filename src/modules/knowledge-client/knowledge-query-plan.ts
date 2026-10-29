@@ -1,4 +1,8 @@
-import { requestsPositioning, requestsSynthesis } from '../assistant/context/reasoning-intent';
+import {
+  requestsPositioning,
+  requestsSynthesis,
+  synthesisConcepts,
+} from '../assistant/context/reasoning-intent';
 
 // Retrieval hints, not claims about the library's contents or coverage.
 // Specific subjects precede umbrella subjects when both are mentioned.
@@ -212,19 +216,8 @@ export function referenceQueryPlan(query: string): string[] {
       return [query, ...titles.slice(0, 3).map((title) => `According to "${title}", ${task}`)];
     }
     if (!titles.length) {
-      const subjects = /\b(?:connect|combine|integrate|relationship between)\s+([^?!.\n]+)/i.exec(
-        request,
-      )?.[1];
-      const concepts =
-        subjects
-          ?.split(/,\s*|\s+and\s+/i)
-          .map((s) => s.trim())
-          .filter(Boolean) ?? [];
-      if (
-        concepts.length >= 2 &&
-        concepts.length <= 6 &&
-        concepts.every((s) => s.length <= 100 && s.split(/\s+/).length <= 9)
-      ) {
+      const concepts = synthesisConcepts(query);
+      if (concepts.length) {
         // Topics come from the user's own enumeration, not a fixed MBA script.
         // The full question remains the anchor; bounded concept searches keep
         // a less frequent requested concept from being crowded out by the rest.

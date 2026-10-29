@@ -6,6 +6,19 @@ import {
 } from '../../src/modules/knowledge-client/knowledge-query-plan';
 
 describe('reference query planning', () => {
+  it('preserves distinct requested concepts even when a business decision never says books', () => {
+    const question =
+      'How should ExampleShop choose pricing? Connect customer value, actual commitments and contribution margin. Recommend an experiment.';
+    expect(referenceQueryPlan(question)).toEqual([
+      question,
+      'What is customer value?',
+      'What is actual commitments?',
+      'What is contribution margin?',
+    ]);
+    const attached =
+      'Explain this excerpt.\nSOURCE:\nConnect customer value, actual commitments and contribution margin.';
+    expect(referenceQueryPlan(attached)).toEqual([attached]);
+  });
   it('covers the user-enumerated concepts in an unnamed cross-source synthesis', () => {
     const question =
       'Connect customer value, subscription pricing and contribution margin using library principles.';

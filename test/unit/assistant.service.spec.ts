@@ -500,6 +500,7 @@ describe('AssistantService', () => {
           const prompt = mockLlmProvider.generateAnswer.mock.calls[0]![0].messages[0].content;
           expect(prompt).not.toContain('Private project-specific');
           expect(prompt).toContain('REFERENCE-ONLY REQUEST');
+          expect(prompt).not.toContain('BUSINESS DECISION QUALITY');
         });
         it('persists the support audit, removes rejected citations and does not review again on replay', async () => {
           const other = {
@@ -616,6 +617,7 @@ describe('AssistantService', () => {
             ]);
             const prompt = mockLlmProvider.generateAnswer.mock.calls[0][0].messages[0].content;
             expect(prompt).toContain('SOURCE-REQUIRED MODE');
+            expect(prompt).toContain('BUSINESS DECISION QUALITY');
             expect(prompt).not.toContain(
               'Use general knowledge and reasoning for explanations, brainstorming and plans even when no source matches',
             );

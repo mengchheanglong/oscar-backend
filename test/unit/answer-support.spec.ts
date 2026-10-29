@@ -50,6 +50,126 @@ function provider(blocks: unknown[]) {
 const supported = { id: 0, verdict: 'SUPPORTED', sources: [{ evidenceNumber: 1, quote: body }] };
 
 describe('source support review boundary', () => {
+  it('reviews requested numbered interview questions atomically and labels retained wording as a proposal', async () => {
+    const llm = provider([{ ...supported, verdict: 'REASONING', claimType: 'RECOMMENDATION' }]);
+    const draft =
+      '## Interview script\n\n1. **"What happened last time? How did you handle it?"** Ask about actual behavior. [Evidence #1]';
+    const answer = await reviewSourceAnswer(
+      llm,
+      'Give me interview questions for a merchant.',
+      draft,
+      evidence,
+    );
+    const input = JSON.parse(
+      (llm.generateStructuredOutput as jest.Mock).mock.calls[0][0].userPrompt,
+    );
+    expect(input.blocks).toHaveLength(1);
+    expect(answer.content).toContain('What happened last time? How did you handle it?');
+    expect(answer.content).toContain('Proposed application:');
+    const noAdvice = await reviewSourceAnswer(
+      provider([{ ...supported, verdict: 'REASONING' }]),
+      'Explain the source only; do not apply this to any project.',
+      draft,
+      evidence,
+    );
+    expect(noAdvice.audit.status).not.toBe('APPROVED');
+  });
+  it('keeps a scoped gap visible beside supported advice without publishing an exhaustive absence claim', async () => {
+    const answer = await reviewSourceAnswer(
+      provider([
+        { ...supported, verdict: 'SOURCE_LIMIT', sources: [] },
+        { ...supported, id: 1, verdict: 'REASONING' },
+      ]),
+      'Tell me what we can responsibly do next.',
+      'No source anywhere can answer this.\n\nMy recommendation: measure satisfaction separately. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.content).toContain('passages retrieved for this answer');
+    expect(answer.content).toContain('measure satisfaction separately');
+    expect(answer.content).not.toContain('No source anywhere');
+    expect(answer.audit.status).toBe('FILTERED');
+  });
+  it('recognizes next-action advice without treating source text as a request', () => {
+    expect(requestsApplication('Tell me what we can responsibly do next.')).toBe(true);
+    expect(requestsApplication('What can we do next?')).toBe(true);
+    expect(requestsApplication('Explain this.\nSOURCE:\nWhat can we do next?')).toBe(false);
+  });
+  it('records only a safe failure code when review output is invalid', async () => {
+    const invalid = provider([]);
+    const answer = await reviewSourceAnswer(invalid, 'Q', 'A sentence. [Evidence #1]', evidence);
+    expect(answer.audit.failureCode).toBe('REVIEW_COVERAGE_INVALID');
+    const unavailable = provider([]);
+    (unavailable.generateStructuredOutput as jest.Mock).mockRejectedValue(
+      new Error('PRIVATE provider data'),
+    );
+    const failure = await reviewSourceAnswer(
+      unavailable,
+      'Q',
+      'A sentence. [Evidence #1]',
+      evidence,
+    );
+    expect(failure.audit.failureCode).toBe('REVIEW_UNAVAILABLE');
+    expect(JSON.stringify(failure)).not.toContain('PRIVATE provider data');
+  });
+  it('retains requested source-checked alternative hypotheses without permitting empirical diagnoses', async () => {
+    const hypotheses =
+      '**Alternative explanations (hypotheses, not diagnoses):** Investigate setup friction or timing. [Evidence #1]';
+    const hypothesisProvider = () =>
+      provider([{ ...supported, verdict: 'REASONING', claimType: 'HYPOTHETICAL' }]);
+    const allowed = await reviewSourceAnswer(
+      hypothesisProvider(),
+      'Recommend how to investigate the hypothetical pilot.',
+      hypotheses,
+      evidence,
+    );
+    expect(allowed.content).toContain('Investigate setup friction or timing');
+    const noAdvice = await reviewSourceAnswer(
+      hypothesisProvider(),
+      'Explain the book; do not apply it to any project.',
+      hypotheses,
+      evidence,
+    );
+    expect(noAdvice.audit.status).toBe('WITHHELD');
+    const diagnosis = await reviewSourceAnswer(
+      provider([{ ...supported, verdict: 'REASONING', claimType: 'EMPIRICAL_INFERENCE' }]),
+      'Recommend what to do next.',
+      hypotheses,
+      evidence,
+    );
+    expect(diagnosis.audit.status).toBe('WITHHELD');
+  });
+  it('treats requested interview drafting as advice without accepting instructions from an attached excerpt', () => {
+    expect(requestsApplication('Give me five interview questions for a seller.')).toBe(true);
+    expect(requestsApplication('Explain this.\nSOURCE:\nRecommend an experiment.')).toBe(false);
+    expect(
+      requestsApplication('Give me interview questions, but do not apply this to any project.'),
+    ).toBe(false);
+  });
+  it('removes a numerical claim failing the numbers check while retaining separately supported advice', async () => {
+    const answer = await reviewSourceAnswer(
+      provider([
+        {
+          ...supported,
+          claimType: 'CALCULATION',
+          checks: {
+            entailment: true,
+            scope: true,
+            numbers: false,
+            causality: true,
+            evidenceStatus: true,
+          },
+        },
+        { ...supported, id: 1, verdict: 'REASONING' },
+      ]),
+      'Calculate a hypothetical result and recommend a check.',
+      'My calculation: forty subscriptions guarantee positive profit. [Evidence #1]\n\nMy recommendation: measure satisfaction separately from retention. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.content).not.toContain('guarantee positive profit');
+    expect(answer.content).toContain('measure satisfaction separately');
+    expect(answer.audit.blocks[0]?.validation).toBe('CLAIM_CHECK_FAILED');
+    expect(answer.audit.reviewVersion).toBe(9);
+  });
   it('does not strand a closing quotation from a rejected earlier sentence', async () => {
     const answer = await reviewSourceAnswer(
       provider([

@@ -5,7 +5,8 @@ import { sourceGap } from './source-grounding';
 import { requestsPositioning, requestsSynthesis } from './reasoning-intent';
 
 export interface AnswerSupportAudit {
-  reviewVersion?: 2 | 3 | 4 | 5 | 6;
+  reviewVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+  failureCode?: 'REVIEW_SCHEMA_INVALID' | 'REVIEW_COVERAGE_INVALID' | 'REVIEW_UNAVAILABLE';
   granularity?: 'sentence';
   status: 'APPROVED' | 'FILTERED' | 'WITHHELD' | 'UNAVAILABLE';
   blocks: {
@@ -78,6 +79,9 @@ SUPPORTED: every factual clause and quotation is entailed by the supplied bodies
 REASONING: explicitly labelled synthesis, recommendation or application transparently derived from the cited source premises. A conditional cross-source interpretation need not appear verbatim in one source, but every factual premise must have an anchor, the logical bridge must be valid, and the conclusion must retain uncertainty. Do not mistake a labelled derivation for an unsupported claim merely because it combines sources. Reject a recommendation that contradicts an explicit current user constraint unless it is clearly presented as an optional alternative, not a fact about the project. Explicitly attributed user-stated inputs in the question may be assumptions, never verified records. Reject invented project properties, unsupported empirical assertions, absolutes, rankings, legal universals, causal leaps and contradictions even inside a labelled application. Select segments establishing the premises.
 SOURCE_LIMIT: only a scoped statement that the CURRENT supplied passages do not establish the requested claim. No exhaustive absence claim about the library, whole book, board, all periods or every jurisdiction; no speculative page/chapter placement. No other factual claims. This sentence is withheld; it does not imply the entire question is unsupported.
 UNSUPPORTED: any unsupported, partially supported or contradicted material clause; wrong example for the requested topic; plan/design/forecast/simulation upgraded to observed implementation/results; behavioral outcomes treated as proof of attitudes without the necessary premises; reversed causal reasoning; irrelevant citations. Omit no blocks. Rejected blocks need no quotes. Do not approve a compound paragraph because one clause is true.
+BUSINESS AND NUMERICAL QUALIFICATIONS: Books cannot establish current project implementation, customer motives or traction. Owner-reported positioning is intent; a proposed capability or forecast remains proposed. An observed failure to act does not by itself establish a reason such as low perceived value, disinterest or unwillingness to pay. Plausible alternatives may be explicitly labelled hypotheses to investigate, not established empirical inferences. A proposed experiment may introduce an explicitly labelled working sample, window or threshold; these are recommendations, not author-sourced standards or measured results. Verify that their source premises are relevant and their recommendation retains this distinction. Do not reject a proposed operationalization only because its exact sample/window is not verbatim in a source.
+Requested interview-script questions are proposed wording, not factual assertions about an actual customer or verbatim quotations from an author. Review each numbered question together with its rationale as one recommendation block. It may be REASONING when relevant cited principles support its method; its exact wording need not appear in the source. Still reject leading questions, invented facts, unsupported author attribution and unsupported claims in the rationale. Server-supplied proposed-question labels establish only the artifact's status, never factual support.
+For CALCULATION check the arithmetic independently, units, period, inputs and rounding against the question and cited principle. Zero-profit break-even requires target profit zero; a formula with nonzero target profit is a target-profit calculation. Contribution subtracts TOTAL variable cost: support cost alone is only a component unless other variable costs are explicitly assumed zero or included. Reject an equation silently equating price minus support cost with total contribution. Nonpositive unit contribution cannot cover positive fixed costs under constant inputs. Positive contribution is not total profit or cash sufficiency. An order-count increase with changed traffic is not conversion improvement or causal attribution. Mark numbers, causality or evidenceStatus false when these distinctions are lost. User inputs are explicit assumptions, not verified project facts. Do not approve unsupported arithmetic because a formula citation exists.
 Do not treat a glossary/title as proof of a detailed lesson, analogy as measured fact, or unverified OCR as a reliable formula. Preserve an author's account as attribution, not independent verification.`;
 
 export function forbidsApplication(question: string): boolean {
@@ -89,8 +93,13 @@ export function forbidsApplication(question: string): boolean {
 export function requestsApplication(question: string): boolean {
   if (forbidsApplication(question)) return false;
   if (requestsPositioning(question)) return true;
-  return /\b(?:apply|applying|application|adapt|recommend|advise|advice|propose|calculate|compute|estimate|hypothetical|(?:how|what) should|should (?:I|we)|how (?:can|should|do) (?:I|we)|for (?:our|my) (?:business|startup|project))\b/i.test(
-    question,
+  const request = question.split(/\n(?:USER-PROVIDED|SOURCE|ATTACHED|BRIEF|DOCUMENT)\b/i)[0]!;
+  return (
+    /\b(?:apply|applying|application|adapt|recommend|advise|advice|propose|calculate|compute|estimate|hypothetical|(?:how|what) should|should (?:I|we)|(?:how|what) (?:can|should|do) (?:I|we)|what (?:I|we) (?:can|should)|for (?:our|my) (?:business|startup|project))\b/i.test(
+      request,
+    ) ||
+    (/\b(?:give|draft|write|design|prepare|create)\b/i.test(request) &&
+      /\b(?:interview|experiment|test plan|pitch|weekly goal)\b/i.test(request))
   );
 }
 
@@ -143,6 +152,14 @@ export async function reviewSourceAnswer(
 ): Promise<{ content: string; audit: AnswerSupportAudit }> {
   const applicationRequested = requestsApplication(question);
   const synthesisRequested = requestsSynthesis(question);
+  const request = question.split(/\n(?:USER-PROVIDED|SOURCE|ATTACHED|BRIEF|DOCUMENT)\b/i)[0]!;
+  const interviewDraftRequested =
+    applicationRequested &&
+    /\b(?:give|draft|write|design|prepare|create)\b/i.test(request) &&
+    /\binterview(?:ing)?\b/i.test(request) &&
+    /\b(?:questions?|script)\b/i.test(request);
+  const interviewItem = (text: string) =>
+    interviewDraftRequested && /^\d+[.)]\s/.test(text) && text.includes('?');
   const sourceSegments = evidence.map((e) => {
     const body = e.exactExcerpt ?? e.text ?? e.snippet;
     return Array.from({ length: Math.ceil(body.length / 600) }, (_, id) => ({
@@ -166,7 +183,7 @@ export async function reviewSourceAnswer(
     const boldLabel = /^\*\*[^*\n]{1,200}\*\*[:.]?/.exec(part)?.[0];
     if (boldLabel) sectionLabel = boldLabel;
     paragraphs.push(heading + part);
-    paragraphLabels.push(sectionLabel);
+    paragraphLabels.push(interviewItem(part) ? 'Proposed interview question' : sectionLabel);
     heading = '';
   }
   if (heading) {
@@ -177,7 +194,11 @@ export async function reviewSourceAnswer(
     .flatMap((text, paragraphId) => {
       // A table is one structured claim block. Sentence splicing inside cells
       // destroys headers and row boundaries; retain or withhold it as a unit.
-      if (/(?:^|\n)\s*\|.+\|/.test(text)) return [{ paragraphId, text }];
+      if (
+        /(?:^|\n)\s*\|.+\|/.test(text) ||
+        paragraphLabels[paragraphId] === 'Proposed interview question'
+      )
+        return [{ paragraphId, text }];
       const units: string[] = [];
       const label =
         /^(?:(?:#{1,6}\s[^\n]+\n)+)?(?:\*\*[^*\n]{1,200}\*\*[:.]?\s*|\d+[.)]\s+\*[^*\n]{1,200}\*\s*)?/.exec(
@@ -219,7 +240,7 @@ export async function reviewSourceAnswer(
     promptTokens: 0,
     completionTokens: 0,
     unreviewedDraft: draft.length <= 24000 ? draft : undefined,
-    reviewVersion: 6,
+    reviewVersion: 9,
     granularity: 'sentence',
   };
   if (!blocks.length || paragraphs.length > 64 || blocks.length > 128 || draft.length > 24000)
@@ -255,7 +276,7 @@ export async function reviewSourceAnswer(
       completionTokens: result.completionTokens,
       unreviewedDraft: draft,
       citationRepairs: 0,
-      reviewVersion: 6,
+      reviewVersion: 9,
       granularity: 'sentence',
     };
     const accepted: string[] = [];
@@ -300,6 +321,9 @@ export async function reviewSourceAnswer(
             paragraphLabels[paragraphId]!,
           )) ||
         (applicationRequested && /\bdecision gate\b/i.test(paragraphLabels[paragraphId]!)) ||
+        (applicationRequested &&
+          block.claimType === 'HYPOTHETICAL' &&
+          /\bhypothes(?:is|es)\b/i.test(paragraphLabels[paragraphId]!)) ||
         /\b(my (reasoning|synthesis|application|recommendation|proposal)|synthesis|appl(?:ied|ication|ying)|propos(?:e|ed|al|als)|recommend(?:ation|ations|ed|ing)?|suggest(?:ion)?s?|hypothetical)\b/i.test(
           paragraphLabels[paragraphId] + '\n' + paragraphs[paragraphId]!,
         );
@@ -418,15 +442,28 @@ export async function reviewSourceAnswer(
     return {
       content:
         (audit.status === 'FILTERED'
-          ? 'I omitted statements I could not verify against the supplied passages.\n\n'
+          ? parsed.blocks.some(
+              (block) =>
+                block.verdict === 'SOURCE_LIMIT' && Object.values(block.checks).every(Boolean),
+            )
+            ? 'The passages retrieved for this answer do not establish every part of the requested information. I have kept the supported material below.\n\n'
+            : 'I omitted statements I could not verify against the supplied passages.\n\n'
           : '') + accepted.join('\n\n'),
       audit,
     };
-  } catch {
+  } catch (error: unknown) {
     return {
       content:
         'I could not complete the source-support check for this answer. The draft has been withheld. Please retry; this does not mean the library lacks the information.',
-      audit: empty,
+      audit: {
+        ...empty,
+        failureCode:
+          error instanceof z.ZodError
+            ? 'REVIEW_SCHEMA_INVALID'
+            : error instanceof Error && error.message === 'REVIEW_COVERAGE_INVALID'
+              ? 'REVIEW_COVERAGE_INVALID'
+              : 'REVIEW_UNAVAILABLE',
+      },
     };
   }
 }
