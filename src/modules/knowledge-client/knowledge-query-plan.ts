@@ -103,7 +103,29 @@ const SUBJECTS: { match: RegExp; topics: [string, string]; umbrella?: boolean }[
   },
 ];
 
+export function isBusinessReview(query: string): boolean {
+  // Inspect the actual request, not long pasted source material after it.
+  const request = query
+    .split(/\n(?:USER-PROVIDED|SOURCE|ATTACHED|BRIEF|DOCUMENT)\b/i)[0]!
+    .slice(0, 2400);
+  return (
+    /\b(refine|review|critique|improve|assess|evaluate)\b/i.test(request) &&
+    /\b(business (?:plan|solution|model)|startup plan|value proposition)\b/i.test(request) &&
+    !/\b(?:review|refine|critique|improve|assess|evaluate)\s+(?:only|exclusively)\b|\b(?:focus|focusing|concentrate)\b[^.?!]{0,30}\b(?:only|exclusively)\b/i.test(
+      request,
+    )
+  );
+}
+
 export function referenceQueryPlan(query: string): string[] {
+  if (isBusinessReview(query)) {
+    return [
+      query,
+      'customer discovery target customer segmentation beachhead value proposition differentiation competitive strategy',
+      'two sided marketplace liquidity chicken egg buyer acquisition network effects retention distribution',
+      'subscription pricing willingness to pay contribution margin unit economics acquisition cost validation experiments metrics',
+    ];
+  }
   const original = query.trim();
   const broad =
     /\b(learn\w*|teach\w*|lesson\w*|fundamentals|basics|overview|principles|introduction)\b/i.test(

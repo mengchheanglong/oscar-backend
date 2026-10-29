@@ -1,6 +1,7 @@
 import {
   reviewSourceAnswer,
   sourceQuoteAnchor,
+  requestsApplication,
 } from '../../src/modules/assistant/context/answer-support';
 import { LlmProvider } from '../../src/modules/assistant/llm/llm-provider.interface';
 import { AssistantEvidence } from '../../src/modules/knowledge-client/knowledge-evidence';
@@ -34,6 +35,10 @@ function provider(blocks: unknown[]) {
             evidenceStatus: true,
           },
           ...(b as object),
+          standalone: (b as { standalone?: boolean }).standalone ?? true,
+          claimType:
+            (b as { claimType?: string }).claimType ??
+            ((b as { verdict: string }).verdict === 'REASONING' ? 'RECOMMENDATION' : 'SOURCE_FACT'),
         })),
       },
       modelName: 'same-provider-review',
@@ -45,6 +50,81 @@ function provider(blocks: unknown[]) {
 const supported = { id: 0, verdict: 'SUPPORTED', sources: [{ evidenceNumber: 1, quote: body }] };
 
 describe('source support review boundary', () => {
+  it('recognizes recommendation section labels while retaining all source checks', async () => {
+    const text =
+      '## Revised solution (recommendation)\n\nMeasure satisfaction separately. [Evidence #1]';
+    const answer = await reviewSourceAnswer(
+      provider([{ ...supported, verdict: 'REASONING' }]),
+      'Please recommend a next step.',
+      text,
+      evidence,
+    );
+    expect(answer.audit.status).toBe('APPROVED');
+    expect(answer.content).toContain('Measure satisfaction separately.');
+  });
+
+  it('keeps bold topic labels attached to their first sentence when filtering later sentences', async () => {
+    const llm = provider([supported, { ...supported, id: 1, verdict: 'UNSUPPORTED', sources: [] }]);
+    const answer = await reviewSourceAnswer(
+      llm,
+      'Q',
+      '**The proposed pilot.** The pilot has not run. [Evidence #1] It already succeeded. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.content).toContain('**The proposed pilot.** The pilot has not run.');
+    expect(answer.content).not.toContain('already succeeded');
+    const input = JSON.parse(
+      (llm.generateStructuredOutput as jest.Mock).mock.calls[0][0].userPrompt,
+    );
+    expect(input.blocks).toHaveLength(2);
+  });
+  it('does not personalize a book question unless application or advice is requested', async () => {
+    expect(requestsApplication('Explain the book.')).toBe(false);
+    expect(requestsApplication('Do not apply it to my business.')).toBe(false);
+    expect(requestsApplication('Apply it to our business.')).toBe(true);
+    const answer = await reviewSourceAnswer(
+      provider([supported, { ...supported, id: 1, verdict: 'REASONING' }]),
+      'Explain the book.',
+      'The pilot is proposed. [Evidence #1]\n\nMy recommendation: measure usage. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.content).toContain('pilot is proposed');
+    expect(answer.content).not.toContain('My recommendation');
+  });
+  it('keeps dependent sentences only when their paragraph is intact', async () => {
+    const answer = await reviewSourceAnswer(
+      provider([
+        { ...supported, verdict: 'UNSUPPORTED', sources: [] },
+        { ...supported, id: 1, standalone: false },
+        { ...supported, id: 2 },
+      ]),
+      'Q',
+      'The pilot already worked. [Evidence #1] This proves it. [Evidence #1]\n\nThe pilot is proposed. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.content).not.toContain('This proves it');
+    expect(answer.audit.blocks[1]!.validation).toBe('DEPENDENT_ON_REMOVED_CONTEXT');
+  });
+  it('rejects empirical guesses despite a supported verdict and an explicit application request', async () => {
+    const answer = await reviewSourceAnswer(
+      provider([{ ...supported, claimType: 'EMPIRICAL_INFERENCE' }]),
+      'Apply this to my business.',
+      'Your unverified users probably have low switching costs. [Evidence #1]',
+      evidence,
+    );
+    expect(answer.audit.status).toBe('WITHHELD');
+    expect(answer.audit.blocks[0]!.validation).toBe('UNVERIFIED_INFERENCE');
+  });
+  it('does not publish a dangling label even when approved by the model', async () => {
+    const answer = await reviewSourceAnswer(
+      provider([supported, { ...supported, id: 1 }]),
+      'Q',
+      'The pilot is proposed. [Evidence #1]\n\n**Metrics worth defining:** [Evidence #1]',
+      evidence,
+    );
+    expect(answer.content).not.toContain('Metrics worth defining');
+    expect(answer.content).toContain('pilot is proposed');
+  });
   it('enforces an explicit author-only request even if the reviewer approves a project application', async () => {
     const answer = await reviewSourceAnswer(
       provider([supported, { ...supported, id: 1 }]),
@@ -56,7 +136,7 @@ describe('source support review boundary', () => {
     expect(answer.content).not.toContain('My application');
     expect(answer.audit.blocks[1]!.validation).toBe('OUTSIDE_REQUESTED_SCOPE');
   });
-  it('reviews each sentence and drops the whole compound paragraph if any sentence fails', async () => {
+  it('keeps independent supported sentences while removing unsupported sentences from a paragraph', async () => {
     const llm = provider([
       supported,
       { ...supported, id: 1, verdict: 'UNSUPPORTED', sources: [] },
@@ -74,7 +154,7 @@ describe('source support review boundary', () => {
     expect(input.blocks).toHaveLength(3);
     expect(input.blocks.map((b: { paragraphId: number }) => b.paragraphId)).toEqual([0, 0, 1]);
     expect(answer.content).not.toContain('proved demand');
-    expect(answer.content).not.toContain('pilot is proposed');
+    expect(answer.content).toContain('pilot is proposed');
     expect(answer.content).toContain('pilot has not run');
     expect(answer.audit.granularity).toBe('sentence');
   });
@@ -235,7 +315,7 @@ describe('source support review boundary', () => {
     const text = 'My recommendation: measure satisfaction separately. [Evidence #1]';
     const answer = await reviewSourceAnswer(
       provider([{ ...supported, verdict: 'REASONING' }]),
-      'Q',
+      'Please recommend a next step.',
       text,
       evidence,
     );
@@ -245,7 +325,7 @@ describe('source support review boundary', () => {
   it('reviews a heading with its paragraph so application labels and factual headings are not lost', async () => {
     const text = '## My application\n\nMeasure satisfaction separately. [Evidence #1]';
     const llm = provider([{ ...supported, verdict: 'REASONING' }]);
-    const answer = await reviewSourceAnswer(llm, 'Q', text, evidence);
+    const answer = await reviewSourceAnswer(llm, 'Apply this principle.', text, evidence);
     expect(answer.content).toContain('## My application');
     expect(answer.content).toContain('Measure satisfaction');
     const input = JSON.parse(
@@ -264,7 +344,8 @@ describe('source support review boundary', () => {
       'I cannot establish the claim.\n\nThe pilot is proposed. [Evidence #1]',
       evidence,
     );
-    expect(answer.content).toContain('not established by the supplied passages');
+    expect(answer.content).not.toContain('not established by the supplied passages');
+    expect(answer.content).toContain('pilot is proposed');
     expect(answer.content).not.toContain('I cannot establish');
   });
   it('fails closed on reviewer outage without exposing private exception bodies', async () => {

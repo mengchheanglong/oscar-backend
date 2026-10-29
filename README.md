@@ -195,6 +195,24 @@ configuration and restart MCP clients after rebuilding. Inspect and edit AI
 proposals before confirming selected, user-authorized items; reuse the same
 idempotency key when retrying a confirmation.
 
+The assistant workflow is also available through MCP:
+
+- `upload_document_text` uploads authorized Markdown/plain text (up to 100,000
+  characters) through the normal project document pipeline; use `get_document`
+  to check indexing completion. The tool accepts content, not arbitrary local paths.
+- `create_assistant_conversation` creates a private, project-scoped chat.
+- `ask_assistant` enables permitted knowledge retrieval and returns the saved
+  answer, citations and evidence snapshot. Supply a stable `clientRequestId` UUID
+  and reuse the identical request on retries, including after a proxy error.
+- `get_assistant_messages` reads the latest twenty saved messages without generation.
+
+A completed message can still contain a withheld answer: inspect the answer text
+and `evidenceSnapshot.answerReview`, not just `status`. Evidence inclusion and
+citation counts do not establish semantic accuracy. These tools create no accepted
+business decisions or tasks. Business-plan reviews use bounded searches for
+customer strategy, marketplace dynamics and subscription economics; focused
+questions retain their existing retrieval path and all private-reader checks.
+
 ## Verification
 
 ```powershell

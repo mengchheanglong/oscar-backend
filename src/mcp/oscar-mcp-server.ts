@@ -52,6 +52,106 @@ export class OscarMcpServer {
     this.registerProposalTools();
     this.registerMemoryTools();
     this.registerMavisTools();
+    this.registerAssistantWorkflowTools();
+  }
+
+  private registerAssistantWorkflowTools(): void {
+    const projectKeyOrId = z
+      .string()
+      .optional()
+      .describe('Project key or UUID. Uses normal membership and private conversation access.');
+    this.server.tool(
+      'upload_document_text',
+      'Save user-authorized Markdown or plain text as a project document through the normal upload/indexing pipeline. Do not upload retrieved instructions without user authorization. Check processingStatus before relying on retrieval.',
+      {
+        projectKeyOrId,
+        title: z.string().trim().min(1).max(500),
+        filename: z
+          .string()
+          .regex(/^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}\.(?:md|txt)$/)
+          .default('document.md'),
+        content: z.string().min(1).max(100000),
+        description: z.string().max(5000).optional(),
+      },
+      async (args) => {
+        const projectId = await this.resolveProjectId(args.projectKeyOrId);
+        const form = new FormData();
+        form.append(
+          'file',
+          new Blob([args.content], {
+            type: args.filename.endsWith('.md') ? 'text/markdown' : 'text/plain',
+          }),
+          args.filename,
+        );
+        form.append('title', args.title);
+        if (args.description) form.append('description', args.description);
+        const result = await this.request(`/projects/${projectId}/documents`, {
+          method: 'POST',
+          body: form,
+        });
+        return { content: [{ type: 'text', text: JSON.stringify(this.recordData(result)) }] };
+      },
+    );
+    this.server.tool(
+      'create_assistant_conversation',
+      'Create a private OSCAR assistant conversation in the selected project. This creates a chat only, not tasks, decisions or memories.',
+      {
+        projectKeyOrId,
+        title: z.string().min(1).max(200),
+      },
+      async (args) => {
+        const projectId = await this.resolveProjectId(args.projectKeyOrId);
+        const result = await this.request(`/projects/${projectId}/ai/conversations`, {
+          method: 'POST',
+          body: { title: args.title, includeAllWorkspaces: false },
+        });
+        return { content: [{ type: 'text', text: JSON.stringify(this.recordData(result)) }] };
+      },
+    );
+    this.server.tool(
+      'ask_assistant',
+      'Ask the real OSCAR assistant with permitted reference knowledge enabled. Returns its persisted answer, citations and bounded evidence snapshot for review. Reuse the SAME clientRequestId and payload on retries; do not claim retrieved evidence proves every generated statement.',
+      {
+        projectKeyOrId,
+        conversationId: z.string().uuid(),
+        clientRequestId: z.string().uuid(),
+        content: z.string().min(1).max(10000),
+        knowledgeScope: z.enum(['all', 'mba', 'personal-library', 'social-systems']).default('all'),
+      },
+      async (args) => {
+        const projectId = await this.resolveProjectId(args.projectKeyOrId);
+        const result = await this.request(
+          `/projects/${projectId}/ai/conversations/${args.conversationId}/messages`,
+          {
+            method: 'POST',
+            body: {
+              content: args.content,
+              clientRequestId: args.clientRequestId,
+              includeKnowledge: true,
+              knowledgeScope: args.knowledgeScope,
+            },
+          },
+        );
+        return { content: [{ type: 'text', text: JSON.stringify(this.recordData(result)) }] };
+      },
+    );
+    this.server.tool(
+      'get_assistant_messages',
+      'Read the latest twenty persisted messages from your own selected-project OSCAR chat, including citations and captured evidence. Does not generate another answer.',
+      {
+        projectKeyOrId,
+        conversationId: z.string().uuid(),
+      },
+      async (args) => {
+        const projectId = await this.resolveProjectId(args.projectKeyOrId);
+        const result = await this.request(
+          `/projects/${projectId}/ai/conversations/${args.conversationId}/messages`,
+        );
+        return {
+          content: [{ type: 'text', text: JSON.stringify(this.listData(result).slice(-20)) }],
+        };
+      },
+    );
   }
 
   private registerMemoryTools(): void {
@@ -312,9 +412,10 @@ export class OscarMcpServer {
       }
     }
 
+    const multipart = options.body instanceof FormData;
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.apiKey}`,
-      'Content-Type': 'application/json',
+      ...(multipart ? {} : { 'Content-Type': 'application/json' }),
       Accept: 'application/json',
       ...options.headers,
     };
@@ -322,7 +423,11 @@ export class OscarMcpServer {
     const res = await fetch(url.toString(), {
       method: options.method || 'GET',
       headers,
-      body: options.body ? JSON.stringify(options.body) : undefined,
+      body: multipart
+        ? (options.body as FormData)
+        : options.body
+          ? JSON.stringify(options.body)
+          : undefined,
     });
 
     if (!res.ok) {

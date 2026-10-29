@@ -441,6 +441,8 @@ describe('AssistantService', () => {
                 blocks: input.blocks.map((b: { id: number }) => ({
                   id: b.id,
                   verdict: 'SUPPORTED',
+                  standalone: true,
+                  claimType: 'SOURCE_FACT',
                   checks: {
                     entailment: true,
                     scope: true,
@@ -485,6 +487,8 @@ describe('AssistantService', () => {
                 {
                   id: 0,
                   verdict: 'SUPPORTED',
+                  standalone: true,
+                  claimType: 'SOURCE_FACT',
                   checks: {
                     entailment: true,
                     scope: true,
@@ -497,6 +501,8 @@ describe('AssistantService', () => {
                 {
                   id: 1,
                   verdict: 'UNSUPPORTED',
+                  standalone: true,
+                  claimType: 'SOURCE_FACT',
                   checks: {
                     entailment: false,
                     scope: false,

@@ -2358,3 +2358,35 @@ Provider generation was not exercised. No remote push or hosted deployment.
   is not independent proof. Preserve the final run and use new questions after
   future tuning. No claim of 99% grounding or full PDF cleaning. See
   [quality-pilot operations](docs/operations/KNOWLEDGE_QUALITY_PILOT.md).
+
+### 2026-10-29 — MCP business-brief refinement and reference audit
+
+- Added authenticated text-document upload and private assistant conversation,
+  ask and message-read MCP tools over the existing API. Normal membership,
+  private-reader and conversation-owner rules remain in force. Stable message
+  request IDs recover saved responses on retry; uploads use the normal indexing
+  pipeline and accept content, not local filesystem paths.
+- Business-plan reviews search customer/value strategy, marketplace dynamics
+  and subscription economics within existing budgets. Separate review guidance
+  preserves proposed-versus-measured status. Integrated the prior sentence-level
+  support refinements (review v3); recognize recommendation headings and preserve
+  bold topic labels when unsupported sentences are filtered.
+- Live MCP uploaded the authorized business brief once into the selected project
+  and monitored baseline, failed long review, concise and final review receipts.
+  Library citations improved from two passages in one title to five passages in
+  three titles. A fourth library source was included but not cited and was less
+  relevant. This is development on one exposed case, not general RAG accuracy.
+- The long support review failed closed. HTTP 500 responses were recovered by
+  retrying identical request IDs; their exact cause remains unestablished. Final
+  saved content/citations/snapshot matched MCP reload, with one user/assistant
+  pair, valid excerpt hashes and contiguous anchors. Original text hash matched
+  the upload receipt; all 15 source exclusions remained configured and absent
+  from captured evidence. Same provider/model and reader permissions retained.
+- Verification: lint, typecheck, build, 570 unit tests and 177 HTTP tests passed;
+  formatting checked separately before handoff. No HTTP route/schema, database,
+  frontend or Knowledge-service code changes; no full PDF fidelity certification.
+  Pricing, Cambodia-specific buyer demand, savings and demonstrated analytics
+  still require independent evidence. Same-model review is not independent proof.
+- Private user artifacts and detailed source audit are outside Git under
+  `D:\AI\OSCAR\Projects\Rentify_Uniprenuer\2026-10-29`. Next: use this draft,
+  validate business assumptions and address observed retrieval/support failures.

@@ -156,3 +156,25 @@ two partial, and two appropriate refusals. These exposed repeats do not establis
 held-out accuracy. Supported material can still be removed, and unsupported
 recommendation premises or contradictory limitation wording can still survive.
 Keep the semantic gate open and preserve these failures for independent review.
+
+## 2026-10-29 — Monitored business review through MCP
+
+Use `upload_document_text`, wait for document processing COMPLETED, create a
+private assistant conversation and call `ask_assistant` with the same UUID and
+payload on retries. Reload with `get_assistant_messages` to compare the saved
+answer, citations and evidence snapshot. A COMPLETED message can still contain
+a withheld answer; inspect support status and content.
+
+Business-plan reviews use topic queries and distribute bounded excerpts across
+relevant sources. They do not read every book. A compact answer with explicitly
+labelled recommendations is preferred unless the user requests more depth.
+Sentence review v3 retains independent supported material, suppresses unwanted
+applications and empirical guesses, and recognizes recommendation headings.
+All source anchors, check dimensions and private access checks remain required.
+
+The private Rentify V2 run and source audit are in
+`D:\AI\OSCAR\Projects\Rentify_Uniprenuer\2026-10-29`. Baseline cited one
+library title; final cited five passages across three titles, alongside the
+user-provided plan. One long review failed closed; request errors were recovered
+idempotently. No claim of broad accuracy, all-book use, current product readiness,
+local market validation or complete PDF extraction follows from this case.

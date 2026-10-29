@@ -1,6 +1,26 @@
 import { referenceQueryPlan } from '../../src/modules/knowledge-client/knowledge-query-plan';
 
 describe('reference query planning', () => {
+  it('decomposes a business review into complementary topics while preserving the original query', () => {
+    const query =
+      'Please refine this business solution and recommend validation experiments.\nUSER-PROVIDED V2 BRIEF:\n' +
+      'product details '.repeat(200);
+    const plan = referenceQueryPlan(query);
+    expect(plan).toHaveLength(4);
+    expect(plan[0]).toBe(query);
+    expect(plan[1]).toContain('segmentation');
+    expect(plan[2]).toContain('liquidity');
+    expect(plan[3]).toContain('unit economics');
+    expect(
+      referenceQueryPlan(
+        'Review this subscription-only business model; use book principles, not only my uploaded brief.',
+      ),
+    ).toHaveLength(4);
+    expect(referenceQueryPlan('Review only the pricing of this business model')).toHaveLength(1);
+    expect(
+      referenceQueryPlan('Explain this quotation.\nSOURCE:\nPlease review my business plan'),
+    ).toHaveLength(1);
+  });
   it.each([
     'lessons of doing business MBA',
     'Teach me business fundamentals',

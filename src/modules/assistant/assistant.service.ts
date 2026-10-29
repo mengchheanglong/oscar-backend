@@ -3,7 +3,7 @@ import { reviewSourceAnswer } from './context/answer-support';
 import { AttachmentsService } from './attachments.service';
 import { SkillsService } from '../skills/skills.service';
 import { KnowledgeClientService } from '../knowledge-client/knowledge-client.service';
-import { referenceQueryPlan } from '../knowledge-client/knowledge-query-plan';
+import { referenceQueryPlan, isBusinessReview } from '../knowledge-client/knowledge-query-plan';
 import { skillContext } from '../skills/skill-context';
 import { PlatformsService } from '../platforms/platforms.service';
 import { MavisService } from '../mavis/mavis.service';
@@ -366,7 +366,9 @@ export class AssistantService implements OnModuleInit {
       : undefined;
     const mavisMemories = mavisPack?.approvedMemories ?? [];
     const supplementary = await knowledgePromise;
-    const learningOverview = includeKnowledge && referenceQueryPlan(dto.content).length > 1;
+    const businessReview = includeKnowledge && isBusinessReview(dto.content);
+    const learningOverview =
+      includeKnowledge && !businessReview && referenceQueryPlan(dto.content).length > 1;
     const referenceOverview = groundingRequired || learningOverview;
     const assembled = this.contextAssembler.assemble(
       includeAllWorkspaces ? 'All Workspaces' : projectName,
@@ -381,10 +383,13 @@ export class AssistantService implements OnModuleInit {
       [],
       referenceOverview,
       groundingRequired,
-      groundingRequired && !learningOverview,
+      groundingRequired && !learningOverview && !businessReview,
     );
 
     assembled.systemPrompt += skillContext(selectedSkills);
+    if (businessReview)
+      assembled.systemPrompt +=
+        '\nBUSINESS REVIEW: Refine the user-provided business plan as proposed choices and hypotheses, not verified customer demand or production functionality. Answer requested business questions using the relevant supplied reference principles. Preserve explicit user constraints, label your recommendations, and identify missing measurement or implementation evidence. Unless a longer answer is requested, aim for at most 600 words so every claim can be checked. Use a separate short paragraph for each requested question, with its question label and an explicit proposed/recommendation label in that paragraph. Use complete paragraphs and bullets; avoid tables. Do not substitute a book survey for a coherent revised solution.';
     if (learningOverview)
       assembled.systemPrompt +=
         '\nFor this broad learning request, stay within the subjects and constraints in the user question. Teach from the included reference passages across their covered topics, then apply the principles to the project when relevant. Do not force unrelated project or business applications. Project records supply application context, not a substitute for subject teaching. Cite the current numbered evidence. Distinguish source-backed principles from your recommendations. Reading indexes and tables of contents are pointers, not substantive support for lessons; glossary definitions support definitions only. Omit unsupported teaching claims or label them as general reasoning. Describe limitations of the retrieved excerpts; do not infer that the entire library is thin or lacks a subject from this bounded sample.';
