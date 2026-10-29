@@ -7,7 +7,8 @@ bounds the upstream response, and validates the contract. Arbitrary reader
 identity and collection overrides are rejected. Query, topicId, sourceId, limit
 (maximum 40), and offset are supported.
 
-The frontend exposes `/knowledge?view=graph`. Topic mentions connect books/files
+The frontend exposes a standalone **Graph** section at `/graph`; the former
+`/knowledge?view=graph` link redirects there. Topic mentions connect books/files
 through exact passages. Curated related-topic pairs are discovery hints. Edges
 retain IDs, revisions, hashes and physical page/locators. The existing authorized
 `/knowledge/passage` endpoint opens original indexed text. Unmapped references
