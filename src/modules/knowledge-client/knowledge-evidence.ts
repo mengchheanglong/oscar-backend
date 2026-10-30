@@ -1,6 +1,14 @@
 import { RetrievedEvidence } from '../mavis/retrieval/retrieval.service';
 
 export interface AssistantEvidence extends Omit<RetrievedEvidence, 'sourceType'> {
+  contextWindow?: {
+    anchorChunkId: string;
+    relativeOffset: number;
+    sourceTextSha256: string;
+    sourceCharCount: number;
+    contextLimited?: boolean;
+  };
+  sourceSpan?: { startChar: number; endChar: number };
   discoveryPath?: string[];
   bookId?: string;
   author?: string;

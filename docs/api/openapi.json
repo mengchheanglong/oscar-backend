@@ -410,6 +410,52 @@
         ]
       }
     },
+    "/api/v1/knowledge/passage/window": {
+      "post": {
+        "operationId": "KnowledgeLibraryController_window",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PassageWindowDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PassageWindowResultDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Source access denied"
+          },
+          "409": {
+            "description": "Stale revision or generation"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Read bounded independently permitted neighboring original passages",
+        "tags": [
+          "Reference Knowledge"
+        ]
+      }
+    },
     "/api/v1/knowledge/passage": {
       "post": {
         "operationId": "KnowledgeLibraryController_inspectPassage",
@@ -8859,6 +8905,183 @@
         "required": [
           "enabled",
           "required"
+        ]
+      },
+      "PassageWindowDto": {
+        "type": "object",
+        "properties": {
+          "chunkId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Chunk UUID"
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Document UUID"
+          },
+          "revision": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Expected active revision number"
+          },
+          "radius": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "default": 1
+          },
+          "maxChars": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 16000,
+            "default": 12000
+          },
+          "maxBytes": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 64000,
+            "default": 48000
+          }
+        },
+        "required": [
+          "chunkId",
+          "documentId",
+          "revision"
+        ]
+      },
+      "PassageWindowItemDto": {
+        "type": "object",
+        "properties": {
+          "chunkId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "collectionId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "bookId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "author": {
+            "type": "string"
+          },
+          "edition": {
+            "type": "string"
+          },
+          "chapter": {
+            "type": "string"
+          },
+          "locator": {
+            "type": "string"
+          },
+          "pageStart": {
+            "type": "number"
+          },
+          "pageEnd": {
+            "type": "number"
+          },
+          "startMs": {
+            "type": "number"
+          },
+          "endMs": {
+            "type": "number"
+          },
+          "revision": {
+            "type": "number"
+          },
+          "text": {
+            "type": "string"
+          },
+          "charCount": {
+            "type": "number"
+          },
+          "extraction": {
+            "type": "string"
+          },
+          "reviewRequired": {
+            "type": "boolean"
+          },
+          "coverageNote": {
+            "type": "string"
+          },
+          "sourceUrl": {
+            "type": "string"
+          },
+          "isTruncated": {
+            "type": "boolean"
+          },
+          "relativeOffset": {
+            "type": "number"
+          },
+          "textSha256": {
+            "type": "string"
+          },
+          "byteCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "chunkId",
+          "documentId",
+          "collectionId",
+          "title",
+          "revision",
+          "text",
+          "charCount",
+          "reviewRequired",
+          "isTruncated",
+          "relativeOffset",
+          "textSha256",
+          "byteCount"
+        ]
+      },
+      "PassageWindowResultDto": {
+        "type": "object",
+        "properties": {
+          "anchorChunkId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revision": {
+            "type": "number"
+          },
+          "passages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PassageWindowItemDto"
+            }
+          },
+          "totalChars": {
+            "type": "number"
+          },
+          "totalBytes": {
+            "type": "number"
+          },
+          "contextLimited": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "anchorChunkId",
+          "documentId",
+          "revision",
+          "passages",
+          "totalChars",
+          "totalBytes",
+          "contextLimited"
         ]
       },
       "PassageInspectDto": {

@@ -95,6 +95,7 @@ export class ContextAssembler {
     groundingRequired = false,
     focusedReference = false,
     businessReview = false,
+    explanatoryReferences = false,
   ): AssembledContext {
     const maxChars = businessReview ? 32000 : this.maxEvidenceTokens * this.approxCharsPerToken;
     let accumulatedChars = 0;
@@ -110,8 +111,20 @@ export class ContextAssembler {
       const external = item.sourceType === 'EXTERNAL_KNOWLEDGE';
       const categoryRemaining = hasExternal
         ? external
-          ? (businessReview ? 26000 : referenceOverview ? 9000 : 5000) - externalChars
-          : (businessReview ? 5000 : referenceOverview ? 6000 : 10000) - workspaceChars
+          ? (businessReview
+              ? 26000
+              : explanatoryReferences
+                ? 12000
+                : referenceOverview
+                  ? 9000
+                  : 5000) - externalChars
+          : (businessReview
+              ? 5000
+              : explanatoryReferences
+                ? 3000
+                : referenceOverview
+                  ? 6000
+                  : 10000) - workspaceChars
         : maxChars - accumulatedChars;
       if (categoryRemaining < 500) continue;
       const workspaceLine = item.projectName
@@ -132,6 +145,8 @@ Content:\n`;
         header += `Discovery path (retrieval hint, not proof): ${item.discoveryPath.join(' → ')}\n`;
       header += extractionNotice;
       if (item.coverageNote) header += `Coverage: ${item.coverageNote}\n`;
+      if (item.contextWindow)
+        header += `Bounded same-document context, not a whole chapter; relative chunk ${item.contextWindow.relativeOffset}; surrounding text may be omitted.\n`;
       const content = item.text ?? item.snippet;
       const block = header + content + '\n';
       if (
@@ -147,17 +162,20 @@ Content:\n`;
         categoryRemaining,
         maxChars - accumulatedChars - separatorChars,
         external && referenceOverview
-          ? businessReview
-            ? 4200
-            : focusedReference
-              ? 3400
-              : 1600
+          ? explanatoryReferences && !businessReview
+            ? 3000
+            : businessReview
+              ? 4200
+              : focusedReference
+                ? 3400
+                : 1600
           : maxChars,
       );
       if (available <= header.length + 1) continue;
       const bodyLimit = available - header.length - 1;
       let includedText = content.slice(0, bodyLimit);
-      if (businessReview && includedText.length < content.length) {
+      if (/[\uD800-\uDBFF]$/.test(includedText)) includedText = includedText.slice(0, -1);
+      if ((businessReview || explanatoryReferences) && includedText.length < content.length) {
         // Keep original contiguous source text; prefer a complete sentence or
         // line rather than splitting a word/formula at an arbitrary character.
         const boundaries = [...includedText.matchAll(/[.!?](?:["')\]]+)?(?=\s|$)|\n/g)];
@@ -178,6 +196,14 @@ Content:\n`;
         text: includedText,
         snippet: includedText.length === content.length ? item.snippet : includedText.slice(0, 240),
         exactExcerpt: includedText,
+        ...(item.sourceSpan
+          ? {
+              sourceSpan: {
+                startChar: item.sourceSpan.startChar,
+                endChar: item.sourceSpan.startChar + Array.from(includedText).length,
+              },
+            }
+          : {}),
         fullTextLength: fullLen,
         isTruncated: includedText.length < content.length || isTrunc,
       });

@@ -95,6 +95,46 @@ describe('Reference policy HTTP boundary', () => {
     expect(result.body).toEqual([]);
     expect(collections).toHaveBeenCalledWith('fixture-owner');
   });
+  it('binds bounded passage windows to the authenticated reader and rejects identity overrides', async () => {
+    const body = {
+      chunkId: '00000000-0000-4000-8000-000000000001',
+      documentId: '00000000-0000-4000-8000-000000000002',
+      revision: 1,
+    };
+    await request(app.getHttpServer())
+      .post('/api/v1/knowledge/passage/window')
+      .send(body)
+      .expect(401);
+    const window = jest.spyOn(knowledge, 'passageWindow').mockResolvedValue({
+      anchorChunkId: body.chunkId,
+      documentId: body.documentId,
+      revision: 1,
+      passages: [],
+      totalChars: 0,
+      totalBytes: 0,
+      contextLimited: true,
+    });
+    for (const bad of [
+      { ...body, userId: 'other-owner' },
+      { ...body, radius: 3 },
+      { ...body, maxBytes: 1000000 },
+      { ...body, revision: 0 },
+    ])
+      await request(app.getHttpServer())
+        .post('/api/v1/knowledge/passage/window')
+        .set('Authorization', 'Bearer fixture-session')
+        .send(bad)
+        .expect(400);
+    expect(window).not.toHaveBeenCalled();
+    const result = await request(app.getHttpServer())
+      .post('/api/v1/knowledge/passage/window')
+      .set('Authorization', 'Bearer fixture-session')
+      .send({ ...body, radius: 1 })
+      .expect(200);
+    expect(window).toHaveBeenCalledWith('fixture-owner', { ...body, radius: 1 });
+    expect(result.body.anchorChunkId).toBe(body.chunkId);
+    window.mockRestore();
+  });
   it('protects passage inspection and validates source identity input before proxying', async () => {
     const body = {
       chunkId: '00000000-0000-4000-8000-000000000001',

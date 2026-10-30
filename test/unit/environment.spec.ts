@@ -6,6 +6,17 @@ const valid = {
 };
 
 describe('Environment validation', () => {
+  it('bounds the explanatory retrieval candidate pool without changing model selection', () => {
+    const enhanced = validateEnvironment(valid);
+    expect(enhanced.OSCAR_KNOWLEDGE_EXPLANATORY_ENABLED).toBe(true);
+    expect(enhanced.OSCAR_KNOWLEDGE_CANDIDATE_LIMIT).toBe(20);
+    expect(() =>
+      validateEnvironment({ ...valid, OSCAR_KNOWLEDGE_CANDIDATE_LIMIT: '41' }),
+    ).toThrow();
+    expect(() =>
+      validateEnvironment({ ...valid, OSCAR_KNOWLEDGE_CANDIDATE_LIMIT: '19' }),
+    ).toThrow();
+  });
   it('validates structural-answer rollout switches and a bounded repair deadline', () => {
     const config = validateEnvironment(valid);
     expect(config.AI_ANSWER_BLOCKS_ENABLED).toBe(true);

@@ -140,6 +140,10 @@ typed, exact business arithmetic and saved receipts in assistant/MCP answers.
 It documents the bounded operations, source-gap behavior and remaining retrieval
 and answer-completeness limitations.
 
+The [Phase 3 retrieval guide](docs/architecture/PHASE_3_EXPLANATORY_RETRIEVAL.md)
+documents concept-aware searches, permissioned passage windows, MCP inspection,
+rollback controls and remaining calculation/latency limits.
+
 The [Phase 2 answer guide](docs/architecture/PHASE_2_ANSWER_COVERAGE.md) describes
 whole-unit support review, post-review coverage, a single evidence-only redraft,
 calculator preservation and rollout controls. Structural coverage is distinct

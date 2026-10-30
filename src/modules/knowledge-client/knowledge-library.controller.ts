@@ -62,6 +62,26 @@ export class KnowledgeGraphDto {
   @Max(40)
   limit?: number;
 }
+export class PassageWindowDto extends PassageInspectDto {
+  @ApiPropertyOptional({ minimum: 0, maximum: 2, default: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(2)
+  radius?: number;
+  @ApiPropertyOptional({ minimum: 1, maximum: 16000, default: 12000 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(16000)
+  maxChars?: number;
+  @ApiPropertyOptional({ minimum: 1, maximum: 64000, default: 48000 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(64000)
+  maxBytes?: number;
+}
 
 export class PassageInspectResultDto {
   @ApiProperty({ format: 'uuid' }) chunkId!: string;
@@ -85,6 +105,20 @@ export class PassageInspectResultDto {
   @ApiPropertyOptional() coverageNote?: string;
   @ApiPropertyOptional() sourceUrl?: string;
   @ApiProperty() isTruncated!: boolean;
+}
+export class PassageWindowItemDto extends PassageInspectResultDto {
+  @ApiProperty() relativeOffset!: number;
+  @ApiProperty() textSha256!: string;
+  @ApiProperty() byteCount!: number;
+}
+export class PassageWindowResultDto {
+  @ApiProperty({ format: 'uuid' }) anchorChunkId!: string;
+  @ApiProperty({ format: 'uuid' }) documentId!: string;
+  @ApiProperty() revision!: number;
+  @ApiProperty({ type: [PassageWindowItemDto] }) passages!: PassageWindowItemDto[];
+  @ApiProperty() totalChars!: number;
+  @ApiProperty() totalBytes!: number;
+  @ApiProperty() contextLimited!: boolean;
 }
 
 class PrivateCollectionStatusDto {
@@ -121,6 +155,20 @@ export class KnowledgeLibraryController {
   @ApiOkResponse({ type: KnowledgePolicyDto })
   policy(): KnowledgePolicyDto {
     return this.knowledge.policy();
+  }
+
+  @Post('passage/window')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Read bounded independently permitted neighboring original passages' })
+  @ApiOkResponse({ type: PassageWindowResultDto })
+  @ApiUnauthorizedResponse({ description: 'Authentication required' })
+  @ApiForbiddenResponse({ description: 'Source access denied' })
+  @ApiConflictResponse({ description: 'Stale revision or generation' })
+  window(
+    @CurrentUser() user: User,
+    @Body() dto: PassageWindowDto,
+  ): Promise<PassageWindowResultDto> {
+    return this.knowledge.passageWindow(user.id, dto);
   }
 
   @Post('passage')

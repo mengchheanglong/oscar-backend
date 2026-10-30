@@ -27,7 +27,12 @@ const result = {
   end_ms: null,
 };
 function client(enabled = true) {
-  return new KnowledgeClientService(new ConfigService({ OSCAR_KNOWLEDGE_ENABLED: enabled }));
+  return new KnowledgeClientService(
+    new ConfigService({
+      OSCAR_KNOWLEDGE_ENABLED: enabled,
+      OSCAR_KNOWLEDGE_EXPLANATORY_ENABLED: false,
+    }),
+  );
 }
 describe('optional curated knowledge', () => {
   it('searches explicitly named books before the broad anchor and records the actual plan', async () => {
@@ -148,6 +153,7 @@ describe('optional curated knowledge', () => {
     const scoped = new KnowledgeClientService(
       new ConfigService({
         OSCAR_KNOWLEDGE_ENABLED: true,
+        OSCAR_KNOWLEDGE_EXPLANATORY_ENABLED: false,
         OSCAR_KNOWLEDGE_TIMEOUT_MS: 25000,
         OSCAR_KNOWLEDGE_PRIVATE_SCOPE_SECRET: 'independent-private-test-signing-key-123456789',
       }),

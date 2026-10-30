@@ -2639,3 +2639,22 @@ Provider generation was not exercised. No remote push or hosted deployment.
   report at `D:\AI\OSCAR\Knowledge\Catalog\reports\rag-improvement\2026-10-29`.
   Existing local model/provider and grants preserved; no reingestion, migration,
   model swap, external deployment or push is part of this change.
+
+### Knowledge intelligence Phase 3 — 2026-10-30
+
+Implemented bounded explanatory retrieval, distinct concept/named-source
+selection, original contiguous spans and permissioned same-document windows.
+See [Phase 3 guide](docs/architecture/PHASE_3_EXPLANATORY_RETRIEVAL.md) for contracts,
+rollback and exact limits. New API/MCP window inspection independently gates
+neighbors and preserves each original locator/hash. No migrations, reembedding
+or source replacement; configured models/grants remain unchanged.
+
+Verified 704 unit / 179 HTTP / seven runner tests, lint, typecheck, build,
+format and generated OpenAPI; Knowledge 185 passed / one skipped, Ruff/mypy.
+Twenty live development responses across eleven questions, 112 original evidence
+checks, three exact replays and a fresh MCP window read passed provenance and
+isolation checks. One final calculation failed closed with input extraction
+unavailable after about 31 seconds; retained in the report. Coverage checks
+remain structural; answer quality, latency and source fidelity are not certified.
+Private report: `D:/AI/OSCAR/Knowledge/Catalog/reports/knowledge-intelligence-phase3/2026-10-30`.
+Next: selected-source quality pilot; not started.

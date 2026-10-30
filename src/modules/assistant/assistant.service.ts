@@ -407,8 +407,13 @@ export class AssistantService implements OnModuleInit {
       groundingRequired,
       groundingRequired && !learningOverview && !businessReview,
       businessReview || synthesisRequest,
+      this.knowledge?.explanatoryEnabled?.() === true,
     );
 
+    if ('audit' in supplementary && supplementary.audit)
+      supplementary.audit.assembledChunkIds = assembled.evidenceItems
+        .filter((e) => e.sourceType === 'EXTERNAL_KNOWLEDGE')
+        .map((e) => e.chunkId);
     assembled.systemPrompt += skillContext(selectedSkills);
     if (includeKnowledge && !referenceOnly)
       assembled.systemPrompt += '\n' + BUSINESS_DECISION_GUIDANCE;

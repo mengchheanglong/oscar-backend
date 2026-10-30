@@ -7,6 +7,8 @@ import {
   NotFoundException,
   ServiceUnavailableException,
   UnauthorizedException,
+  HttpException,
+  PayloadTooLargeException,
 } from '@nestjs/common';
 import { createHash, createHmac } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
@@ -21,6 +23,12 @@ import {
 } from './knowledge-query-plan';
 import { KnowledgeRetrievalAudit } from './knowledge-retrieval-audit';
 import { knowledgeGraphSchema } from './knowledge-graph';
+import {
+  explanatoryPlan,
+  explanatoryScore,
+  selectExplanatory,
+  focusExcerpt,
+} from './explanatory-retrieval';
 
 const publicUrl = z
   .string()
@@ -57,7 +65,10 @@ const evidenceSchema = z.object({
   locator: z.string().max(1000).nullable(),
   source_url: publicUrl.nullable(),
   revision: z.number().int().positive(),
-  text: z.string().max(3000),
+  text: z
+    .string()
+    .max(6000)
+    .refine((value) => Array.from(value).length <= 3000),
   snippet: z.string().max(500),
   score: z.number().finite(),
   page_start: z.number().int().positive().nullable(),
@@ -96,6 +107,24 @@ const passageInspectResponseSchema = z.object({
   source_url: publicUrl.nullable().optional(),
   is_truncated: z.boolean().optional(),
 });
+const passageWindowResponseSchema = z.object({
+  anchor_chunk_id: z.uuid(),
+  document_id: z.uuid(),
+  revision: z.number().int().positive(),
+  passages: z
+    .array(
+      passageInspectResponseSchema.extend({
+        relative_offset: z.number().int().min(-2).max(2),
+        text_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+        byte_count: z.number().int().nonnegative(),
+      }),
+    )
+    .min(1)
+    .max(5),
+  total_chars: z.number().int().nonnegative().max(16000),
+  total_bytes: z.number().int().nonnegative().max(64000),
+  context_limited: z.boolean(),
+});
 
 @Injectable()
 export class KnowledgeClientService {
@@ -107,6 +136,9 @@ export class KnowledgeClientService {
       enabled: this.config.get<boolean>('OSCAR_KNOWLEDGE_ENABLED', false),
       required: this.config.get<boolean>('OSCAR_KNOWLEDGE_REQUIRED', false),
     };
+  }
+  explanatoryEnabled(): boolean {
+    return this.config.get<boolean>('OSCAR_KNOWLEDGE_EXPLANATORY_ENABLED', true);
   }
 
   private scopeHeaders(body: string, userId: string) {
@@ -188,6 +220,8 @@ export class KnowledgeClientService {
     unavailable: boolean;
     audit?: KnowledgeRetrievalAudit;
   }> {
+    if (requireSources && this.explanatoryEnabled())
+      return this.retrieveExplanatory(query, userId, scope);
     if (isBusinessReview(query)) return this.retrieveBusinessReview(query, userId, scope);
     const queries = referenceQueryPlan(query);
     if (queries.length === 1 && !requireSources) return this.retrieveSingle(query, userId, scope);
@@ -279,6 +313,224 @@ export class KnowledgeClientService {
     audit.selectedChunkIds = evidence.map((e) => e.chunkId);
     audit.deadlineReached = Date.now() >= deadline;
     return { evidence, unavailable: successful === 0, audit };
+  }
+
+  private async retrieveExplanatory(
+    question: string,
+    userId: string | undefined,
+    scope: 'mba' | 'social-systems' | 'personal-library' | 'all',
+  ) {
+    const total = this.config.get<number>('OSCAR_KNOWLEDGE_TIMEOUT_MS', 2500);
+    const deadline = Date.now() + total;
+    const reserve = Math.min(4500, Math.floor(total / 4));
+    const queries = explanatoryPlan(question);
+    const titles = requestedSynthesisTitles(question);
+    const order =
+      titles.length > 1
+        ? queries
+            .map((_, i) => i)
+            .slice(1)
+            .concat(0)
+        : queries.map((_, i) => i);
+    const batches: AssistantEvidence[][] = queries.map(() => []);
+    const audit: KnowledgeRetrievalAudit = {
+      version: 1,
+      strategy: 'explanatory-plan',
+      searches: [],
+      selectedChunkIds: [],
+      deadlineReached: false,
+      followUpUsed: false,
+      rankingMethod: 'QUESTION_DEPTH_COVERAGE_HEURISTIC',
+      candidateLimit: this.config.get<number>('OSCAR_KNOWLEDGE_CANDIDATE_LIMIT', 20),
+      expansions: [],
+    };
+    let next = 0,
+      successful = 0;
+    const worker = async () => {
+      while (next < order.length) {
+        const index = order[next++]!;
+        const remaining = deadline - reserve - Date.now();
+        if (remaining <= 0) break;
+        const started = Date.now();
+        const result = await this.retrieveSingle(
+          queries[index]!,
+          userId,
+          scope,
+          Math.min(remaining, 16000),
+          20,
+        );
+        if (!result.unavailable) successful++;
+        batches[index] = result.evidence.filter((e) => this.navigationRisk(e) < 2);
+        audit.searches.push({
+          aspect: titles.length > 1 && index > 0 ? 'named-source' : 'reference',
+          followUp: false,
+          elapsedMs: Date.now() - started,
+          unavailable: result.unavailable,
+          candidateChunkIds: result.evidence.map((e) => e.chunkId),
+          usableCount: batches[index]!.length,
+          queryChars: queries[index]!.length,
+        });
+      }
+    };
+    await Promise.all([worker(), worker()]);
+    // Fair bounded pool across searches, before question-aware depth selection.
+    const pool: AssistantEvidence[] = [],
+      seen = new Set<string>();
+    for (let rank = 0; rank < 20 && pool.length < audit.candidateLimit!; rank++)
+      for (const batch of batches) {
+        const item = batch[rank];
+        if (item && !seen.has(item.chunkId) && pool.length < audit.candidateLimit!) {
+          seen.add(item.chunkId);
+          pool.push(item);
+        }
+      }
+    const bounded = batches.map((batch) => batch.filter((e) => seen.has(e.chunkId)));
+    const normalizeTitle = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
+        .trim();
+    const leads = bounded.flatMap((batch, index) => {
+      if (queries.length > 1 && index === 0) return [];
+      const requestedTitle = titles.length > 1 ? titles[index - 1] : undefined;
+      const eligible = batch.filter(
+        (e) =>
+          !requestedTitle ||
+          normalizeTitle(e.title) === normalizeTitle(requestedTitle) ||
+          normalizeTitle(e.title).startsWith(normalizeTitle(requestedTitle) + ' '),
+      );
+      const best = [...eligible].sort(
+        (a, b) => explanatoryScore(queries[index]!, b) - explanatoryScore(queries[index]!, a),
+      )[0];
+      return best ? [best] : [];
+    });
+    const prioritize = (first: AssistantEvidence[], rest: AssistantEvidence[]) => {
+      const ids = new Set<string>(),
+        bodies = new Set<string>(),
+        result: AssistantEvidence[] = [];
+      for (const e of [...first, ...rest]) {
+        const body = (e.text ?? e.snippet).replace(/\s+/g, ' ').trim();
+        if (
+          ids.has(e.chunkId) ||
+          bodies.has(body) ||
+          result.length >= 10 ||
+          (e.discoveryPath?.length && result.filter((r) => r.discoveryPath?.length).length >= 2)
+        )
+          continue;
+        ids.add(e.chunkId);
+        bodies.add(body);
+        result.push(e);
+      }
+      return result;
+    };
+    let selected = prioritize(leads, selectExplanatory(question, bounded));
+    const additions: AssistantEvidence[] = [];
+    const expandedSources = new Set<string>();
+    const blockedSources = new Set<string>();
+    for (const anchor of selected) {
+      if (!userId || audit.expansions!.length >= 2 || Date.now() >= deadline) break;
+      const source = anchor.bookId ?? anchor.sourceId;
+      if (expandedSources.has(source)) continue;
+      expandedSources.add(source);
+      const started = Date.now();
+      try {
+        const window = await this.inspectWindow(
+          userId,
+          {
+            chunkId: anchor.chunkId,
+            documentId: anchor.documentId ?? anchor.sourceId,
+            revision: anchor.revision,
+            radius: 1,
+            maxChars: 12000,
+            maxBytes: 48000,
+          },
+          Math.min(4500, deadline - Date.now()),
+        );
+        const ids: string[] = [];
+        for (const item of window.passages) {
+          ids.push(item.chunk_id);
+          additions.push({
+            ...anchor,
+            chunkId: item.chunk_id,
+            documentId: item.document_id,
+            sourceId: item.document_id,
+            title: item.title,
+            collectionId: item.collection_id,
+            bookId: item.book_id ?? undefined,
+            author: item.author ?? undefined,
+            edition: item.edition ?? undefined,
+            sourceUrl: item.source_url ?? undefined,
+            startMs: item.start_ms ?? undefined,
+            endMs: item.end_ms ?? undefined,
+            discoveryPath: item.relative_offset === 0 ? anchor.discoveryPath : undefined,
+            revision: item.revision,
+            locator: item.locator ?? 'Locator unavailable',
+            pageStart: item.page_start ?? undefined,
+            pageEnd: item.page_end ?? undefined,
+            chapter: item.chapter ?? undefined,
+            extraction: item.extraction ?? undefined,
+            reviewRequired: item.review_required ?? false,
+            coverageNote: item.coverage_note ?? undefined,
+            text: item.text,
+            snippet: Array.from(item.text).slice(0, 240).join(''),
+            fullTextLength: item.char_count,
+            isTruncated: false,
+            contextWindow: {
+              anchorChunkId: anchor.chunkId,
+              relativeOffset: item.relative_offset,
+              sourceTextSha256: item.text_sha256,
+              sourceCharCount: item.char_count,
+              contextLimited: window.context_limited,
+            },
+          });
+        }
+        audit.expansions!.push({
+          anchorChunkId: anchor.chunkId,
+          chunkIds: ids,
+          status: 'EXPANDED',
+          elapsedMs: Date.now() - started,
+          contextLimited: window.context_limited,
+        });
+      } catch (error: unknown) {
+        const status = error instanceof HttpException ? error.getStatus() : undefined;
+        if (status && [403, 404, 409, 410].includes(status)) blockedSources.add(source);
+        audit.expansions!.push({
+          anchorChunkId: anchor.chunkId,
+          chunkIds: [],
+          status: 'UNAVAILABLE',
+          failureCode:
+            status === 403
+              ? 'ACCESS_DENIED'
+              : status === 409
+                ? 'STALE_SOURCE'
+                : status === 404 || status === 410
+                  ? 'SOURCE_UNAVAILABLE'
+                  : status === 413
+                    ? 'WINDOW_LIMIT'
+                    : 'UPSTREAM_UNAVAILABLE',
+          elapsedMs: Date.now() - started,
+        });
+      }
+    }
+    const replace = new Set(additions.map((e) => e.chunkId));
+    selected = selectExplanatory(
+      question,
+      [selected.filter((e) => !replace.has(e.chunkId)), additions],
+      10,
+    ).sort((a, b) => explanatoryScore(question, b) - explanatoryScore(question, a));
+    selected = prioritize(
+      leads.map((e) => additions.find((a) => a.chunkId === e.chunkId) ?? e),
+      selected,
+    );
+    selected = selected.filter((e) => !blockedSources.has(e.bookId ?? e.sourceId));
+    audit.selectedChunkIds = selected.map((e) => e.chunkId);
+    audit.candidateCount = pool.length;
+    audit.deadlineReached = Date.now() >= deadline;
+    return {
+      evidence: selected.map((e) => focusExcerpt(question, e)),
+      unavailable: successful === 0,
+      audit,
+    };
   }
 
   private async retrieveBusinessReview(
@@ -465,7 +717,7 @@ export class KnowledgeClientService {
           const { done, value } = await reader.read();
           if (done) break;
           size += value.byteLength;
-          if (size > 100000) throw new Error('KNOWLEDGE_RESPONSE_LIMIT');
+          if (size > (topK > 12 ? 400000 : 100000)) throw new Error('KNOWLEDGE_RESPONSE_LIMIT');
           parts.push(value);
         }
       } finally {
@@ -588,6 +840,146 @@ export class KnowledgeClientService {
     } catch {
       throw new ServiceUnavailableException('KNOWLEDGE_GRAPH_UNAVAILABLE');
     }
+  }
+
+  async passageWindow(
+    userId: string,
+    params: {
+      chunkId: string;
+      documentId: string;
+      revision: number;
+      radius?: number;
+      maxChars?: number;
+      maxBytes?: number;
+    },
+  ) {
+    const window = await this.inspectWindow(userId, params);
+    return {
+      anchorChunkId: window.anchor_chunk_id,
+      documentId: window.document_id,
+      revision: window.revision,
+      totalChars: window.total_chars,
+      totalBytes: window.total_bytes,
+      contextLimited: window.context_limited,
+      passages: window.passages.map((p) => ({
+        chunkId: p.chunk_id,
+        documentId: p.document_id,
+        collectionId: p.collection_id,
+        title: p.title,
+        bookId: p.book_id ?? undefined,
+        author: p.author ?? undefined,
+        edition: p.edition ?? undefined,
+        chapter: p.chapter ?? undefined,
+        locator: p.locator ?? undefined,
+        pageStart: p.page_start ?? undefined,
+        pageEnd: p.page_end ?? undefined,
+        startMs: p.start_ms ?? undefined,
+        endMs: p.end_ms ?? undefined,
+        revision: p.revision,
+        text: p.text,
+        charCount: p.char_count,
+        extraction: p.extraction ?? undefined,
+        reviewRequired: p.review_required ?? false,
+        coverageNote: p.coverage_note ?? undefined,
+        sourceUrl: p.source_url ?? undefined,
+        isTruncated: false,
+        relativeOffset: p.relative_offset,
+        textSha256: p.text_sha256,
+        byteCount: p.byte_count,
+      })),
+    };
+  }
+
+  async inspectWindow(
+    userId: string,
+    params: {
+      chunkId: string;
+      documentId: string;
+      revision: number;
+      radius?: number;
+      maxChars?: number;
+      maxBytes?: number;
+    },
+    timeoutMs = 4500,
+  ) {
+    if (!this.config.get<boolean>('OSCAR_KNOWLEDGE_ENABLED', false))
+      throw new ServiceUnavailableException('KNOWLEDGE_SERVICE_DISABLED');
+    const body = JSON.stringify({
+      chunk_id: params.chunkId,
+      document_id: params.documentId,
+      revision: params.revision,
+      radius: params.radius ?? 1,
+      max_chars: params.maxChars ?? 12000,
+      max_bytes: params.maxBytes ?? 48000,
+    });
+    const response = await fetch(
+      this.config.get<string>('OSCAR_KNOWLEDGE_BASE_URL', 'http://127.0.0.1:8010') +
+        '/internal/v1/passage/window',
+      {
+        method: 'POST',
+        redirect: 'error',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.config.get<string>('OSCAR_KNOWLEDGE_SERVICE_TOKEN', '')}`,
+          ...this.scopeHeaders(body, userId),
+        },
+        body,
+        signal: AbortSignal.timeout(Math.max(1, timeoutMs)),
+      },
+    );
+    if (response.status === 403) throw new ForbiddenException('KNOWLEDGE_ACCESS_DENIED');
+    if (response.status === 404) throw new NotFoundException('KNOWLEDGE_PASSAGE_NOT_FOUND');
+    if (response.status === 409) throw new ConflictException('KNOWLEDGE_STALE_REVISION');
+    if (response.status === 410) throw new GoneException('KNOWLEDGE_PASSAGE_UNAVAILABLE');
+    if (response.status === 413) throw new PayloadTooLargeException('KNOWLEDGE_WINDOW_LIMIT');
+    if (!response.ok || !response.body)
+      throw new ServiceUnavailableException('KNOWLEDGE_WINDOW_UNAVAILABLE');
+    const reader = response.body.getReader(),
+      parts: Uint8Array[] = [];
+    let size = 0;
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > 100000) throw new Error('WINDOW_RESPONSE_LIMIT');
+        parts.push(value);
+      }
+    } finally {
+      await reader.cancel();
+    }
+    const data = passageWindowResponseSchema.parse(
+      JSON.parse(Buffer.concat(parts).toString('utf8')),
+    );
+    const anchor = data.passages.find((p) => p.chunk_id === params.chunkId);
+    if (
+      data.anchor_chunk_id !== params.chunkId ||
+      data.document_id !== params.documentId ||
+      data.revision !== params.revision ||
+      !anchor ||
+      anchor.relative_offset !== 0 ||
+      new Set(data.passages.map((p) => p.chunk_id)).size !== data.passages.length ||
+      new Set(data.passages.map((p) => p.relative_offset)).size !== data.passages.length ||
+      data.passages.length > (params.radius ?? 1) * 2 + 1 ||
+      data.total_chars > (params.maxChars ?? 12000) ||
+      data.total_bytes > (params.maxBytes ?? 48000) ||
+      data.total_chars !== data.passages.reduce((n, p) => n + p.char_count, 0) ||
+      data.total_bytes !== data.passages.reduce((n, p) => n + p.byte_count, 0) ||
+      data.passages.some(
+        (p) =>
+          p.document_id !== params.documentId ||
+          p.revision !== params.revision ||
+          p.collection_id !== anchor.collection_id ||
+          p.book_id !== anchor.book_id ||
+          Math.abs(p.relative_offset) > (params.radius ?? 1) ||
+          p.char_count !== Array.from(p.text).length ||
+          p.byte_count !== Buffer.byteLength(p.text) ||
+          p.text_sha256 !== createHash('sha256').update(p.text).digest('hex') ||
+          p.is_truncated,
+      )
+    )
+      throw new ServiceUnavailableException('KNOWLEDGE_WINDOW_MISMATCH');
+    return data;
   }
 
   async inspectPassage(
