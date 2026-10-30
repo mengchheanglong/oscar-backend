@@ -122,6 +122,11 @@ providers can require deliberate re-indexing.
 
 ### Reference knowledge and required sources
 
+The proposed [knowledge intelligence roadmap](docs/architecture/KNOWLEDGE_INTELLIGENCE_ROADMAP.md)
+defines phased work on numerical validation, complete answers, section retrieval,
+source quality, graph discovery and business-outcome feedback. It is a plan,
+not a statement that those capabilities are already complete.
+
 For real business-question acceptance, see the
 [business usefulness evaluation](docs/architecture/BUSINESS_USEFULNESS_EVALUATION.md).
 It separates live retrieval/provenance checks from semantic and actionability
