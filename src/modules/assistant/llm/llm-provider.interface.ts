@@ -7,6 +7,7 @@ export interface ChatCompletionMessage {
 }
 
 export interface GenerateAnswerParams {
+  signal?: AbortSignal;
   messages: ChatCompletionMessage[];
   evidence: RetrievedEvidence[];
   temperature?: number;
@@ -22,6 +23,7 @@ export interface GenerateAnswerResult {
 }
 
 export interface GenerateStructuredOutputParams {
+  signal?: AbortSignal;
   systemPrompt: string;
   userPrompt: string;
   schemaDescription?: string;

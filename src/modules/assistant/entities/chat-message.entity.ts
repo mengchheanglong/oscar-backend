@@ -12,6 +12,7 @@ import { Conversation } from './conversation.entity';
 import type { AnswerSupportAudit } from '../context/answer-support';
 import type { AssistantStageTimings } from '../context/stage-timings';
 import type { CalculationAudit } from '../../calculations/calculation.contract';
+import type { AnswerCompositionAudit } from '../context/answer-composer.service';
 import type { KnowledgeRetrievalAudit } from '../../knowledge-client/knowledge-retrieval-audit';
 import { AssistantMode } from './assistant-mode.enum';
 
@@ -69,6 +70,7 @@ export interface EvidenceSnapshot {
   retrievalAudit?: KnowledgeRetrievalAudit;
   stageTimings?: AssistantStageTimings;
   calculationAudit?: CalculationAudit;
+  answerComposition?: AnswerCompositionAudit;
 }
 
 @Entity('ai_messages')

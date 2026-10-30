@@ -3,11 +3,19 @@ import { AssistantEvidence } from '../../knowledge-client/knowledge-evidence';
 import { LlmProvider } from '../llm/llm-provider.interface';
 import { sourceGap } from './source-grounding';
 import { requestsPositioning, requestsSynthesis } from './reasoning-intent';
+import type { AnswerBlock } from './answer-blocks';
 
 export interface AnswerSupportAudit {
-  reviewVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-  failureCode?: 'REVIEW_SCHEMA_INVALID' | 'REVIEW_COVERAGE_INVALID' | 'REVIEW_UNAVAILABLE';
-  granularity?: 'sentence';
+  reviewVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  failureCode?:
+    | 'REVIEW_SCHEMA_INVALID'
+    | 'REVIEW_COVERAGE_INVALID'
+    | 'REVIEW_UNAVAILABLE'
+    | 'REVIEW_JSON_INVALID'
+    | 'REVIEW_OUTPUT_TRUNCATED'
+    | 'REVIEW_LIMIT_EXCEEDED';
+  granularity?: 'sentence' | 'answer-block';
+  formatAttempts?: { failureCode: string; rawReview?: unknown }[];
   status: 'APPROVED' | 'FILTERED' | 'WITHHELD' | 'UNAVAILABLE';
   blocks: {
     id: number;
@@ -85,7 +93,7 @@ For CALCULATION check the arithmetic independently, units, period, inputs and ro
 Do not treat a glossary/title as proof of a detailed lesson, analogy as measured fact, or unverified OCR as a reliable formula. Preserve an author's account as attribution, not independent verification.`;
 
 export function forbidsApplication(question: string): boolean {
-  return /\b(?:no (?:business|project) application|(?:do not|don't|never) apply|without (?:a |any )?(?:business|project) application|keep[^.?!]{0,80}attributed to (?:the )?(?:book|author))\b/i.test(
+  return /\b(?:no (?:business|project) (?:application|advice|actions)|(?:do not|don't|never) apply|(?:do not|don't|never) (?:personalize|personalise|tailor|propose|recommend|provide|suggest)[^.?!]{0,80}(?:business|project|actions|advice)|without (?:a |any )?(?:business|project) application|keep[^.?!]{0,80}attributed to (?:the )?(?:book|author))\b/i.test(
     question.split(/\n(?:USER-PROVIDED|SOURCE|ATTACHED|BRIEF|DOCUMENT)\b/i)[0]!,
   );
 }
@@ -96,6 +104,9 @@ export function requestsApplication(question: string): boolean {
   const request = question.split(/\n(?:USER-PROVIDED|SOURCE|ATTACHED|BRIEF|DOCUMENT)\b/i)[0]!;
   return (
     /\b(?:apply|applying|application|adapt|recommend|advise|advice|propose|calculate|compute|estimate|hypothetical|(?:how|what) should|should (?:I|we)|(?:how|what) (?:can|should|do) (?:I|we)|what (?:I|we) (?:can|should)|for (?:our|my) (?:business|startup|project))\b/i.test(
+      request,
+    ) ||
+    /\b(?:give|propose|suggest|recommend)\b[^.?!]{0,90}\b(?:next step|next test|measurement|learning step|diagnostic)\b/i.test(
       request,
     ) ||
     (/\b(?:give|draft|write|design|prepare|create)\b/i.test(request) &&
@@ -144,11 +155,34 @@ export function sourceQuoteAnchor(body: string, quote: string): string | null {
   return new RegExp(pattern, 'u').exec(body)?.[0] ?? null;
 }
 
+export function reviewFailureCode(error: unknown): NonNullable<AnswerSupportAudit['failureCode']> {
+  if (error instanceof z.ZodError) return 'REVIEW_SCHEMA_INVALID';
+  if (error instanceof Error && error.message === 'REVIEW_COVERAGE_INVALID')
+    return 'REVIEW_COVERAGE_INVALID';
+  const response =
+    error &&
+    typeof error === 'object' &&
+    'getResponse' in error &&
+    typeof error.getResponse === 'function'
+      ? (error.getResponse() as { code?: string })
+      : undefined;
+  return response?.code === 'AI_OUTPUT_INVALID_JSON'
+    ? 'REVIEW_JSON_INVALID'
+    : response?.code === 'AI_OUTPUT_TRUNCATED'
+      ? 'REVIEW_OUTPUT_TRUNCATED'
+      : 'REVIEW_UNAVAILABLE';
+}
 export async function reviewSourceAnswer(
   provider: LlmProvider,
   question: string,
   draft: string,
   evidence: AssistantEvidence[],
+  options: {
+    structuralBlocks?: AnswerBlock[];
+    forbidGeneratedCalculations?: boolean;
+    recoverFormat?: boolean;
+    signal?: AbortSignal;
+  } = {},
 ): Promise<{ content: string; audit: AnswerSupportAudit }> {
   const applicationRequested = requestsApplication(question);
   const synthesisRequested = requestsSynthesis(question);
@@ -171,83 +205,103 @@ export async function reviewSourceAnswer(
   const paragraphLabels: string[] = [];
   let sectionLabel = '';
   let heading = '';
-  for (const part of draft
-    .split(/\n\s*\n|\n(?=\d+[.)]\s|[-*]\s+(?!\*))/)
-    .map((text) => text.trim())
-    .filter(Boolean)) {
-    if (/^#{1,6}\s[^\n]+$/.test(part)) {
-      heading += part + '\n';
-      sectionLabel = part;
-      continue;
+  if (options.structuralBlocks) {
+    for (const block of options.structuralBlocks) {
+      paragraphs.push(block.markdown);
+      paragraphLabels.push(
+        block.kind === 'question'
+          ? 'Proposed interview question'
+          : (block.markdown.match(/^\*\*[^*\n]+\*\*|^#{1,6}[^\n]+/)?.[0] ?? ''),
+      );
     }
-    const boldLabel = /^\*\*[^*\n]{1,200}\*\*[:.]?/.exec(part)?.[0];
-    if (boldLabel) sectionLabel = boldLabel;
-    paragraphs.push(heading + part);
-    paragraphLabels.push(interviewItem(part) ? 'Proposed interview question' : sectionLabel);
-    heading = '';
-  }
+  } else
+    for (const part of draft
+      .split(/\n\s*\n|\n(?=\d+[.)]\s|[-*]\s+(?!\*))/)
+      .map((text) => text.trim())
+      .filter(Boolean)) {
+      if (/^#{1,6}\s[^\n]+$/.test(part)) {
+        heading += part + '\n';
+        sectionLabel = part;
+        continue;
+      }
+      const boldLabel = /^\*\*[^*\n]{1,200}\*\*[:.]?/.exec(part)?.[0];
+      if (boldLabel) sectionLabel = boldLabel;
+      paragraphs.push(heading + part);
+      paragraphLabels.push(interviewItem(part) ? 'Proposed interview question' : sectionLabel);
+      heading = '';
+    }
   if (heading) {
     paragraphs.push(heading.trim());
     paragraphLabels.push(sectionLabel);
   }
-  const blocks = paragraphs
-    .flatMap((text, paragraphId) => {
-      // A table is one structured claim block. Sentence splicing inside cells
-      // destroys headers and row boundaries; retain or withhold it as a unit.
-      if (
-        /(?:^|\n)\s*\|.+\|/.test(text) ||
-        paragraphLabels[paragraphId] === 'Proposed interview question'
-      )
-        return [{ paragraphId, text }];
-      const units: string[] = [];
-      const label =
-        /^(?:(?:#{1,6}\s[^\n]+\n)+)?(?:\*\*[^*\n]{1,200}\*\*[:.]?\s*|\d+[.)]\s+\*[^*\n]{1,200}\*\s*)?/.exec(
-          text,
-        )?.[0] ?? '';
-      for (const segment of new Intl.Segmenter('en', { granularity: 'sentence' }).segment(
-        text.slice(label.length),
-      )) {
-        let sentence = segment.segment.trim();
-        const closer = /^(\*\*|__|\*|_|`)(?=\s|$)/.exec(sentence)?.[1];
-        if (closer && units.length) {
-          const previous = units[units.length - 1]!;
-          const escaped = closer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          if ((previous.match(new RegExp(escaped, 'g')) ?? []).length % 2 === 1) {
-            units[units.length - 1] += closer;
-            sentence = sentence.slice(closer.length).trim();
+  const blocks = (
+    options.structuralBlocks
+      ? paragraphs.map((text, paragraphId) => ({ text, paragraphId }))
+      : paragraphs.flatMap((text, paragraphId) => {
+          // A table is one structured claim block. Sentence splicing inside cells
+          // destroys headers and row boundaries; retain or withhold it as a unit.
+          if (
+            /(?:^|\n)\s*\|.+\|/.test(text) ||
+            paragraphLabels[paragraphId] === 'Proposed interview question'
+          )
+            return [{ paragraphId, text }];
+          const units: string[] = [];
+          const label =
+            /^(?:(?:#{1,6}\s[^\n]+\n)+)?(?:\*\*[^*\n]{1,200}\*\*[:.]?\s*|\d+[.)]\s+\*[^*\n]{1,200}\*\s*)?/.exec(
+              text,
+            )?.[0] ?? '';
+          for (const segment of new Intl.Segmenter('en', { granularity: 'sentence' }).segment(
+            text.slice(label.length),
+          )) {
+            let sentence = segment.segment.trim();
+            const closer = /^(\*\*|__|\*|_|`)(?=\s|$)/.exec(sentence)?.[1];
+            if (closer && units.length) {
+              const previous = units[units.length - 1]!;
+              const escaped = closer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              if ((previous.match(new RegExp(escaped, 'g')) ?? []).length % 2 === 1) {
+                units[units.length - 1] += closer;
+                sentence = sentence.slice(closer.length).trim();
+              }
+            }
+            const leading = /^(\[Evidence #\d+\](?:\s*\[Evidence #\d+\])*)\s*/.exec(sentence);
+            if (leading && units.length) {
+              units[units.length - 1] += ' ' + leading[1];
+              sentence = sentence.slice(leading[0].length).trim();
+            }
+            // ICU can split inside a quoted question: Asking "would you buy?"
+            // invites ... . Keep that lowercase continuation with its subject so
+            // filtering cannot publish a grammatically detached predicate.
+            if (sentence && units.length && /^[a-z]/.test(sentence))
+              units[units.length - 1] += ' ' + sentence;
+            else if (sentence) units.push(sentence);
           }
-        }
-        const leading = /^(\[Evidence #\d+\](?:\s*\[Evidence #\d+\])*)\s*/.exec(sentence);
-        if (leading && units.length) {
-          units[units.length - 1] += ' ' + leading[1];
-          sentence = sentence.slice(leading[0].length).trim();
-        }
-        // ICU can split inside a quoted question: Asking "would you buy?"
-        // invites ... . Keep that lowercase continuation with its subject so
-        // filtering cannot publish a grammatically detached predicate.
-        if (sentence && units.length && /^[a-z]/.test(sentence))
-          units[units.length - 1] += ' ' + sentence;
-        else if (sentence) units.push(sentence);
-      }
-      if (label && units.length) units[0] = label + units[0];
-      if (!units.length && text.trim()) units.push(text);
-      return units.map((text) => ({ paragraphId, text }));
-    })
-    .map((unit, id) => ({ id, ...unit }));
+          if (label && units.length) units[0] = label + units[0];
+          if (!units.length && text.trim()) units.push(text);
+          return units.map((text) => ({ paragraphId, text }));
+        })
+  ).map((unit, id) => ({ id, ...unit }));
   const empty: AnswerSupportAudit = {
     status: 'UNAVAILABLE',
     blocks: [],
     promptTokens: 0,
     completionTokens: 0,
     unreviewedDraft: draft.length <= 24000 ? draft : undefined,
-    reviewVersion: 9,
-    granularity: 'sentence',
+    reviewVersion: options.structuralBlocks ? 10 : 9,
+    granularity: options.structuralBlocks ? 'answer-block' : 'sentence',
+    formatAttempts: [],
   };
   if (!blocks.length || paragraphs.length > 64 || blocks.length > 128 || draft.length > 24000)
-    return { content: sourceGap(false, true), audit: { ...empty, status: 'WITHHELD' } };
+    return {
+      content: sourceGap(false, true),
+      audit: { ...empty, status: 'WITHHELD', failureCode: 'REVIEW_LIMIT_EXCEEDED' },
+    };
   try {
-    const result = await provider.generateStructuredOutput<unknown>({
-      systemPrompt: REVIEW_INSTRUCTIONS,
+    const params = {
+      systemPrompt:
+        REVIEW_INSTRUCTIONS +
+        (options.structuralBlocks
+          ? '\nOVERRIDE SENTENCE GRANULARITY: Blocks are complete structural units (question plus rationale, full table, recommendation plus decision rule, or explanatory paragraph). Audit EVERY clause/cell together. Keep or reject the WHOLE unit; never splice its sentences. Judge standalone for the whole unit assuming other units may be removed; do not remove its internal sentences. A rejected necessary qualifier means the whole unit is unsupported.'
+          : ''),
       userPrompt: JSON.stringify({
         question,
         blocks,
@@ -264,20 +318,62 @@ export async function reviewSourceAnswer(
         '{"blocks":[{"id":0,"verdict":"SUPPORTED|REASONING|SOURCE_LIMIT|UNSUPPORTED","standalone":true,"claimType":"SOURCE_FACT|RECOMMENDATION|HYPOTHETICAL|CALCULATION|EMPIRICAL_INFERENCE","checks":{"entailment":true,"scope":true,"numbers":true,"causality":true,"evidenceStatus":true},"sources":[{"evidenceNumber":1,"segmentId":0}]}]}. Select only supplied segment IDs. Include exactly one entry for each input block ID.',
       temperature: 0,
       maxTokens: 6000,
-    });
-    const parsed = reviewSchema.parse(result.data);
-    if (parsed.blocks.length !== blocks.length || parsed.blocks.some((b, i) => b.id !== i))
+      ...(options.signal ? { signal: options.signal } : {}),
+    };
+    let recoveryUsed = false;
+    const call = async () => provider.generateStructuredOutput<unknown>(params);
+    let result;
+    try {
+      result = await call();
+    } catch (error) {
+      if (
+        !options.recoverFormat ||
+        reviewFailureCode(error) !== 'REVIEW_JSON_INVALID' ||
+        options.signal?.aborted
+      )
+        throw error;
+      recoveryUsed = true;
+      empty.formatAttempts!.push({ failureCode: 'REVIEW_JSON_INVALID' });
+      result = await call();
+    }
+    empty.promptTokens = result.promptTokens;
+    empty.completionTokens = result.completionTokens;
+    let validation = reviewSchema.safeParse(result.data);
+    if (!validation.success && options.recoverFormat && !recoveryUsed && !options.signal?.aborted) {
+      empty.formatAttempts!.push({
+        failureCode: 'REVIEW_SCHEMA_INVALID',
+        ...(JSON.stringify(result.data ?? null).length <= 24000 ? { rawReview: result.data } : {}),
+      });
+      result = await provider.generateStructuredOutput<unknown>({
+        ...params,
+        systemPrompt:
+          params.systemPrompt +
+          '\nFORMAT RECOVERY ONLY: the previous response failed the strict JSON schema. Return exactly the supplied schema and all input block IDs. Do not change the claims, sources, or support standard.',
+      });
+      validation = reviewSchema.safeParse(result.data);
+      empty.promptTokens += result.promptTokens;
+      empty.completionTokens += result.completionTokens;
+    }
+    if (!validation.success) throw validation.error;
+    const parsed = validation.data;
+    if (parsed.blocks.length !== blocks.length || parsed.blocks.some((b, i) => b.id !== i)) {
+      empty.formatAttempts!.push({
+        failureCode: 'REVIEW_COVERAGE_INVALID',
+        ...(JSON.stringify(parsed).length <= 24000 ? { rawReview: parsed } : {}),
+      });
       throw new Error('REVIEW_COVERAGE_INVALID');
+    }
     const audit: AnswerSupportAudit = {
       status: 'APPROVED',
       blocks: [],
       modelName: result.modelName,
-      promptTokens: result.promptTokens,
-      completionTokens: result.completionTokens,
+      promptTokens: empty.promptTokens,
+      completionTokens: empty.completionTokens,
       unreviewedDraft: draft,
       citationRepairs: 0,
-      reviewVersion: 9,
-      granularity: 'sentence',
+      reviewVersion: options.structuralBlocks ? 10 : 9,
+      granularity: options.structuralBlocks ? 'answer-block' : 'sentence',
+      formatAttempts: empty.formatAttempts,
     };
     const accepted: string[] = [];
     for (const block of parsed.blocks) {
@@ -335,6 +431,15 @@ export async function reviewSourceAnswer(
         Object.values(block.checks).every(Boolean) &&
         !outsideScope &&
         block.claimType !== 'EMPIRICAL_INFERENCE' &&
+        (!options.structuralBlocks || block.standalone) &&
+        (!options.forbidGeneratedCalculations ||
+          (block.claimType !== 'CALCULATION' &&
+            !/\d|\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|hundred|thousand)\b/i.test(
+              text
+                .replace(/\[Evidence #\d+\]/g, '')
+                .replace(/^(?:#{1,6}[^\n]+\n)*\d+[.)]\s/, '')
+                .replace(/^(?:\*\*)?(?:proposed )?question\s+\d+[^:\n]*:\s*/i, ''),
+            ))) &&
         !bareLabel(text);
       audit.blocks.push({
         id: block.id,
@@ -457,12 +562,7 @@ export async function reviewSourceAnswer(
         'I could not complete the source-support check for this answer. The draft has been withheld. Please retry; this does not mean the library lacks the information.',
       audit: {
         ...empty,
-        failureCode:
-          error instanceof z.ZodError
-            ? 'REVIEW_SCHEMA_INVALID'
-            : error instanceof Error && error.message === 'REVIEW_COVERAGE_INVALID'
-              ? 'REVIEW_COVERAGE_INVALID'
-              : 'REVIEW_UNAVAILABLE',
+        failureCode: reviewFailureCode(error),
       },
     };
   }

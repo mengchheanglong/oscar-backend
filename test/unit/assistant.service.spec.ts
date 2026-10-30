@@ -1,5 +1,7 @@
 import { SkillsService } from '../../src/modules/skills/skills.service';
 import { CalculationsService } from '../../src/modules/calculations/calculations.service';
+import { AnswerComposerService } from '../../src/modules/assistant/context/answer-composer.service';
+import { ConfigService } from '@nestjs/config';
 import { ConversationContextService } from '../../src/modules/assistant/context/conversation-context.service';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
@@ -466,6 +468,111 @@ describe('AssistantService', () => {
           Object.assign(service, { knowledge });
           return knowledge;
         }
+        it('keeps legacy source review available behind the rollout switch', async () => {
+          requireSources();
+          Object.assign(service, {
+            answerComposer: new AnswerComposerService(
+              new ConfigService({ AI_ANSWER_BLOCKS_ENABLED: false }),
+            ),
+          });
+          mockLlmProvider.generateAnswer.mockResolvedValue({
+            content: 'Contribution margin is revenue minus variable cost. [Evidence #1]',
+            citations: [source],
+            modelName: 'test',
+            promptTokens: 10,
+            completionTokens: 10,
+          });
+          const result = await service.postMessage(mockProjectId, mockUserId, 'conv-1', request);
+          expect(result.assistantMessage.evidenceSnapshot?.answerComposition).toBeUndefined();
+          expect(result.assistantMessage.evidenceSnapshot?.answerReview?.granularity).toBe(
+            'sentence',
+          );
+          expect(mockLlmProvider.generateAnswer).toHaveBeenCalledTimes(1);
+        });
+        it('persists structural coverage and claim references with idempotent replay', async () => {
+          requireSources();
+          Object.assign(service, {
+            answerComposer: new AnswerComposerService(
+              new ConfigService({ AI_ANSWER_REPAIR_ENABLED: false }),
+            ),
+          });
+          mockLlmProvider.generateAnswer.mockResolvedValue({
+            content: '1. What happened in the last sale? Ask about actual behavior. [Evidence #1]',
+            citations: [source],
+            modelName: 'test',
+            promptTokens: 10,
+            completionTokens: 10,
+          });
+          const structured = {
+            ...request,
+            content: 'Draft five interview questions for my business.',
+          };
+          const result = await service.postMessage(mockProjectId, mockUserId, 'conv-1', structured);
+          expect(result.assistantMessage.evidenceSnapshot?.answerComposition?.coverage.status).toBe(
+            'PARTIAL',
+          );
+          expect(
+            result.assistantMessage.evidenceSnapshot?.answerComposition?.finalBlocks[0]
+              ?.claimReferences,
+          ).toEqual([{ attempt: 0, blockId: 0 }]);
+          expect(result.assistantMessage.content).toContain('1 of 5');
+          expect(result.assistantMessage.evidenceSnapshot?.answerReview?.granularity).toBe(
+            'answer-block',
+          );
+          expect(
+            await service.postMessage(mockProjectId, mockUserId, 'conv-1', structured),
+          ).toEqual(result);
+          expect(mockLlmProvider.generateAnswer).toHaveBeenCalledTimes(1);
+          expect(mockLlmProvider.generateStructuredOutput).toHaveBeenCalledTimes(1);
+        });
+        it('adds reviewed explanation while preserving calculated receipts on replay', async () => {
+          requireSources();
+          Object.assign(service, {
+            calculations: new CalculationsService(),
+            answerComposer: new AnswerComposerService(
+              new ConfigService({ AI_ANSWER_REPAIR_ENABLED: false }),
+            ),
+          });
+          mockLlmProvider.generateStructuredOutput.mockResolvedValueOnce({
+            data: {
+              requests: [
+                {
+                  operation: 'unit_economics',
+                  fields: { price: 'n0', totalVariableCost: 'n1', fixedCost: 'n2' },
+                  principles: [{ evidenceNumber: 1, quote: source.text }],
+                },
+              ],
+            },
+            modelName: 'test-extraction',
+            promptTokens: 10,
+            completionTokens: 5,
+          });
+          mockLlmProvider.generateAnswer.mockResolvedValue({
+            content:
+              '**Explanation** Contribution uses total variable cost, rather than a partial cost component. [Evidence #1]',
+            citations: [source],
+            modelName: 'test',
+            promptTokens: 10,
+            completionTokens: 10,
+          });
+          const mixed = {
+            ...request,
+            content:
+              'Calculate break-even: price $25; total variable cost $5; fixed cost $600. Explain why total variable cost matters.',
+          };
+          const result = await service.postMessage(mockProjectId, mockUserId, 'conv-1', mixed);
+          expect(result.assistantMessage.content).toContain('**30 whole units**');
+          expect(result.assistantMessage.content).toContain('rather than a partial cost');
+          expect(
+            result.assistantMessage.evidenceSnapshot?.answerComposition?.calculationLocked,
+          ).toBe(true);
+          expect(result.assistantMessage.evidenceSnapshot?.generationAttempted).toBe(true);
+          expect(await service.postMessage(mockProjectId, mockUserId, 'conv-1', mixed)).toEqual(
+            result,
+          );
+          expect(mockLlmProvider.generateAnswer).toHaveBeenCalledTimes(1);
+          expect(mockLlmProvider.generateStructuredOutput).toHaveBeenCalledTimes(2);
+        });
         it('persists deterministic calculations and replays without another model call', async () => {
           requireSources();
           Object.assign(service, { calculations: new CalculationsService() });

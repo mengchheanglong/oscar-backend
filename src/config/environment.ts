@@ -69,6 +69,9 @@ const schema = z
       .default('info'),
     SWAGGER_ENABLED: booleanString.default(false),
     AI_ENABLED: booleanString.default(false),
+    AI_ANSWER_BLOCKS_ENABLED: booleanString.default(true),
+    AI_ANSWER_REPAIR_ENABLED: booleanString.default(true),
+    AI_ANSWER_BLOCK_BUDGET_MS: z.coerce.number().int().min(1000).max(45000).default(20000),
     OSCAR_KNOWLEDGE_ENABLED: booleanString.default(false),
     OSCAR_KNOWLEDGE_REQUIRED: booleanString.default(false),
     OSCAR_KNOWLEDGE_BASE_URL: z

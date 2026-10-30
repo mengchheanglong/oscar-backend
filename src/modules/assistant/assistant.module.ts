@@ -15,6 +15,7 @@ import { Module } from '@nestjs/common';
 import { HistoryIndexRepository } from './context/history-index.repository';
 import { HistoryIndexWorker } from './context/history-index.worker';
 import { ConfigService } from '@nestjs/config';
+import { AnswerComposerService } from './context/answer-composer.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectMember } from '../projects/entities/project-member.entity';
 import { Project } from '../projects/entities/project.entity';
@@ -91,6 +92,7 @@ import {
     PlatformHandoffsController,
   ],
   providers: [
+    AnswerComposerService,
     AttachmentsService,
     HistoryIndexRepository,
     HistoryIndexWorker,

@@ -57,6 +57,37 @@ test('empty or withheld evidence cannot pass anchor and citation checks vacuousl
   assert.equal(audit.humanReview.status, 'PENDING');
   assert.equal(audit.calculationInputsValid, false);
   assert.equal(audit.calculationPrinciplesValid, false);
+  assert.equal(audit.compositionAnchorsValid, false);
+});
+
+test('validates composition claim pointers across initial and repaired reviews', () => {
+  const quote = 'Original supporting passage.';
+  const locked = '**Software calculation**\nResult: 15.';
+  const review = {
+    blocks: [{ id: 3, verdict: 'SUPPORTED', sourceQuotes: [{ evidenceNumber: 1, quote }] }],
+  };
+  const composition = {
+    finalBlocks: [{ claimReferences: [{ attempt: 0, blockId: 3 }] }],
+    attempts: [{ review }],
+    calculationLocked: true,
+    lockedCalculationChars: locked.length,
+    lockedCalculationSha256: createHash('sha256').update(locked).digest('hex'),
+  };
+  const answer = {
+    content: locked + '\n\nExplanation.',
+    evidenceSnapshot: {
+      items: [{ evidenceNumber: 1, exactExcerpt: quote }],
+      answerComposition: composition,
+    },
+  };
+  const good = inspectResult({ assistantMessage: answer }, []);
+  assert.equal(good.compositionAnchorsValid, true);
+  assert.equal(good.lockedCalculationMatches, true);
+  composition.finalBlocks[0].claimReferences[0].blockId = 2;
+  answer.content = answer.content.replace('15', '999');
+  const bad = inspectResult({ assistantMessage: answer }, []);
+  assert.equal(bad.compositionAnchorsValid, false);
+  assert.equal(bad.lockedCalculationMatches, false);
 });
 
 test('calculation provenance checks are independent of model-review anchors', () => {

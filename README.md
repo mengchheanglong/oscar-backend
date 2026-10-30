@@ -140,6 +140,11 @@ typed, exact business arithmetic and saved receipts in assistant/MCP answers.
 It documents the bounded operations, source-gap behavior and remaining retrieval
 and answer-completeness limitations.
 
+The [Phase 2 answer guide](docs/architecture/PHASE_2_ANSWER_COVERAGE.md) describes
+whole-unit support review, post-review coverage, a single evidence-only redraft,
+calculator preservation and rollout controls. Structural coverage is distinct
+from independently verified semantic completeness.
+
 Connect the independent service using the
 [Knowledge integration guide](docs/operations/KNOWLEDGE_LOCAL.md). It requires a
 service token and, for private references, a separate backend-only signing

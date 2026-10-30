@@ -65,7 +65,9 @@ export class DeepSeekLlmProvider implements LlmProvider {
           temperature,
           max_tokens: maxTokens,
         }),
-        signal: controller.signal,
+        signal: params.signal
+          ? AbortSignal.any([controller.signal, params.signal])
+          : controller.signal,
       });
 
       if (!response.ok) {
@@ -93,6 +95,11 @@ export class DeepSeekLlmProvider implements LlmProvider {
         completionTokens: data.usage?.completion_tokens ?? Math.ceil(content.length / 4),
       };
     } catch (error: unknown) {
+      if (params.signal?.aborted)
+        throw new ServiceUnavailableException({
+          code: 'AI_DEADLINE_EXCEEDED',
+          message: 'The bounded answer-validation deadline expired.',
+        });
       if (error instanceof Error && error.name === 'AbortError') {
         this.logger.error('DeepSeek API request timed out after 60s');
         throw new Error('DeepSeek API request timed out', { cause: error });
@@ -144,7 +151,9 @@ export class DeepSeekLlmProvider implements LlmProvider {
           temperature,
           max_tokens: maxTokens,
         }),
-        signal: controller.signal,
+        signal: params.signal
+          ? AbortSignal.any([controller.signal, params.signal])
+          : controller.signal,
       });
 
       if (!response.ok) {
@@ -186,6 +195,11 @@ export class DeepSeekLlmProvider implements LlmProvider {
         completionTokens: resData.usage?.completion_tokens ?? Math.ceil(rawJson.length / 4),
       };
     } catch (error: unknown) {
+      if (params.signal?.aborted)
+        throw new ServiceUnavailableException({
+          code: 'AI_DEADLINE_EXCEEDED',
+          message: 'The bounded answer-validation deadline expired.',
+        });
       if (error instanceof Error && error.name === 'AbortError') {
         this.logger.error('DeepSeek API request timed out after 45s during structured output');
         throw new Error('DeepSeek API request timed out', { cause: error });

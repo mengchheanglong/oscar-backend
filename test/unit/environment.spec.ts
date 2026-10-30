@@ -6,6 +6,17 @@ const valid = {
 };
 
 describe('Environment validation', () => {
+  it('validates structural-answer rollout switches and a bounded repair deadline', () => {
+    const config = validateEnvironment(valid);
+    expect(config.AI_ANSWER_BLOCKS_ENABLED).toBe(true);
+    expect(config.AI_ANSWER_REPAIR_ENABLED).toBe(true);
+    expect(config.AI_ANSWER_BLOCK_BUDGET_MS).toBe(20000);
+    expect(
+      validateEnvironment({ ...valid, AI_ANSWER_BLOCKS_ENABLED: 'false' }).AI_ANSWER_BLOCKS_ENABLED,
+    ).toBe(false);
+    for (const value of ['0', '50000', 'NaN'])
+      expect(() => validateEnvironment({ ...valid, AI_ANSWER_BLOCK_BUDGET_MS: value })).toThrow();
+  });
   it('requires the reference service to be enabled for required-source mode', () => {
     expect(validateEnvironment(valid).OSCAR_KNOWLEDGE_REQUIRED).toBe(false);
     expect(() => validateEnvironment({ ...valid, OSCAR_KNOWLEDGE_REQUIRED: 'true' })).toThrow();

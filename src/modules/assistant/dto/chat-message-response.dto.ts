@@ -88,7 +88,7 @@ export class ChatMessageResponseDto {
     nullable: true,
     additionalProperties: true,
     description:
-      'Private bounded evidence supplied for this turn, including uncited passages and text hashes. Null for historical turns not captured. generationAttempted indicates answer drafting, excluding typed calculation extraction recorded separately in calculationAudit. Deterministic policy/calculation replies do not draft an answer with the model.',
+      'Private bounded evidence supplied for this turn, including uncited passages and text hashes. Null for historical turns not captured. generationAttempted includes answer, companion or repair drafting; typed input extraction is tracked separately in calculationAudit. Optional answerComposition records structural coverage, claim pointers, review attempts and locked calculation hashes.',
   })
   evidenceSnapshot!: EvidenceSnapshot | null;
 

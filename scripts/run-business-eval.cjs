@@ -53,10 +53,39 @@ function inspectResult(result, messages) {
   const citations = answer?.citations ?? [];
   const calculations = snapshot?.calculationAudit?.receipts ?? [];
   const question = result.userMessage?.content;
+  const composition = snapshot?.answerComposition;
+  const composed = composition?.finalBlocks ?? [];
   return {
     completed: answer?.status === 'COMPLETED',
     reviewStatus: snapshot?.answerReview?.status ?? null,
     stageTimings: snapshot?.stageTimings ?? null,
+    compositionCoverage: composition?.coverage ?? null,
+    compositionRepair: composition?.repair ?? null,
+    compositionAttempts: composition?.attempts?.length ?? 0,
+    compositionAnchorsValid:
+      composed.length > 0 &&
+      composed.every(
+        (block) =>
+          block.claimReferences?.length > 0 &&
+          block.claimReferences.every((ref) => {
+            const reviewed = composition.attempts[ref.attempt]?.review?.blocks?.find(
+              (b) => b.id === ref.blockId,
+            );
+            return (
+              reviewed &&
+              ['SUPPORTED', 'REASONING'].includes(reviewed.verdict) &&
+              reviewed.sourceQuotes?.length > 0 &&
+              reviewed.sourceQuotes.every((anchor) => {
+                const item = items.find((item) => item.evidenceNumber === anchor.evidenceNumber);
+                return (item?.exactExcerpt ?? item?.snippet ?? '').includes(anchor.quote);
+              })
+            );
+          }),
+      ),
+    lockedCalculationMatches: composition?.calculationLocked
+      ? hash(answer.content.slice(0, composition.lockedCalculationChars)) ===
+        composition.lockedCalculationSha256
+      : null,
     calculationStatus: snapshot?.calculationAudit?.status ?? null,
     calculationReceiptCount: calculations.length,
     calculationInputsValid:

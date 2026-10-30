@@ -7,6 +7,7 @@ export type AssistantStage =
   | 'evidenceAssembly'
   | 'conversationContext'
   | 'calculation'
+  | 'answerComposition'
   | 'generation'
   | 'supportReview';
 

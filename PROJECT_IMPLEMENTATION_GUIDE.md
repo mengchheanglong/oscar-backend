@@ -1,5 +1,30 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-30 knowledge intelligence Phase 2: added typed answer/request records,
+> whole-unit source review and post-review structural coverage with one bounded
+> evidence-only redraft. Question/rationale and recommendation/rule pairs and full
+> tables remain atomic; generated citations stay outside table cells. Calculator
+> replies remain immutable, with reviewed qualitative companions when requested.
+> Explicit no-personalization instructions now invoke reference-only scope.
+> Safe review diagnostics distinguish JSON/schema, missing IDs, truncation, limits
+> and unavailable checks; one first-review format recovery is separate from
+> coverage repair. New rollout flags retain legacy review and bound composition
+> requests using real HTTP abort signals. No model switch, source reimport, schema
+> migration or graph rebuild. See docs/architecture/PHASE_2_ANSWER_COVERAGE.md and
+> the dated private Phase 2 report for measured verification and open limitations.
+> Structural coverage and a positive model review do not certify semantic accuracy
+> or completion of the broader knowledge architecture.
+> Verification: 684 unit tests, 178 HTTP tests, seven runner checks, lint,
+> typecheck, format, build and OpenAPI generation passed. Private live diagnostics
+> retain 36 responses across 16 development questions; latest structural statuses
+> are 12 covered, two partial and two unanswered, not semantic accuracy scores.
+> Final runtime checks preserve four/five question lists, whole tables and scope;
+> 69 distinct original excerpts matched authorized re-reads. Numeric/explanation
+> and interview-list replay preserved full snapshots without duplicate messages.
+> Corpus/grant/model-file fingerprints and Knowledge counts match; reserved
+> questions remain untouched. Labor-method, cash-definition, companion-explanation
+> and multi-book evidence limitations remain recorded for Phase 3/human review.
+
 > 2026-10-30 knowledge intelligence Phase 1: added a finite typed calculator,
 > exact rational arithmetic, currency/period/count validation and persisted
 > calculation receipts in the existing private evidence snapshot. Configured

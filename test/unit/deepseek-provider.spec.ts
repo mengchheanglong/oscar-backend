@@ -3,6 +3,24 @@ import { ServiceUnavailableException } from '@nestjs/common';
 
 describe('DeepSeek structured drafts', () => {
   afterEach(() => jest.restoreAllMocks());
+  it.each(['answer', 'structured'])('honors a caller deadline in %s requests', async (mode) => {
+    const fetchMock = jest.spyOn(global, 'fetch').mockImplementation(async (_url, init) => {
+      expect((init?.signal as AbortSignal).aborted).toBe(true);
+      throw new DOMException('Aborted', 'AbortError');
+    });
+    const provider = new DeepSeekLlmProvider('test');
+    const signal = AbortSignal.abort();
+    await expect(
+      mode === 'answer'
+        ? provider.generateAnswer({ messages: [], evidence: [], signal })
+        : provider.generateStructuredOutput({
+            systemPrompt: 'Review',
+            userPrompt: 'Synthetic',
+            signal,
+          }),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 
   it('requests a complete-output budget and parses valid JSON', async () => {
     const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(

@@ -3,6 +3,7 @@ import { reviewSourceAnswer, forbidsApplication } from './context/answer-support
 import { requestsPositioning, requestsSynthesis } from './context/reasoning-intent';
 import { StageTimer } from './context/stage-timings';
 import { CalculationsService } from '../calculations/calculations.service';
+import { AnswerComposerService } from './context/answer-composer.service';
 import { calculationIntent } from '../calculations/input-bindings';
 import { AttachmentsService } from './attachments.service';
 import { SkillsService } from '../skills/skills.service';
@@ -76,6 +77,7 @@ export class AssistantService implements OnModuleInit {
     @Optional() private readonly knowledge?: KnowledgeClientService,
     @Optional() private readonly attachments?: AttachmentsService,
     @Optional() private readonly calculations?: CalculationsService,
+    @Optional() private readonly answerComposer?: AnswerComposerService,
   ) {}
 
   onModuleInit(): void {
@@ -500,7 +502,13 @@ export class AssistantService implements OnModuleInit {
                 completionTokens: 0,
               }
             : await this.llmProvider.generateAnswer({
-                messages: prepared.messages,
+                messages:
+                  this.answerComposer?.enabled() && groundingRequired
+                    ? [
+                        { role: 'system', content: this.answerComposer.guidance(dto.content) },
+                        ...prepared.messages,
+                      ]
+                    : prepared.messages,
                 evidence: assembled.evidenceItems,
                 ...(groundingRequired ? { temperature: 0.2 } : {}),
               }),
@@ -566,8 +574,10 @@ export class AssistantService implements OnModuleInit {
     const hasCurrentCitation = validatedCitations.some((citation) =>
       generateResult.content.includes('[Evidence #' + citation.evidenceNumber + ']'),
     );
+    const typedAnswer = Boolean(this.answerComposer?.enabled() && groundingRequired && !courtesy);
     const withholdDraft =
       groundingRequired &&
+      !typedAnswer &&
       !courtesy &&
       !calculationReply &&
       assembled.evidenceItems.length > 0 &&
@@ -575,7 +585,28 @@ export class AssistantService implements OnModuleInit {
 
     let answerContent = generateResult.content;
     let answerCitations = validatedCitations;
-    if (groundingRequired && !courtesy && !calculationReply && hasCurrentCitation) {
+    if (typedAnswer) {
+      const composed = await timing.measure('answerComposition', () =>
+        this.answerComposer!.complete(
+          this.llmProvider,
+          dto.content,
+          answerContent,
+          assembled.evidenceItems,
+          calculationReply,
+        ),
+      );
+      answerContent = composed.content;
+      evidenceSnapshot.answerComposition = composed.audit;
+      evidenceSnapshot.answerReview = composed.audit.attempts.at(-1)?.review;
+      evidenceSnapshot.generationAttempted ||= composed.audit.generationAttempts > 0;
+      answerCitations = includedCitations.filter(
+        (c) =>
+          c.evidenceNumber !== undefined && composed.evidenceNumbers.includes(c.evidenceNumber),
+      );
+      generateResult.promptTokens = (generateResult.promptTokens ?? 0) + composed.promptTokens;
+      generateResult.completionTokens =
+        (generateResult.completionTokens ?? 0) + composed.completionTokens;
+    } else if (groundingRequired && !courtesy && !calculationReply && hasCurrentCitation) {
       const reviewed = await timing.measure('supportReview', () =>
         reviewSourceAnswer(this.llmProvider, dto.content, answerContent, assembled.evidenceItems),
       );
