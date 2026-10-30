@@ -1,5 +1,27 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-30 knowledge intelligence Phase 1: added a finite typed calculator,
+> exact rational arithmetic, currency/period/count validation and persisted
+> calculation receipts in the existing private evidence snapshot. Configured
+> DeepSeek/Qwen identities, source grants, retrieval and databases are preserved.
+> Assistant/MCP calculations use validated current-message inputs and controlled
+> rendering; typed extraction is distinct from answer drafting. Required-source
+> mode withholds results without a validated original method quote. Live testing
+> caught a component-as-total error; runtime rejection/regression coverage now
+> prevents that substitution. Corrected labor arithmetic remains a source-gap
+> case because retrieval returned exercises. Selected development calculations
+> publish correct sourced results; reserved questions remain untouched. See
+> docs/architecture/PHASE_1_CALCULATIONS.md for verification boundaries and the
+> dated private report for actual attempts. Phase 2 answer completeness and
+> broader retrieval/source-quality work remain unfinished.
+> Verification: 656 unit tests, 178 HTTP tests, six runner checks, lint,
+> typecheck, formatting, build and generated OpenAPI passed. Private live runs
+> retain 29 attempts, including 20 post-correction development/runtime cases;
+> completion/provenance checks are not a claim that every answer is useful.
+> The source gaps and explanation limits are documented rather than counted as
+> successful business answers. Authorized passage re-reads, recall isolation,
+> persisted replay and unchanged source/configuration fingerprints were checked.
+
 > 2026-10-30 knowledge intelligence Phase 0: reconciled legacy Pro/OpenAI
 > instructions with the existing explicit DeepSeek Flash and pinned Qwen 0.6B/1024
 > configuration, without changing either service's configuration or model identity.

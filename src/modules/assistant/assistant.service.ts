@@ -2,6 +2,8 @@ import { BUSINESS_DECISION_GUIDANCE, courtesyReply, sourceGap } from './context/
 import { reviewSourceAnswer, forbidsApplication } from './context/answer-support';
 import { requestsPositioning, requestsSynthesis } from './context/reasoning-intent';
 import { StageTimer } from './context/stage-timings';
+import { CalculationsService } from '../calculations/calculations.service';
+import { calculationIntent } from '../calculations/input-bindings';
 import { AttachmentsService } from './attachments.service';
 import { SkillsService } from '../skills/skills.service';
 import { KnowledgeClientService } from '../knowledge-client/knowledge-client.service';
@@ -73,6 +75,7 @@ export class AssistantService implements OnModuleInit {
     @Optional() private readonly skills?: SkillsService,
     @Optional() private readonly knowledge?: KnowledgeClientService,
     @Optional() private readonly attachments?: AttachmentsService,
+    @Optional() private readonly calculations?: CalculationsService,
   ) {}
 
   onModuleInit(): void {
@@ -443,6 +446,17 @@ export class AssistantService implements OnModuleInit {
 
     const scope = { projectId, userId, conversationId };
     finishEvidenceAssembly();
+    const calculationAudit =
+      this.calculations &&
+      calculationIntent(dto.content) &&
+      (!groundingRequired || assembled.evidenceItems.length > 0)
+        ? await timing.measure('calculation', () =>
+            this.calculations!.prepare(this.llmProvider, dto.content, assembled.evidenceItems),
+          )
+        : undefined;
+    const calculationReply = calculationAudit
+      ? this.calculations!.render(calculationAudit, groundingRequired)
+      : undefined;
     const prepared = await timing.measure('conversationContext', () =>
       this.conversationContext.prepare(scope, userMessage.id, assembled.systemPrompt),
     );
@@ -453,7 +467,10 @@ export class AssistantService implements OnModuleInit {
     const evidenceSnapshot: EvidenceSnapshot = {
       version: 1 as const,
       ...('audit' in supplementary ? { retrievalAudit: supplementary.audit } : {}),
-      generationAttempted: !groundingRequired || (!courtesy && assembled.evidenceItems.length > 0),
+      generationAttempted:
+        !calculationReply &&
+        (!groundingRequired || (!courtesy && assembled.evidenceItems.length > 0)),
+      ...(calculationAudit ? { calculationAudit } : {}),
       items: assembled.evidenceItems.map(({ text: _text, ...item }, index) => ({
         ...item,
         evidenceNumber: index + 1,
@@ -464,19 +481,29 @@ export class AssistantService implements OnModuleInit {
     };
     try {
       generateResult = await timing.measure('generation', async () =>
-        groundingRequired && (courtesy || !assembled.evidenceItems.length)
+        calculationReply
           ? {
-              content: courtesy ?? sourceGap(supplementary.unavailable),
-              citations: [],
-              modelName: 'source-policy',
-              promptTokens: 0,
-              completionTokens: 0,
+              content: calculationReply.content,
+              citations: assembled.evidenceItems.filter((_item, index) =>
+                calculationReply.evidenceNumbers.includes(index + 1),
+              ),
+              modelName: 'oscar-calculator-v1',
+              promptTokens: calculationAudit!.promptTokens,
+              completionTokens: calculationAudit!.completionTokens,
             }
-          : await this.llmProvider.generateAnswer({
-              messages: prepared.messages,
-              evidence: assembled.evidenceItems,
-              ...(groundingRequired ? { temperature: 0.2 } : {}),
-            }),
+          : groundingRequired && (courtesy || !assembled.evidenceItems.length)
+            ? {
+                content: courtesy ?? sourceGap(supplementary.unavailable),
+                citations: [],
+                modelName: 'source-policy',
+                promptTokens: 0,
+                completionTokens: 0,
+              }
+            : await this.llmProvider.generateAnswer({
+                messages: prepared.messages,
+                evidence: assembled.evidenceItems,
+                ...(groundingRequired ? { temperature: 0.2 } : {}),
+              }),
       );
     } catch {
       this.logger.error('AI_GENERATION_FAILED');
@@ -540,11 +567,15 @@ export class AssistantService implements OnModuleInit {
       generateResult.content.includes('[Evidence #' + citation.evidenceNumber + ']'),
     );
     const withholdDraft =
-      groundingRequired && !courtesy && assembled.evidenceItems.length > 0 && !hasCurrentCitation;
+      groundingRequired &&
+      !courtesy &&
+      !calculationReply &&
+      assembled.evidenceItems.length > 0 &&
+      !hasCurrentCitation;
 
     let answerContent = generateResult.content;
     let answerCitations = validatedCitations;
-    if (groundingRequired && !courtesy && hasCurrentCitation) {
+    if (groundingRequired && !courtesy && !calculationReply && hasCurrentCitation) {
       const reviewed = await timing.measure('supportReview', () =>
         reviewSourceAnswer(this.llmProvider, dto.content, answerContent, assembled.evidenceItems),
       );

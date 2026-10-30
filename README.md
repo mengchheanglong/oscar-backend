@@ -135,6 +135,11 @@ The [Phase 0 baseline guide](docs/architecture/PHASE_0_BASELINE.md) documents
 duration-only stage telemetry, frozen datasets and isolation from evaluation-chat
 history.
 
+The [Phase 1 calculation guide](docs/architecture/PHASE_1_CALCULATIONS.md) describes
+typed, exact business arithmetic and saved receipts in assistant/MCP answers.
+It documents the bounded operations, source-gap behavior and remaining retrieval
+and answer-completeness limitations.
+
 Connect the independent service using the
 [Knowledge integration guide](docs/operations/KNOWLEDGE_LOCAL.md). It requires a
 service token and, for private references, a separate backend-only signing

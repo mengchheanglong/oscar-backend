@@ -55,6 +55,33 @@ test('empty or withheld evidence cannot pass anchor and citation checks vacuousl
   assert.equal(audit.citationTargetsValid, false);
   assert.equal(audit.reloadMatches, false);
   assert.equal(audit.humanReview.status, 'PENDING');
+  assert.equal(audit.calculationInputsValid, false);
+  assert.equal(audit.calculationPrinciplesValid, false);
+});
+
+test('calculation provenance checks are independent of model-review anchors', () => {
+  const question = 'Calculate price $20.';
+  const quote = 'Contribution is price minus variable cost.';
+  const receipt = {
+    questionSha256: createHash('sha256').update(question).digest('hex'),
+    inputs: { price: { start: 17, end: 19, quote: '20' } },
+    principles: [{ evidenceNumber: 1, quote }],
+  };
+  const answer = {
+    evidenceSnapshot: {
+      items: [{ evidenceNumber: 1, sourceType: 'EXTERNAL_KNOWLEDGE', exactExcerpt: quote }],
+      calculationAudit: { status: 'CALCULATED', receipts: [receipt] },
+    },
+  };
+  const good = inspectResult({ userMessage: { content: question }, assistantMessage: answer }, []);
+  assert.equal(good.calculationInputsValid, true);
+  assert.equal(good.calculationPrinciplesValid, true);
+  assert.equal(good.anchorsValid, false);
+  receipt.inputs.price.start = 16;
+  receipt.principles[0].quote = 'Fabricated';
+  const bad = inspectResult({ userMessage: { content: question }, assistantMessage: answer }, []);
+  assert.equal(bad.calculationInputsValid, false);
+  assert.equal(bad.calculationPrinciplesValid, false);
 });
 test('detects forged citations, stale snapshots and invalid source quotes independently', () => {
   const text = 'Synthetic explanatory passage.';

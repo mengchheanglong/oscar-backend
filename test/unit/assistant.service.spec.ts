@@ -1,4 +1,5 @@
 import { SkillsService } from '../../src/modules/skills/skills.service';
+import { CalculationsService } from '../../src/modules/calculations/calculations.service';
 import { ConversationContextService } from '../../src/modules/assistant/context/conversation-context.service';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
@@ -465,6 +466,74 @@ describe('AssistantService', () => {
           Object.assign(service, { knowledge });
           return knowledge;
         }
+        it('persists deterministic calculations and replays without another model call', async () => {
+          requireSources();
+          Object.assign(service, { calculations: new CalculationsService() });
+          mockLlmProvider.generateStructuredOutput.mockResolvedValueOnce({
+            data: {
+              requests: [
+                {
+                  operation: 'unit_economics',
+                  fields: { price: 'n0', totalVariableCost: 'n1', fixedCost: 'n2' },
+                  principles: [{ evidenceNumber: 1, quote: source.text }],
+                },
+              ],
+            },
+            modelName: 'test-extraction',
+            promptTokens: 30,
+            completionTokens: 10,
+          });
+          const numeric = {
+            ...request,
+            content: 'Calculate break-even: price $25; total variable cost $5; fixed cost $600.',
+          };
+          const result = await service.postMessage(mockProjectId, mockUserId, 'conv-1', numeric);
+          expect(result.assistantMessage.modelName).toBe('oscar-calculator-v1');
+          expect(result.assistantMessage.content).toContain('**30 whole units**');
+          expect(result.assistantMessage.citations).toHaveLength(1);
+          const snapshot = result.assistantMessage.evidenceSnapshot!;
+          expect(snapshot.generationAttempted).toBe(false);
+          expect(snapshot.calculationAudit?.status).toBe('CALCULATED');
+          expect(
+            snapshot.calculationAudit?.receipts[0]?.outputs.find((o) => o.key === 'contribution')
+              ?.value,
+          ).toBe('20');
+          expect(snapshot.stageTimings?.stagesMs.calculation).toBeGreaterThanOrEqual(0);
+          expect(await service.postMessage(mockProjectId, mockUserId, 'conv-1', numeric)).toEqual(
+            result,
+          );
+          expect(mockLlmProvider.generateStructuredOutput).toHaveBeenCalledTimes(1);
+          expect(mockLlmProvider.generateAnswer).not.toHaveBeenCalled();
+        });
+        it('withholds numerical results when required sources do not supply a method passage', async () => {
+          requireSources();
+          Object.assign(service, { calculations: new CalculationsService() });
+          mockLlmProvider.generateStructuredOutput.mockResolvedValueOnce({
+            data: {
+              requests: [
+                {
+                  operation: 'unit_economics',
+                  fields: { price: 'n0', totalVariableCost: 'n1', fixedCost: 'n2' },
+                  principles: [],
+                },
+              ],
+            },
+            modelName: 'test-extraction',
+            promptTokens: 30,
+            completionTokens: 10,
+          });
+          const result = await service.postMessage(mockProjectId, mockUserId, 'conv-1', {
+            ...request,
+            content: 'Calculate break-even: price $25; total variable cost $5; fixed cost $600.',
+          });
+          expect(result.assistantMessage.content).toContain('Calculation source gap');
+          expect(result.assistantMessage.content).not.toContain('30 whole units');
+          expect(result.assistantMessage.citations).toHaveLength(0);
+          expect(result.assistantMessage.evidenceSnapshot?.calculationAudit?.receipts).toHaveLength(
+            1,
+          );
+          expect(mockLlmProvider.generateAnswer).not.toHaveBeenCalled();
+        });
         it('excludes project records and memories when a source synthesis forbids project application', async () => {
           requireSources();
           mockRetrievalService.retrieve.mockResolvedValue([

@@ -51,10 +51,37 @@ function inspectResult(result, messages) {
   const saved = messages.find((item) => item.id === answer?.id);
   const retained = blocks.filter((block) => ['SUPPORTED', 'REASONING'].includes(block.verdict));
   const citations = answer?.citations ?? [];
+  const calculations = snapshot?.calculationAudit?.receipts ?? [];
+  const question = result.userMessage?.content;
   return {
     completed: answer?.status === 'COMPLETED',
     reviewStatus: snapshot?.answerReview?.status ?? null,
     stageTimings: snapshot?.stageTimings ?? null,
+    calculationStatus: snapshot?.calculationAudit?.status ?? null,
+    calculationReceiptCount: calculations.length,
+    calculationInputsValid:
+      calculations.length > 0 &&
+      typeof question === 'string' &&
+      calculations.every(
+        (receipt) =>
+          receipt.questionSha256 === hash(question) &&
+          Object.values(receipt.inputs).every(
+            (input) => question.slice(input.start, input.end) === input.quote,
+          ),
+      ),
+    calculationPrinciplesValid:
+      calculations.length > 0 &&
+      calculations.every(
+        (receipt) =>
+          receipt.principles.length > 0 &&
+          receipt.principles.every((anchor) => {
+            const item = items.find((item) => item.evidenceNumber === anchor.evidenceNumber);
+            return (
+              item?.sourceType === 'EXTERNAL_KNOWLEDGE' &&
+              (item.exactExcerpt ?? item.snippet ?? '').includes(anchor.quote)
+            );
+          }),
+      ),
     libraryPassages: items.filter((item) => item.sourceType === 'EXTERNAL_KNOWLEDGE').length,
     libraryCitations: citations.filter((item) => item.sourceType === 'EXTERNAL_KNOWLEDGE').length,
     citationTargetsValid:

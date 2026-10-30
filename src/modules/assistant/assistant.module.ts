@@ -1,4 +1,5 @@
 import { AttachmentsController } from './attachments.controller';
+import { CalculationsModule } from '../calculations/calculations.module';
 import { AttachmentsService } from './attachments.service';
 import { DocumentsModule } from '../documents/documents.module';
 import { StorageModule } from '../storage/storage.module';
@@ -55,6 +56,7 @@ import {
 
 @Module({
   imports: [
+    CalculationsModule,
     DocumentsModule,
     StorageModule,
     KnowledgeClientModule,
