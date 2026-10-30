@@ -1,6 +1,7 @@
 import { BUSINESS_DECISION_GUIDANCE, courtesyReply, sourceGap } from './context/source-grounding';
 import { reviewSourceAnswer, forbidsApplication } from './context/answer-support';
 import { requestsPositioning, requestsSynthesis } from './context/reasoning-intent';
+import { StageTimer } from './context/stage-timings';
 import { AttachmentsService } from './attachments.service';
 import { SkillsService } from '../skills/skills.service';
 import { KnowledgeClientService } from '../knowledge-client/knowledge-client.service';
@@ -191,6 +192,7 @@ export class AssistantService implements OnModuleInit {
     conversationId: string,
     dto: PostMessageDto,
   ): Promise<{ userMessage: ChatMessage; assistantMessage: ChatMessage }> {
+    const timing = new StageTimer();
     const conversation = await this.getConversation(projectId, userId, conversationId);
     const project = await this.projectRepo.findOne({ where: { id: projectId } });
     const projectName = project?.name || 'Workspace';
@@ -308,32 +310,37 @@ export class AssistantService implements OnModuleInit {
     }
 
     // Required-source policy is enforced server-side, including omitted/false client flags.
-    const knowledgePromise = includeKnowledge
-      ? ((groundingRequired
-          ? this.knowledge?.retrieve(dto.content, userId, knowledgeScope, true)
-          : this.knowledge?.retrieve(dto.content, userId, knowledgeScope)) ??
-        Promise.resolve({ evidence: [], unavailable: true }))
-      : Promise.resolve({ evidence: [], unavailable: false });
+    const knowledgePromise = timing.measure('referenceRetrieval', async () =>
+      includeKnowledge
+        ? ((groundingRequired
+            ? this.knowledge?.retrieve(dto.content, userId, knowledgeScope, true)
+            : this.knowledge?.retrieve(dto.content, userId, knowledgeScope)) ??
+          Promise.resolve({ evidence: [], unavailable: true }))
+        : Promise.resolve({ evidence: [], unavailable: false }),
+    );
     // Retrieve evidence
-    const retrievedEvidence = await this.retrievalService
-      .retrieve({
-        actorId: userId,
-        projectId,
-        projectIds: targetProjectIds,
-        query: dto.content,
-        filters: dto.sourceType ? { sourceType: dto.sourceType } : undefined,
-        limit: includeAllWorkspaces ? 12 : 8,
-        mode: 'hybrid',
-        ...(groundingRequired ? { allowWorkspaceFallback: false } : {}),
-      })
-      .catch(() => {
-        this.logger.error('AI_RETRIEVAL_FAILED');
-        throw new ServiceUnavailableException({
-          code: 'AI_RETRIEVAL_FAILED',
-          message: 'Project search could not complete. Your request is saved; please retry.',
-        });
-      });
+    const retrievedEvidence = await timing.measure('projectRetrieval', () =>
+      this.retrievalService
+        .retrieve({
+          actorId: userId,
+          projectId,
+          projectIds: targetProjectIds,
+          query: dto.content,
+          filters: dto.sourceType ? { sourceType: dto.sourceType } : undefined,
+          limit: includeAllWorkspaces ? 12 : 8,
+          mode: 'hybrid',
+          ...(groundingRequired ? { allowWorkspaceFallback: false } : {}),
+        })
+        .catch(() => {
+          this.logger.error('AI_RETRIEVAL_FAILED');
+          throw new ServiceUnavailableException({
+            code: 'AI_RETRIEVAL_FAILED',
+            message: 'Project search could not complete. Your request is saved; please retry.',
+          });
+        }),
+    );
 
+    const finishContextPreparation = timing.start('contextPreparation');
     const attachmentEvidence = this.attachments
       ? await this.attachments.evidence({ projectId, userId, conversationId }, dto.content)
       : [];
@@ -366,7 +373,9 @@ export class AssistantService implements OnModuleInit {
         })
       : undefined;
     const mavisMemories = mavisPack?.approvedMemories ?? [];
+    finishContextPreparation();
     const supplementary = await knowledgePromise;
+    const finishEvidenceAssembly = timing.start('evidenceAssembly');
     const businessReview = includeKnowledge && isBusinessReview(dto.content);
     const synthesisRequest = includeKnowledge && requestsSynthesis(dto.content);
     const learningOverview =
@@ -433,10 +442,9 @@ export class AssistantService implements OnModuleInit {
     }
 
     const scope = { projectId, userId, conversationId };
-    const prepared = await this.conversationContext.prepare(
-      scope,
-      userMessage.id,
-      assembled.systemPrompt,
+    finishEvidenceAssembly();
+    const prepared = await timing.measure('conversationContext', () =>
+      this.conversationContext.prepare(scope, userMessage.id, assembled.systemPrompt),
     );
 
     // Generate LLM response
@@ -455,7 +463,7 @@ export class AssistantService implements OnModuleInit {
       })),
     };
     try {
-      generateResult =
+      generateResult = await timing.measure('generation', async () =>
         groundingRequired && (courtesy || !assembled.evidenceItems.length)
           ? {
               content: courtesy ?? sourceGap(supplementary.unavailable),
@@ -468,9 +476,11 @@ export class AssistantService implements OnModuleInit {
               messages: prepared.messages,
               evidence: assembled.evidenceItems,
               ...(groundingRequired ? { temperature: 0.2 } : {}),
-            });
+            }),
+      );
     } catch {
       this.logger.error('AI_GENERATION_FAILED');
+      evidenceSnapshot.stageTimings = timing.snapshot();
       const failedMessage = this.messageRepo.create({
         ...(savedAnswer ? { id: savedAnswer.id, createdAt: savedAnswer.createdAt } : {}),
         conversationId: conversation.id,
@@ -535,11 +545,8 @@ export class AssistantService implements OnModuleInit {
     let answerContent = generateResult.content;
     let answerCitations = validatedCitations;
     if (groundingRequired && !courtesy && hasCurrentCitation) {
-      const reviewed = await reviewSourceAnswer(
-        this.llmProvider,
-        dto.content,
-        answerContent,
-        assembled.evidenceItems,
+      const reviewed = await timing.measure('supportReview', () =>
+        reviewSourceAnswer(this.llmProvider, dto.content, answerContent, assembled.evidenceItems),
       );
       answerContent = reviewed.content;
       evidenceSnapshot.answerReview = reviewed.audit;
@@ -554,6 +561,7 @@ export class AssistantService implements OnModuleInit {
         this.logger.warn('AI_SUPPORT_REVIEW_UNAVAILABLE');
     }
 
+    evidenceSnapshot.stageTimings = timing.snapshot();
     const assistantMessage = this.messageRepo.create({
       ...(savedAnswer ? { id: savedAnswer.id, createdAt: savedAnswer.createdAt } : {}),
       conversationId: conversation.id,

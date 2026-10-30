@@ -131,6 +131,9 @@ For real business-question acceptance, see the
 [business usefulness evaluation](docs/architecture/BUSINESS_USEFULNESS_EVALUATION.md).
 It separates live retrieval/provenance checks from semantic and actionability
 review, with private development and reserved question sets.
+The [Phase 0 baseline guide](docs/architecture/PHASE_0_BASELINE.md) documents
+duration-only stage telemetry, frozen datasets and isolation from evaluation-chat
+history.
 
 Connect the independent service using the
 [Knowledge integration guide](docs/operations/KNOWLEDGE_LOCAL.md). It requires a

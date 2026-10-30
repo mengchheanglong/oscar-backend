@@ -14,7 +14,7 @@
 ## Fixed decisions and scope
 
 - Backend: NestJS, strict TypeScript, Express, TypeORM, PostgreSQL/pgvector, pnpm.
-- LLM: DeepSeek V4 Pro (`deepseek-v4-pro`) through a provider adapter. Do not replace it with another generation model.
+- LLM: Preserve the configured DeepSeek model through its provider adapter. The current application default and established local runtime use `deepseek-flash`; `deepseek-v4-pro` is an explicit supported choice. Do not switch generation models as a side effect of retrieval work. This reconciles the old Pro-only instruction with the existing configuration; it does not authorize a model change.
 - Embeddings are a separate dependency. Main OSCAR defaults to pinned local Qwen3-Embedding 0.6B through Ollama, with explicit OpenAI and keyword-only overrides supported. Preserve other model identities during migrations. Never send an embedding request with a DeepSeek credential.
 - Finish Phase 1 before connecting Phase 2 AI. Core workspace operations must work without AI credentials or Redis.
 - This is the backend repository. Do not create a frontend, second backend stack, microservices, Kubernetes, or unrelated infrastructure without a matching task.

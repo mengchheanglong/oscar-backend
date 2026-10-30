@@ -54,6 +54,7 @@ function inspectResult(result, messages) {
   return {
     completed: answer?.status === 'COMPLETED',
     reviewStatus: snapshot?.answerReview?.status ?? null,
+    stageTimings: snapshot?.stageTimings ?? null,
     libraryPassages: items.filter((item) => item.sourceType === 'EXTERNAL_KNOWLEDGE').length,
     libraryCitations: citations.filter((item) => item.sourceType === 'EXTERNAL_KNOWLEDGE').length,
     citationTargetsValid:

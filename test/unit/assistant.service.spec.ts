@@ -560,6 +560,22 @@ describe('AssistantService', () => {
           expect(result.assistantMessage.citations).toHaveLength(1);
           expect(result.assistantMessage.evidenceSnapshot?.items).toHaveLength(2);
           expect(result.assistantMessage.evidenceSnapshot?.answerReview?.status).toBe('FILTERED');
+          const timings = result.assistantMessage.evidenceSnapshot?.stageTimings;
+          expect(timings?.version).toBe(1);
+          expect(Object.keys(timings!.stagesMs).sort()).toEqual(
+            [
+              'contextPreparation',
+              'conversationContext',
+              'evidenceAssembly',
+              'generation',
+              'projectRetrieval',
+              'referenceRetrieval',
+              'supportReview',
+            ].sort(),
+          );
+          expect(
+            Object.values(timings!.stagesMs).every((ms) => Number.isInteger(ms) && ms >= 0),
+          ).toBe(true);
           expect(result.assistantMessage.promptTokens).toBe(30);
           expect(await service.postMessage(mockProjectId, mockUserId, 'conv-1', request)).toEqual(
             result,

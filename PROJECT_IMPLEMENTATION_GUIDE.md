@@ -1,5 +1,29 @@
 # AI Project Workspace: Implementation Guide
 
+> 2026-10-30 knowledge intelligence Phase 0: reconciled legacy Pro/OpenAI
+> instructions with the existing explicit DeepSeek Flash and pinned Qwen 0.6B/1024
+> configuration, without changing either service's configuration or model identity.
+> Added private duration-only stage telemetry to evidence snapshots and the live
+> runner; prompts, ranking, source access and answer-review rules are unchanged.
+> Consistent database archives were fully decoded and hash-checked (not restored).
+> Catalog/grant fingerprints, 200 sampled PDF hashes and Knowledge counts match.
+> Fresh 40-development/20-reserved questions were frozen; reserved answers were not
+> generated. The 40-case current-project diagnostic had 39 completed messages,
+> one generation failure and one withheld answer; p50/p95 were 12.381/21.101 seconds.
+> It exposed cross-chat history in 39 cases. Only those 40 exact synthetic chats
+> were recall-excluded after verifying no unrelated dependencies; transcripts stay.
+> A separate 12-case control used a copied owner-derived brief and normal context
+> exclusions between cases, with zero cross-chat dependencies. It had 11 completed
+> messages, including one named-source evidence gap, and one generation failure;
+> p50/p95 were 13.980/30.336 seconds. Its three-book query exhausted the 25-second
+> reference budget. These small, different-context samples are not accuracy or
+> speed-improvement claims. Human gold labels remain pending. All 172 distinct
+> captured library excerpts were re-read through authorized inspection and matched.
+> Verification: 613 unit/178 HTTP tests, five runner checks, lint/typecheck/build,
+> format and unchanged generated OpenAPI passed. Accepted AIW decisions were
+> unavailable before startup, then returned none. Main app/Knowledge readiness is 200. No database migration, source reimport, graph rebuild or model switch.
+> See docs/architecture/PHASE_0_BASELINE.md and the private dated phase0 report.
+
 > 2026-10-30 business usefulness iteration: added a reusable live MCP evaluation
 > runner with private question/answer receipts, stable retry identity, development
 > and reserved splits, and separate mechanical versus human-review fields. The

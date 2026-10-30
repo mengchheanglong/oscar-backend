@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Conversation } from './conversation.entity';
 import type { AnswerSupportAudit } from '../context/answer-support';
+import type { AssistantStageTimings } from '../context/stage-timings';
 import type { KnowledgeRetrievalAudit } from '../../knowledge-client/knowledge-retrieval-audit';
 import { AssistantMode } from './assistant-mode.enum';
 
@@ -65,6 +66,7 @@ export interface EvidenceSnapshot {
   items: (CitationItem & { textSha256: string })[];
   answerReview?: AnswerSupportAudit;
   retrievalAudit?: KnowledgeRetrievalAudit;
+  stageTimings?: AssistantStageTimings;
 }
 
 @Entity('ai_messages')

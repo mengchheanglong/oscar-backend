@@ -25,6 +25,13 @@ development questions to diagnose failures. Keep reserved answers unexamined
 until code is frozen; if a reserved failure guides a later fix, retire it as a
 holdout and add a new question for the next round.
 
+A fresh chat can still recall earlier eligible project/user conversations. The
+runner does not disable that behavior or automatically exclude its test chats.
+Use the dedicated-project and per-message context-exclusion protocol in the
+[Phase 0 baseline guide](PHASE_0_BASELINE.md) for an isolated control. Record the
+ordinary history-enabled run separately; do not present it as clean independent
+evaluation or silently alter the user's normal history configuration.
+
 Cover positioning, segment choice, adoption, pricing, unit economics, cash,
 experiment design, contradictory signals, unknown market facts, and explicit
 book-only scope. Include negative and counterfactual cases. Do not merely ask

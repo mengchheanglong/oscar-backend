@@ -44,7 +44,7 @@ The **Continuum Backend** is a workspace engine built with **NestJS**, **TypeScr
 ### 1.2 Core Architectural Principles
 
 1. **Decoupled AI & Storage**: Core workspace operations function independently of AI availability. If AI providers are unavailable, standard CRUD and search fallback remain 100% operational.
-2. **Provider Separation**: Generation uses DeepSeek V4 Pro (`deepseek-v4-pro`); embeddings use OpenAI (`text-embedding-3-small`). DeepSeek credentials are never sent to embedding endpoints.
+2. **Provider Separation**: Preserve the explicitly configured generation model. The application default and established local runtime use DeepSeek `deepseek-flash`; `deepseek-v4-pro` is supported as an explicit choice. Embeddings default to pinned local Qwen3-Embedding 0.6B via Ollama, 1024 dimensions; OpenAI and keyword-only modes are explicit alternatives. DeepSeek credentials are never sent to embedding endpoints. Retrieval changes do not authorize changing models or existing vector identities.
 3. **Transactional Proposals**: AI output is untrusted. Task suggestions require explicit human confirmation with an idempotency key and current proposal version before persistence.
 4. **Access Isolation**: Cross-project queries return `404 Not Found` (never `403`) to eliminate resource enumeration and privacy leaks.
 
@@ -54,33 +54,35 @@ The **Continuum Backend** is a workspace engine built with **NestJS**, **TypeScr
 
 All environment variables are validated at boot against the Zod schema in `src/config/environment.ts`. The application fails fast if any required variable is missing or malformed.
 
-| Variable Name            | Type / Format                                                | Default                    | Description & Operational Notes                                                           |
-| ------------------------ | ------------------------------------------------------------ | -------------------------- | ----------------------------------------------------------------------------------------- |
-| `NODE_ENV`               | `development \| production \| test`                          | `development`              | Setting to `production` enforces `__Host-` cookie prefixes, TLS cookies, and strict CORS. |
-| `PORT`                   | Integer (1–65535)                                            | `43101`                    | HTTP listen port.                                                                         |
-| `APP_ORIGIN`             | URL                                                          | `http://localhost:43100`   | Allowed frontend origin for CORS and CSRF header validation.                              |
-| `DATABASE_HOST`          | Hostname / IP                                                | `127.0.0.1`                | PostgreSQL database host.                                                                 |
-| `DATABASE_PORT`          | Integer                                                      | `43104`                    | PostgreSQL database port (Local dev: `43104`, Test: `43105`, Prod: `5432`).               |
-| `DATABASE_NAME`          | String                                                       | `ai_workspace`             | PostgreSQL database name.                                                                 |
-| `DATABASE_USER`          | String                                                       | `ai_workspace_app`         | Dedicated least-privilege PostgreSQL user.                                                |
-| `DATABASE_PASSWORD`      | String                                                       | _Required_                 | Strong database user password.                                                            |
-| `DATABASE_SSL`           | Boolean                                                      | `false`                    | Enable TLS verification for database connections in staging/prod.                         |
-| `STORAGE_DRIVER`         | `local \| s3`                                                | `local`                    | Object storage backend. In production clusters, configure `s3` with MinIO or AWS S3.      |
-| `STORAGE_LOCAL_ROOT`     | File path                                                    | `./var/uploads`            | Path to persistent volume for local file storage.                                         |
-| `MAX_UPLOAD_BYTES`       | Integer (bytes)                                              | `20971520` (20 MiB)        | Maximum allowed file upload size. Validated in streaming parser.                          |
-| `SESSION_IDLE_HOURS`     | Integer (hours)                                              | `8`                        | Sliding window inactivity timeout for user sessions.                                      |
-| `SESSION_ABSOLUTE_DAYS`  | Integer (days)                                               | `7`                        | Maximum absolute lifespan of a session regardless of activity.                            |
-| `LOG_LEVEL`              | `fatal \| error \| warn \| info \| debug \| trace \| silent` | `info`                     | Logging verbosity via structured Pino logger.                                             |
-| `AI_ENABLED`             | Boolean                                                      | `false`                    | Global feature flag enabling AI chat, context retrieval, and proposals.                   |
-| `DEEPSEEK_API_KEY`       | String                                                       | _Optional_                 | DeepSeek platform API key for `deepseek-v4-pro`.                                          |
-| `DEEPSEEK_BASE_URL`      | URL                                                          | `https://api.deepseek.com` | DeepSeek API base URL.                                                                    |
-| `AI_CHAT_MODEL`          | String                                                       | `deepseek-v4-pro`          | Model identifier for reasoning and proposal generation.                                   |
-| `EMBEDDING_PROVIDER`     | `mock \| openai`                                             | `mock`                     | Embedding engine. Use `openai` in production for dense semantic retrieval.                |
-| `OPENAI_API_KEY`         | String                                                       | _Optional_                 | OpenAI API key for `text-embedding-3-small`.                                              |
-| `OPENAI_EMBEDDING_MODEL` | String                                                       | `text-embedding-3-small`   | 1536-dimensional vector embedding model.                                                  |
-| `GITHUB_CLIENT_ID`       | String                                                       | _Optional_                 | GitHub OAuth App client ID for repository sync.                                           |
-| `GITHUB_CLIENT_SECRET`   | String                                                       | _Optional_                 | GitHub OAuth App client secret.                                                           |
-| `GITHUB_WEBHOOK_SECRET`  | String                                                       | _Optional_                 | Secret for validating inbound GitHub webhook HMAC-SHA256 signatures.                      |
+| Variable Name              | Type / Format                                                | Default                           | Description & Operational Notes                                                           |
+| -------------------------- | ------------------------------------------------------------ | --------------------------------- | ----------------------------------------------------------------------------------------- |
+| `NODE_ENV`                 | `development \| production \| test`                          | `development`                     | Setting to `production` enforces `__Host-` cookie prefixes, TLS cookies, and strict CORS. |
+| `PORT`                     | Integer (1–65535)                                            | `43101`                           | HTTP listen port.                                                                         |
+| `APP_ORIGIN`               | URL                                                          | `http://localhost:43100`          | Allowed frontend origin for CORS and CSRF header validation.                              |
+| `DATABASE_HOST`            | Hostname / IP                                                | `127.0.0.1`                       | PostgreSQL database host.                                                                 |
+| `DATABASE_PORT`            | Integer                                                      | `43104`                           | PostgreSQL database port (Local dev: `43104`, Test: `43105`, Prod: `5432`).               |
+| `DATABASE_NAME`            | String                                                       | `ai_workspace`                    | PostgreSQL database name.                                                                 |
+| `DATABASE_USER`            | String                                                       | `ai_workspace_app`                | Dedicated least-privilege PostgreSQL user.                                                |
+| `DATABASE_PASSWORD`        | String                                                       | _Required_                        | Strong database user password.                                                            |
+| `DATABASE_SSL`             | Boolean                                                      | `false`                           | Enable TLS verification for database connections in staging/prod.                         |
+| `STORAGE_DRIVER`           | `local \| s3`                                                | `local`                           | Object storage backend. In production clusters, configure `s3` with MinIO or AWS S3.      |
+| `STORAGE_LOCAL_ROOT`       | File path                                                    | `./var/uploads`                   | Path to persistent volume for local file storage.                                         |
+| `MAX_UPLOAD_BYTES`         | Integer (bytes)                                              | `20971520` (20 MiB)               | Maximum allowed file upload size. Validated in streaming parser.                          |
+| `SESSION_IDLE_HOURS`       | Integer (hours)                                              | `8`                               | Sliding window inactivity timeout for user sessions.                                      |
+| `SESSION_ABSOLUTE_DAYS`    | Integer (days)                                               | `7`                               | Maximum absolute lifespan of a session regardless of activity.                            |
+| `LOG_LEVEL`                | `fatal \| error \| warn \| info \| debug \| trace \| silent` | `info`                            | Logging verbosity via structured Pino logger.                                             |
+| `AI_ENABLED`               | Boolean                                                      | `false`                           | Global feature flag enabling AI chat, context retrieval, and proposals.                   |
+| `DEEPSEEK_API_KEY`         | String                                                       | _Optional_                        | DeepSeek platform credential for the configured generation model only.                    |
+| `DEEPSEEK_BASE_URL`        | URL                                                          | `https://api.deepseek.com`        | DeepSeek API base URL.                                                                    |
+| `AI_CHAT_MODEL`            | `deepseek-flash \| deepseek-v4-pro`                          | `deepseek-flash`                  | Preserve the installation's explicit model selection.                                     |
+| `AI_EMBEDDING_PROVIDER`    | `disabled \| mock \| openai \| ollama`                       | `ollama`                          | Local Qwen by default; disabled is keyword-only. Mock is for tests.                       |
+| `OPENAI_API_KEY`           | String                                                       | _Optional_                        | OpenAI API key for `text-embedding-3-small`.                                              |
+| `AI_EMBEDDING_MODEL`       | String                                                       | `qwen3-embedding:0.6b` for Ollama | Provider-aware default: explicit OpenAI uses `text-embedding-3-small`.                    |
+| `AI_EMBEDDING_DIMENSIONS`  | Integer                                                      | `1024` for Ollama                 | Provider-aware default: explicit OpenAI uses `1536`. Preserve existing identities.        |
+| `AI_OLLAMA_MODEL_REVISION` | Digest                                                       | Pinned in configuration/schema    | Verify installed model identity before indexing; see the local embeddings guide.          |
+| `GITHUB_CLIENT_ID`         | String                                                       | _Optional_                        | GitHub OAuth App client ID for repository sync.                                           |
+| `GITHUB_CLIENT_SECRET`     | String                                                       | _Optional_                        | GitHub OAuth App client secret.                                                           |
+| `GITHUB_WEBHOOK_SECRET`    | String                                                       | _Optional_                        | Secret for validating inbound GitHub webhook HMAC-SHA256 signatures.                      |
 
 ---
 
